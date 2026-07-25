@@ -150,8 +150,18 @@
   .card.static { cursor: default; }
   .card:focus { outline: none; }
   .card:focus-visible .card3d { box-shadow: 0 0 0 3px var(--accent), 0 18px 34px rgba(0,0,0,.24) !important; }
-  .card3d { position: relative; transform-style: preserve-3d; will-change: transform; transition: box-shadow .25s ease; border-radius: 12px; }
-  .face { border-radius: 12px; transform-style: preserve-3d; }
+  /* 3Dの舞台（preserve-3d）と will-change は、動いているカードにだけ与える。
+     常に与えるとカードが1枚ずつ合成の層になり、画面内の枚数ぶん層が増える。
+     詳細を閉じるあいだは背景の幕が薄れていくので画面ぜんたいが描き直し対象になり、
+     その層をすべて毎コマ重ね直すことになる。ページを送って枚数が多いほど
+     戻りが重くなっていた（実測：画面内5枚で0ms、11枚で37ms。層79→48で6ms）。
+     静止中のカードは平面として置く。アバターの浮き（translateZ）が効くのは
+     傾いている間だけなので、静止中の見た目は変わらない
+     （画素で比較して差はにじみ止めの効き方のみ。層でなくなるぶん文字はむしろ鮮明） */
+  .card3d { position: relative; transform-style: flat; transition: box-shadow .25s ease; border-radius: 12px; }
+  .face { border-radius: 12px; transform-style: flat; }
+  .card3d.live, .card3d.live .face { transform-style: preserve-3d; }
+  .card3d.live { will-change: transform; }
   /* カードの高さは全枚そろえる。中身の量で丈がばらつかないようにする */
   .front {
     background: var(--paper); color: var(--ink); border-radius: 12px;
@@ -394,6 +404,14 @@
     position: absolute; left: 50%; top: 50%; translate: -50% -50%;
     transform-origin: center; pointer-events: none; z-index: 2;
     backface-visibility: hidden; -webkit-backface-visibility: hidden;
+    /* 遠近は浅め（2600px）にしてある。深いほど回転中の投影が大きくなり、
+       描き直しの負担が増える。実描画の計測では 1800px から 2600px にするだけで
+       引っかかりが 10ms から 0ms になった。
+       表面だけレイヤーに載せる。表と裏が入れ替わる瞬間（90度）に
+       表面を描き起こしていて、そこでコマが落ちていた。
+       裏面（文字の多い大きな面）は載せると逆に重くなるので載せない。
+       実描画での計測：引っかかりが 19.9/10.2ms から 4.4/2.2ms になった */
+    will-change: transform;
   }
   .f-front .card3d, .f-front .face { width: 100%; height: 100%; }
   .f-front .card3d { transform: none !important; box-shadow: 0 18px 40px rgba(20,26,40,.28); }
@@ -522,7 +540,7 @@
     </div>
     <div class="me" id="meBox"><span>YUKIYAMAさん</span><div class="ava-s">Y</div></div>
     <!-- どの版を見ているかを確かめるための表示。更新されていないと思ったときはここを見る -->
-    <button class="build" id="buildTag" title="押すと自己診断（閉じる動作の重さを自動で測ります）">rev.12 影を軽くした版</button>
+    <button class="build" id="buildTag" title="押すと自己診断（閉じる動作の重さを自動で測ります）">rev.16 戻りの跳ねを直した版</button>
   </div>
 </header>
 
@@ -696,24 +714,43 @@ function genDaily(seed, level) {
 const slice = (h, n) => ({ labels: h.labels.slice(-n), recv: h.recv.slice(-n), sent: h.sent.slice(-n) });
 
 /* =========================================================================
-   自己診断：閉じる動作が重くないかを、この画面自身で判定する
+   自己診断：閉じる動作がカクついていないかを、この画面自身で判定する
 
-   「開いた直後に閉じると滑らか、しばらく置いてから閉じると引っかかる」という
-   症状をそのまま手順にして測る。閉じる間の各コマの長さを集め、
-   直後と時間を置いた後で比べて合否を出す。
+   見るのは2つ。どちらか一方だけでは取りこぼす。
+
+   ① 着地ずれ：戻り切った最後のコマで、飛んでいたカードが元のカードの位置に
+      ちゃんと着いているか。ここがずれていると、消える瞬間に一度だけ跳ぶ。
+      コマ落ちは1つも起きていないので、コマの長さを見るだけでは絶対に出ない。
+      実際、逆再生の詰めを誤って183px跳んでいた版も、コマの長さでは「合格」だった。
+   ② 取りこぼし：閉じる間の各コマが1コマ分を超えた分の合計。
+      「開いた直後は滑らかで、しばらく置いてから閉じると引っかかる」という
+      症状をそのまま手順にして、直後と時間を置いた後で比べる。
    ========================================================================= */
 const DIAG = { rounds: 6, wait: 2500, frameMs: 17 };
 
-/** 1回ぶん：開く → wait 待つ → 閉じる。閉じる間の各コマの長さを返す */
+/** 1回ぶん：開く → wait 待つ → 閉じる。コマの長さと着地ずれを返す */
 async function diagOnce(waitMs) {
   const card = document.querySelector("#grid .card");
   card.scrollIntoView({ block: "center" });
   await new Promise(r => setTimeout(r, 300));
   card.click();
   await new Promise(r => setTimeout(r, 700 + waitMs));
+
+  // 戻り先＝元のカードの中心。中心で測るのは、回転中は遠近で見かけの幅が縮み、
+  // 端で測ると回転そのものが横移動として出てしまうため
+  const cr = card.getBoundingClientRect();
+  const goal = { x: cr.left + cr.width / 2, y: cr.top + cr.height / 2 };
   const frames = [];
-  let last = performance.now(), stop = false;
-  const loop = now => { frames.push(now - last); last = now; if (!stop) requestAnimationFrame(loop); };
+  let last = performance.now(), stop = false, landing = 0;
+  const loop = now => {
+    frames.push(now - last); last = now;
+    const el = document.querySelector(".f-front");
+    if (el) {
+      const r = el.getBoundingClientRect();
+      landing = Math.hypot(r.left + r.width / 2 - goal.x, r.top + r.height / 2 - goal.y);
+    }
+    if (!stop) requestAnimationFrame(loop);
+  };
   requestAnimationFrame(loop);
   document.querySelector(".sheet-close").click();
   await new Promise(r => setTimeout(r, FLIP_MS + 160));
@@ -721,7 +758,7 @@ async function diagOnce(waitMs) {
   await new Promise(r => setTimeout(r, 280));
   document.querySelectorAll(".overlay").forEach(o => o.remove());
   document.querySelectorAll(".card").forEach(c => (c.style.visibility = ""));
-  return frames.slice(1);
+  return { frames: frames.slice(1), landing: +landing.toFixed(1) };
 }
 
 async function runSelfTest(btn) {
@@ -738,36 +775,42 @@ async function runSelfTest(btn) {
   }
   btn.disabled = false; btn.textContent = label;
 
-  /* 判定は「時間を置くと悪くなるか」だけを見る。機械の速さは環境で変わるため。
-     指標は最長フレームではなく「取りこぼした時間の合計」を使う。
-     最長は外れ値1つで大きく振れて判定が安定しないが、
-     取りこぼしの合計（各コマが1コマ分を超えた分の総和）は回をまたいでも安定する */
-  const lost = rounds => rounds.map(f =>
-    +f.reduce((s, x) => s + Math.max(0, x - DIAG.frameMs), 0).toFixed(1));
+  /* 取りこぼしは「時間を置くと悪くなるか」だけを見る。機械の速さは環境で変わるため。
+     指標に最長フレームを使わないのは、外れ値1つで判定が振れて安定しないから。
+     着地ずれのほうは環境によらない絶対値なので、そのまま2pxで切る */
+  const lost = rounds => rounds.map(r =>
+    +r.frames.reduce((s, x) => s + Math.max(0, x - DIAG.frameMs), 0).toFixed(1));
   const mean = a => a.length ? +(a.reduce((s, x) => s + x, 0) / a.length).toFixed(1) : 0;
-  const A = { lost: lost(now), worst: +Math.max(0, ...now.flat()).toFixed(1) };
-  const B = { lost: lost(later), worst: +Math.max(0, ...later.flat()).toFixed(1) };
+  const worst = rounds => +Math.max(0, ...rounds.flatMap(r => r.frames)).toFixed(1);
+  const A = { lost: lost(now), worst: worst(now) };
+  const B = { lost: lost(later), worst: worst(later) };
   A.avg = mean(A.lost); B.avg = mean(B.lost);
   const gap = +(B.avg - A.avg).toFixed(1);
-  const ok = B.avg <= A.avg * 1.35 + 4;
+  const landing = +Math.max(0, ...[...now, ...later].map(r => r.landing)).toFixed(1);
+  const landOk = landing <= 2;
+  const lostOk = B.avg <= A.avg * 1.35 + 4;
+  const ok = landOk && lostOk;
 
   document.querySelectorAll(".diag").forEach(d => d.remove());
   const el = document.createElement("div");
   el.className = "diag";
   el.innerHTML = `
     <button class="x" aria-label="閉じる">✕</button>
-    <h4>自己診断：詳細を閉じるときの重さ</h4>
+    <h4>自己診断：詳細を閉じるときのなめらかさ</h4>
     <table>
+      <tr><td>着地ずれ（2px以下なら跳ねなし）</td><td>${landing} px　${landOk ? "○" : "×"}</td></tr>
       <tr><td>開いた直後に閉じる　取りこぼし</td><td>${A.avg} ms</td></tr>
-      <tr><td>${DIAG.wait / 1000}秒置いてから閉じる　取りこぼし</td><td>${B.avg} ms</td></tr>
+      <tr><td>${DIAG.wait / 1000}秒置いてから閉じる　取りこぼし</td><td>${B.avg} ms　${lostOk ? "○" : "×"}</td></tr>
       <tr><td>その差（小さいほど良い）</td><td>${gap >= 0 ? "+" : ""}${gap} ms</td></tr>
       <tr><td>最長のコマ　直後 / 後</td><td>${A.worst} / ${B.worst} ms</td></tr>
     </table>
-    <span class="v ${ok ? "pass" : "fail"}">${ok ? "合格：時間を置いても重くなっていません" : "不合格：時間を置くと重くなっています"}</span>
-    <div style="font-size:10.5px;color:var(--navy-soft);margin-top:6px">判定は「時間を置いたときに悪化するか」だけを見ています。数値そのものは機械の速さで変わります。</div>`;
+    <span class="v ${ok ? "pass" : "fail"}">${ok
+      ? "合格：跳ねなし・時間を置いても重くなっていません"
+      : !landOk ? "不合格：戻り切る瞬間にカードが跳んでいます" : "不合格：時間を置くと重くなっています"}</span>
+    <div style="font-size:10.5px;color:var(--navy-soft);margin-top:6px">着地ずれ＝最後のコマでカードが元の位置からどれだけ離れているか。ここがずれると、コマ落ちがなくても消える瞬間に一度跳ねます。取りこぼしのほうは機械の速さで数値が変わるので、時間を置いたときの悪化だけを見ています。</div>`;
   el.querySelector(".x").addEventListener("click", () => el.remove());
   document.body.appendChild(el);
-  window.__diag = { A, B, gap, ok };
+  window.__diag = { A, B, gap, landing, landOk, lostOk, ok };
   return window.__diag;
 }
 
@@ -1227,12 +1270,23 @@ class CardMotion {
     // 動いていないカードにまで毎フレーム書き込むと、その枚数だけスタイル再計算が走る。
     // 止まっているカードは最後の1回だけ書いて、あとは触らない
     if (!a && this.settled) return false;
+    /* 合成の層に上げるのは、そのカードが動いている間だけ。止まったら降ろす。
+       切り替わった瞬間だけ書くので、毎コマの書き込みにはしない */
+    const wasSettled = this.settled;
     this.settled = !a;
-    this.el.style.transform =
-      `translate3d(0, ${(this.ty.v + this.lift.v).toFixed(2)}px, 0) ` +
-      `rotateX(${this.rx.v.toFixed(2)}deg) rotateY(${this.ry.v.toFixed(2)}deg) ` +
-      `rotateZ(${this.rz.v.toFixed(2)}deg) ` +
-      `translateZ(${this.z.v.toFixed(2)}px) scale(${this.s.v.toFixed(3)})`;
+    if (this.settled !== wasSettled) this.el.classList.toggle("live", !this.settled);
+    /* 変形も、3Dの成分が要るときだけ3Dで書く。
+       静止中に translate3d や translateZ(0px) を書くと、実際には奥行きがないのに
+       それだけで合成の層になってしまう（層になった理由の内訳に Trivial3DTransform が
+       11件出ていた）。傾きも浮きもゼロのときは平面の変形で書く。見た目は同じ */
+    const has3d = Math.abs(this.rx.v) > .01 || Math.abs(this.ry.v) > .01 || Math.abs(this.z.v) > .01;
+    this.el.style.transform = has3d
+      ? `translate3d(0, ${(this.ty.v + this.lift.v).toFixed(2)}px, 0) ` +
+        `rotateX(${this.rx.v.toFixed(2)}deg) rotateY(${this.ry.v.toFixed(2)}deg) ` +
+        `rotateZ(${this.rz.v.toFixed(2)}deg) ` +
+        `translateZ(${this.z.v.toFixed(2)}px) scale(${this.s.v.toFixed(3)})`
+      : `translate(0px, ${(this.ty.v + this.lift.v).toFixed(2)}px) ` +
+        `rotate(${this.rz.v.toFixed(2)}deg) scale(${this.s.v.toFixed(3)})`;
     this.root.style.opacity = this.op.v.toFixed(3);
     // 影は傾きに合わせて反対側へ流す
     const sx = (-this.ry.v / CONF.tilt) * 8;
@@ -1575,14 +1629,39 @@ function openFlight(ov, card) {
       dy: (r.top + r.height / 2) - (o.top + o.height / 2),
     };
   };
-  const play = (reverse) => {
+  const frames = () => {
     const { dx, dy } = delta();
-    const f = [
-      { transform: `perspective(1800px) translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) rotateY(0deg)` },
-      { transform: `perspective(1800px) translate(0px, 0px) rotateY(180deg)` },
+    return [
+      { transform: `perspective(2600px) translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) rotateY(0deg)` },
+      { transform: `perspective(2600px) translate(0px, 0px) rotateY(180deg)` },
     ];
-    return wrap.animate(reverse ? [...f].reverse() : f,
-      { duration: FLIP_MS, easing: FLIP_EASE, fill: "forwards" });
+  };
+
+  /* アニメーションは開くときに1つ作り、閉じるときはそれを逆再生する。
+     閉じるたびに作り直すと、そのたびにコンポジタが載せ直しになり、
+     戻り始めの数コマが落ちる（計測でフレーム落ちが閉じ始めの40%に集中していた）。
+     ただし開いている間にページが動いていたら戻り先がずれるので、
+     そのときだけコマを作り直す。
+
+     fill は "both" でなければならない。逆再生は 0ms 側で終わるが、
+     そこはアニメーションの「開始前」にあたり、"forwards" では値が当たらない。
+     結果、戻り切った最後の1コマだけ変形が外れて、カードが詳細の位置へ
+     183px 跳ね上がってから消えていた（毎コマ計測で確認：…496 499 316 の316が跳ね）。
+     これが「戻る瞬間だけガタつく」の正体 */
+  let anim = null;
+  let openedAt = { y: window.scrollY, w: innerWidth, h: innerHeight };
+  const play = (reverse) => {
+    if (!reverse) {
+      anim = wrap.animate(frames(), { duration: FLIP_MS, easing: FLIP_EASE, fill: "both" });
+      return anim;
+    }
+    const moved = window.scrollY !== openedAt.y || innerWidth !== openedAt.w || innerHeight !== openedAt.h;
+    if (moved || !anim) {
+      anim = wrap.animate([...frames()].reverse(), { duration: FLIP_MS, easing: FLIP_EASE, fill: "both" });
+      return anim;
+    }
+    anim.reverse();
+    return anim;
   };
 
   const bg = ov.querySelector(".overlay-bg");
