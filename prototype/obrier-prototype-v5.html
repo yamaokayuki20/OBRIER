@@ -384,6 +384,7 @@
     position: relative; transform: rotateY(180deg);
     backface-visibility: hidden; -webkit-backface-visibility: hidden;
     max-height: calc(100vh - 60px); overflow-y: auto; overscroll-behavior: contain;
+    scrollbar-gutter: stable;   /* スクロールバーの出入りで中の文字が組み直されないように */
   }
   .sheet-head { display: flex; align-items: center; gap: 10px; padding: 20px 22px 12px; }
   .sheet-head b { font-size: 13.5px; }
@@ -504,7 +505,7 @@
     </div>
     <div class="me" id="meBox"><span>YUKIYAMAさん</span><div class="ava-s">Y</div></div>
     <!-- どの版を見ているかを確かめるための表示。更新されていないと思ったときはここを見る -->
-    <span class="build" title="この版の識別子">rev.9 戻り座標を測り直す版</span>
+    <span class="build" title="この版の識別子">rev.10 閉じ始めにレイアウトを触らない版</span>
   </div>
 </header>
 
@@ -1493,16 +1494,18 @@ function openFlight(ov, card) {
 
   const bg = ov.querySelector(".overlay-bg");
   card.style.visibility = "hidden";
-  back.style.overflowY = "hidden";          // 回転中はスクロール領域にしない
   bg.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, easing: "ease-out" });
-  play(false).onfinish = () => { back.style.overflowY = "auto"; };
+  play(false);
 
   let closing = false;
   const close = () => {
     if (closing) return;
     closing = true;
-    // 回転中はスクロール領域にしない（スクロール可能な要素は合成の扱いが変わる）
-    back.style.overflowY = "hidden";
+    /* 閉じ始めにレイアウトを触らない。
+       以前はここでスクロール領域を畳んでいたが、詳細のスクロールバーが消える分だけ
+       中の文字が組み直しになり、しかもその直後に座標を測っていたため、
+       同期的なレイアウト計算まで強制していた。戻り始めが引っかかる原因だった。
+       スクロールバーの幅は scrollbar-gutter で常に確保してあるので、触る必要がない */
     play(true).onfinish = () => {
       // 片付けは次のフレームに回す。最後のコマとDOMの破棄が重ならないようにする
       requestAnimationFrame(() => { card.style.visibility = ""; ov.remove(); });
