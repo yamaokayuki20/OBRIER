@@ -405,9 +405,9 @@
     <div class="ctrl">
       <span>デザイン</span>
       <div class="seg" id="segPattern">
-        <button data-pat="pat-a" aria-pressed="true">A ベタ塗り</button>
+        <button data-pat="pat-a" aria-pressed="false">A ベタ塗り</button>
         <button data-pat="pat-b" aria-pressed="false">B 紙＋タグ色</button>
-        <button data-pat="pat-d" aria-pressed="false">D 紙＋マステ</button>
+        <button data-pat="pat-d" aria-pressed="true">D 紙＋マステ（正）</button>
         <button data-pat="pat-c" aria-pressed="false">C 現行v4</button>
       </div>
     </div>
@@ -462,12 +462,13 @@
       </ul>
     </div>
     <div class="memo-card">
-      <h3>いまの本命はA（ベタ塗り）</h3>
+      <h3>採用：D（紙＋マステ）</h3>
       <ul>
-        <li>浮かせるのはアイコンだけ。文字も日時もカードと同じ高さに置いた</li>
-        <li>詳細は濃紺で、アイコンの色に揃えた</li>
-        <li>クリックでカードがめくれ、中央で拡大して詳細になる</li>
-        <li>手ざわり寄りの比較用にDも残してある（マステ・紙質・静かな傾き）</li>
+        <li>Bの整い（白い紙・明朝の本文・タグピル）にCの手ざわり（マステ・紙質・静かな傾き）を足したもの</li>
+        <li>浮かせるのはアイコンだけ。文字も日時もカードと同じ高さに置く</li>
+        <li>詳細は濃紺で、アイコンの色に揃える</li>
+        <li>クリックでカードが移動しながら裏返り、拡大して詳細になる</li>
+        <li>A・B・Cは比較用に残してある</li>
       </ul>
     </div>
   </div>
@@ -622,7 +623,7 @@ const PAT_CONF = {
   "pat-d": { tilt: 0,   glare: 0,   liftZ: 0,  liftY: -3, straighten: true,  shadY: 6,  shadBlur: 14, shadA: .10 },
   "pat-c": { tilt: 0,   glare: 0,   liftZ: 0,  liftY: -3, straighten: true,  shadY: 6,  shadBlur: 14, shadA: .10 },
 };
-let CUR_PAT = "pat-a";
+let CUR_PAT = "pat-d";
 
 /* D/C：カードごとのわずかな静的傾き（deg）。Dは±1°未満に抑える */
 const BASE_ROT = {
@@ -974,12 +975,17 @@ function openFlight(ov, card) {
     if (closing) return;
     closing = true;
     const m2 = measure();   // スクロールしている場合があるので測り直す
+    // 畳み終わった詳細は消す。真横向きでも薄い板として残り、
+    // 戻ってくるカードと二枚に見えてしまうため
     sheet.animate([
       { transform: "none", opacity: 1 },
       { transform: `translate(${-m2.halfX}px, ${-m2.halfY}px) rotateY(-90deg) scale(${m2.shrink})`, opacity: 1 },
-    ], { duration: FLY_IN, easing: EASE_1, fill: "forwards" });
+    ], { duration: FLY_IN, easing: EASE_1, fill: "forwards" })
+      .onfinish = () => { sheet.style.visibility = "hidden"; };
 
-    clone.style.visibility = "";
+    // 複製は、詳細が畳み終わる直前まで隠しておく。
+    // 先に出すと、畳まれていく詳細と真横向きの複製が同時に見えて二枚に見える
+    setTimeout(() => { clone.style.visibility = ""; }, Math.max(0, FLY_IN - HANDOFF));
     clone.animate([
       { transform: `${PERSP} translate(${m2.halfX}px, ${m2.halfY}px) rotateY(90deg) scale(${m2.grow})` },
       { transform: `${PERSP} translate(0, 0) rotateY(0deg) scale(1)` },
@@ -1053,7 +1059,7 @@ function wireSeg(id, fn, attr) {
    起動
    ========================================================================= */
 buildGrid();
-setPattern("pat-a");
+setPattern("pat-d");
 wireSeg("segPattern", setPattern, "pat");
 wireSeg("segTheme", setTheme, "theme");
 document.getElementById("optTilt").addEventListener("change", e => {
