@@ -331,11 +331,14 @@
   .adm-select { background: #fff; border: 1px solid var(--panel-line); border-radius: 8px; padding: 5px 8px; font-size: 12px; font-family: inherit; color: var(--stage-ink); }
 
   /* ---------------- モーダル（拡大詳細・ダイアログ） ---------------- */
-  .overlay { position: fixed; inset: 0; background: rgba(20,26,40,.52); display: grid; place-items: center; z-index: 60; padding: 20px; perspective: 1600px; }
+  .overlay { position: fixed; inset: 0; display: grid; place-items: center; z-index: 60; padding: 20px; perspective: 1600px; }
+  /* 暗幕は別要素にする。オーバーレイごと opacity を動かすと、
+     その中で回っているカードまで毎フレーム合成し直しになる */
+  .overlay-bg { position: absolute; inset: 0; background: rgba(20,26,40,.52); will-change: opacity; }
   .sheet {
     background: #fff; color: var(--navy); border-radius: 22px; width: min(560px, 100%);
     max-height: calc(100vh - 60px); overflow-y: auto; box-shadow: 0 30px 70px rgba(20,26,40,.38);
-    will-change: transform, opacity; backface-visibility: hidden;
+    backface-visibility: hidden;
   }
   .sheet.wide { width: min(760px, 100%); }
   .sheet.narrow { width: min(430px, 100%); }
@@ -1276,7 +1279,7 @@ function openDialog({ title, sub, body, actions = [], cls = "" }) {
   const close = () => { document.removeEventListener("keydown", onEsc); ov.remove(); };
   const onEsc = e => { if (e.key === "Escape") close(); };
   document.addEventListener("keydown", onEsc);
-  ov.addEventListener("click", e => { if (e.target === ov || e.target.closest(".sheet-close")) close(); });
+  ov.addEventListener("click", e => { if (e.target === ov || e.target.classList.contains("overlay-bg") || e.target.closest(".sheet-close")) close(); });
   actions.forEach((a, i) => {
     const b = ov.querySelector(`[data-act="${i}"]`);
     if (b) b.addEventListener("click", () => { if (a.run) a.run(); if (a.keep !== true) close(); });
@@ -1317,6 +1320,7 @@ function openThread(d, fromCard, opts) {
   // 1つの要素の表にカード、裏に詳細を貼る。この要素ごと回して裏返す
   const faceHTML = fromCard ? fromCard.querySelector(".card3d").outerHTML : "";
   ov.innerHTML = `
+    <div class="overlay-bg"></div>
     <div class="flipwrap">
       <div class="f-front" aria-hidden="true">${faceHTML}</div>
       <div class="f-back sheet" role="dialog" aria-modal="true" aria-label="${d.who}からの「ありがとう」の詳細">
@@ -1399,7 +1403,7 @@ function openThread(d, fromCard, opts) {
   const flight = openFlight(ov, fromCard);
   const onEsc = e => { if (e.key === "Escape") close(); };
   const close = () => { document.removeEventListener("keydown", onEsc); flight.close(); };
-  ov.addEventListener("click", e => { if (e.target === ov || e.target.closest(".sheet-close")) close(); });
+  ov.addEventListener("click", e => { if (e.target === ov || e.target.classList.contains("overlay-bg") || e.target.closest(".sheet-close")) close(); });
   document.addEventListener("keydown", onEsc);
   if (ROLE === "boss") logAudit("カード詳細閲覧", `${currentMember ? currentMember.name : ""}・${d.who}からのカード`);
 }
@@ -1468,17 +1472,24 @@ function openFlight(ov, card) {
     return wrap.animate(wrapK, opt);
   };
 
+  const bg = ov.querySelector(".overlay-bg");
   card.style.visibility = "hidden";
-  ov.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, easing: "ease-out" });
-  play(false);
+  back.style.overflowY = "hidden";          // 回転中はスクロール領域にしない
+  bg.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, easing: "ease-out" });
+  play(false).onfinish = () => { back.style.overflowY = "auto"; };
 
   let closing = false;
   const close = () => {
     if (closing) return;
     closing = true;
-    back.scrollTop = 0;
-    play(true).onfinish = () => { card.style.visibility = ""; ov.remove(); };
-    ov.animate([{ opacity: 1 }, { opacity: 0 }], { duration: FLIP_MS, easing: "ease-in", fill: "forwards" });
+    // 縮んでいく間はスクロール領域を畳んでおく。
+    // スクロールできる要素を拡大縮小すると、コマごとに描き直しが起きる
+    back.style.overflowY = "hidden";
+    play(true).onfinish = () => {
+      // 片付けは次のフレームに回す。最後のコマとDOMの破棄が重ならないようにする
+      requestAnimationFrame(() => { card.style.visibility = ""; ov.remove(); });
+    };
+    bg.animate([{ opacity: 1 }, { opacity: 0 }], { duration: FLIP_MS, easing: "ease-in", fill: "forwards" });
   };
   return { close };
 }
