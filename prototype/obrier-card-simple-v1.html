@@ -21,8 +21,10 @@
     --c-idea:  #F5C63C; --i-idea:  #6b4a05;   /* yellow     … アイデア（濃色インク） */
     --c-share: #E8502F; --i-share: #ffffff;   /* vermilion  … 情報共有 */
 
-    /* アバターは全員この1色（白抜きイニシャル＋白リング） */
+    /* アバターは全員この1色（白抜きイニシャル＋白リング）。
+       拡大詳細の文字色もこの濃紺に揃える */
     --ava: #3A4A66;
+    --navy: #3A4A66; --navy-soft: #6d7a94; --navy-line: #dfe4ed; --navy-bg: #f2f4f8;
 
     /* 背景テーマ（切替）：デフォルトは白地×薄い青の方眼 */
     --bg: #ffffff;
@@ -141,25 +143,24 @@
     background: var(--ava);   /* アバターは全員1色に統一 */
     display: grid; place-items: center; color: #fff; font-size: 20px; font-weight: 800;
     box-shadow: 0 0 0 5px rgba(255,255,255,.9), 0 6px 14px rgba(0,0,0,.14);
-    transform: translateZ(38px);
+    /* 奥行きを持たせるのはアイコンだけ。他の要素はカードと同じ高さに置く */
+    transform: translateZ(20px);
   }
   .say {
     font-size: 15px; line-height: 2.05; letter-spacing: .1em; text-align: center; font-weight: 700;
-    transform: translateZ(24px);
   }
   .who-line {
     margin-top: auto; font-size: 11px; letter-spacing: .12em; opacity: .72; font-weight: 700;
-    transform: translateZ(14px);
   }
   .corner-new {
-    position: absolute; top: 14px; left: 14px; z-index: 4; transform: translateZ(40px);
+    position: absolute; top: 14px; left: 14px; z-index: 4;
     font-size: 9.5px; font-weight: 800; letter-spacing: .14em;
     background: rgba(255,255,255,.92); border-radius: 999px; padding: 4px 10px;
     /* 白地ピルの文字はカード色を深くしたインクで（白インクの色でも読めるように） */
     color: color-mix(in srgb, var(--cc) 62%, #1d2430);
   }
   .memo-dot {
-    position: absolute; bottom: 14px; right: 16px; z-index: 4; transform: translateZ(30px);
+    position: absolute; bottom: 14px; right: 16px; z-index: 4;
     width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.9);
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--ci) 22%, transparent);
   }
@@ -288,20 +289,9 @@
   }
   .mini-btn:hover { border-color: var(--accent); background: var(--accent-soft); }
 
-  /* ---------------- ヒーロー：カードの束 ---------------- */
-  .stage {
-    position: relative; height: 420px; display: grid; place-items: center;
-    perspective: 1200px; margin-top: 26px;
-  }
-  .deck { position: relative; width: min(360px, 82vw); height: 250px; transform-style: preserve-3d; }
-  /* 束のカードは3枚とも同じ矩形に重なっているため、当たり判定は
-     実際にずらして描画している .card3d 側で取る（後ろのカードを掴めるように） */
-  .deck .card { position: absolute; inset: 0; pointer-events: none; }
-  .deck .card3d { pointer-events: auto; }
-  .deck .front { min-height: 250px; height: 250px; }
   .hint {
-    text-align: center; font-size: 11.5px; letter-spacing: .1em; color: var(--stage-ink-soft);
-    margin-top: 4px; display: flex; gap: 18px; justify-content: center; flex-wrap: wrap;
+    font-size: 11.5px; letter-spacing: .1em; color: var(--stage-ink-soft);
+    margin-bottom: 14px; display: flex; gap: 18px; flex-wrap: wrap;
   }
   .hint kbd {
     font-family: inherit; border: 1px solid color-mix(in srgb, var(--stage-ink) 30%, transparent);
@@ -311,10 +301,7 @@
   /* ---------------- アルバムグリッド ---------------- */
   .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px 20px; align-items: start; }
   @media (max-width: 880px) { .grid { grid-template-columns: repeat(2, 1fr); } }
-  @media (max-width: 560px) {
-    .grid { grid-template-columns: 1fr; }
-    .stage { height: 360px; }
-  }
+  @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
   .month {
     grid-column: 1 / -1; display: flex; align-items: center; gap: 12px;
     font-size: 12.5px; letter-spacing: .18em; font-weight: 700; color: var(--stage-ink-soft);
@@ -335,51 +322,65 @@
   .memo-card ul { padding-left: 1.1em; }
   .memo-card li { margin-bottom: 4px; }
 
-  /* ---------------- モーダル（拡大詳細） ---------------- */
-  .overlay { position: fixed; inset: 0; background: rgba(28,22,16,.5); display: grid; place-items: center; z-index: 60; padding: 20px; }
+  /* ---------------- モーダル（拡大詳細）：文字はアイコンと同じ濃紺で揃える ---------------- */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(20,26,40,.52); display: grid; place-items: center;
+    z-index: 60; padding: 20px;
+    perspective: 1600px;          /* カード→詳細のめくり用 */
+  }
   .sheet {
-    background: var(--paper); color: var(--ink); border-radius: 22px; width: min(560px, 100%);
-    max-height: calc(100vh - 60px); overflow-y: auto; box-shadow: 0 30px 70px rgba(30,22,14,.4);
-    will-change: transform, opacity;
+    background: #fff; color: var(--navy); border-radius: 22px; width: min(560px, 100%);
+    max-height: calc(100vh - 60px); overflow-y: auto; box-shadow: 0 30px 70px rgba(20,26,40,.38);
+    will-change: transform, opacity; backface-visibility: hidden;
+  }
+  /* 中央へ飛んでいくカードの複製 */
+  .fly-card {
+    position: fixed; margin: 0; z-index: 70; pointer-events: none;
+    opacity: 1 !important; perspective: none; will-change: transform;
   }
   .sheet-head { display: flex; align-items: center; gap: 10px; padding: 20px 22px 12px; }
   .sheet-head b { font-size: 13.5px; }
-  .sheet-head small { display: block; font-size: 11px; color: var(--ink-soft); font-weight: 400; }
-  .sheet-close { margin-left: auto; border: none; background: #f0e8d6; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 13px; color: var(--ink-soft); }
+  .sheet-head small { display: block; font-size: 11px; color: var(--navy-soft); font-weight: 400; }
+  .sheet-close { margin-left: auto; border: none; background: var(--navy-bg); width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 13px; color: var(--navy-soft); }
+  .sheet-close:hover { background: var(--navy-line); }
   .sheet-body { padding: 4px 22px 24px; }
   .bub-row { display: flex; gap: 10px; margin-bottom: 12px; }
   .bub-row .ava { width: 30px; height: 30px; font-size: 12px; box-shadow: none; transform: none; }
   .bub { flex: 1; }
   .bub-name { font-size: 11.5px; font-weight: 700; }
-  .bub-name span { font-weight: 400; font-size: 10px; color: var(--ink-soft); margin-left: 6px; }
-  .bub-text { margin-top: 4px; font-size: 13px; line-height: 1.8; background: #f0e8d6; border-radius: 4px 14px 14px 14px; padding: 10px 14px; }
-  .mine .bub-text { background: #eef3ee; }
+  .bub-name span { font-weight: 400; font-size: 10px; color: var(--navy-soft); margin-left: 6px; }
+  .bub-text { margin-top: 4px; font-size: 13px; line-height: 1.8; background: var(--navy-bg); border-radius: 4px 14px 14px 14px; padding: 10px 14px; }
+  .mine .bub-text { background: #eaeef6; }
   .is-thanks .bub-text { background: var(--cc); color: var(--ci); font-weight: 700; }
-  .thanks-flag { font-size: 10px; font-weight: 800; color: var(--accent); margin-top: 6px; letter-spacing: .06em; }
+  .thanks-flag { font-size: 10px; font-weight: 800; color: var(--navy-soft); margin-top: 6px; letter-spacing: .06em; }
   .thanks-flag::before { content: "✦ "; }
 
   /* 拡大詳細のパーツ */
+  .sheet .src-pill { color: var(--navy-soft); border-color: var(--navy-line); }
   .sheet-head .src-pill { margin-left: 2px; }
-  .sheet-time { margin-left: auto; font-size: 10.5px; color: var(--ink-soft); font-family: "Courier New", monospace; white-space: nowrap; }
+  .sheet-time { margin-left: auto; font-size: 10.5px; color: var(--navy-soft); font-family: "Courier New", monospace; white-space: nowrap; }
   .sheet-head .sheet-close { margin-left: 10px; flex: none; }
   .sheet-sec {
-    font-size: 9.5px; letter-spacing: .2em; color: var(--accent-deep); font-weight: 800;
+    font-size: 9.5px; letter-spacing: .2em; color: var(--navy); opacity: .75; font-weight: 800;
     margin: 18px 0 8px;
   }
   .sheet-sec:first-child { margin-top: 6px; }
-  .sheet-summary { font-size: 12.5px; line-height: 1.9; color: var(--ink-soft); }
+  .sheet-summary { font-size: 12.5px; line-height: 1.9; color: var(--navy-soft); }
   .sheet-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
-  .fav-btn[aria-pressed="true"] { border-color: #e0a62f; background: #fdf4dc; color: #a8770f; }
+  .sheet .mini-btn { border-color: var(--navy-line); color: var(--navy); }
+  .sheet .mini-btn:hover { border-color: var(--navy-soft); background: var(--navy-bg); }
+  .fav-btn[aria-pressed="true"] { border-color: #e0a62f; background: #fdf4dc; color: #8a6410; }
   .memo-ta {
     width: 100%; min-height: 72px; resize: vertical; font-family: inherit; font-size: 12.5px; line-height: 1.8;
-    background: #fdf7d8; border: 1px solid #eadf9e; border-radius: 3px 12px 12px 12px; padding: 10px 12px;
-    color: var(--ink); outline: none;
+    background: var(--navy-bg); border: 1px solid var(--navy-line); border-radius: 3px 12px 12px 12px; padding: 10px 12px;
+    color: var(--navy); outline: none;
   }
-  .memo-ta:focus { border-color: var(--accent); }
+  .memo-ta::placeholder { color: var(--navy-soft); opacity: .75; }
+  .memo-ta:focus { border-color: var(--navy-soft); }
   .memo-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
-  .memo-row small { font-size: 10.5px; color: var(--ink-soft); }
+  .memo-row small { font-size: 10.5px; color: var(--navy-soft); }
   .memo-row .mini-btn { margin-left: auto; }
-  .sheet-danger { margin-top: 22px; padding-top: 14px; border-top: 1px dashed var(--line); display: flex; }
+  .sheet-danger { margin-top: 22px; padding-top: 14px; border-top: 1px dashed var(--navy-line); display: flex; }
   .danger-btn {
     font-family: inherit; font-size: 11px; font-weight: 700; cursor: pointer;
     border: 1px solid #e3b9b3; background: #fff; color: #b0432f;
@@ -389,7 +390,7 @@
 
   .toast {
     position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%);
-    background: var(--ink); color: #fff8ec; border-radius: 999px; padding: 10px 22px;
+    background: var(--navy); color: #fff; border-radius: 999px; padding: 10px 22px;
     font-size: 12.5px; z-index: 80; box-shadow: 0 10px 24px rgba(0,0,0,.3); pointer-events: none;
   }
 
@@ -406,9 +407,9 @@
     <div class="ctrl">
       <span>デザイン</span>
       <div class="seg" id="segPattern">
-        <button data-pat="pat-a" aria-pressed="false">A ベタ塗り</button>
+        <button data-pat="pat-a" aria-pressed="true">A ベタ塗り</button>
         <button data-pat="pat-b" aria-pressed="false">B 紙＋タグ色</button>
-        <button data-pat="pat-d" aria-pressed="true">D 紙＋マステ</button>
+        <button data-pat="pat-d" aria-pressed="false">D 紙＋マステ</button>
         <button data-pat="pat-c" aria-pressed="false">C 現行v4</button>
       </div>
     </div>
@@ -428,27 +429,22 @@
 
 <main>
   <section class="lead">
-    <h1>カードは削る。<br>手ざわりは、残す。</h1>
+    <h1>カードは削る。<br>動きで、深さを出す。</h1>
     <p>
       カードに残したのは「言葉・送り主・場面の色」の3つだけです。出典やチャネル、日時、メモといった脇の情報は、
-      カードをクリックして開く拡大詳細に逃がしました。上のスイッチで、削りすぎた案（A）／紙＋タグ色（B）／
-      おすすめの新案（D）／現行v4（C）を切り替えて見比べられます。Dは「Bの整い × Cの手ざわり」で、
-      方眼ノートにマスキングテープでカードを貼ったような佇まいです。
+      カードをクリックすると開く拡大詳細に逃がしました。カードはめくれながら中央へ飛び、そのまま詳細に育ちます。
+      上のスイッチで、ベタ塗り（A）／紙＋タグ色（B）／紙＋マステ（D）／現行v4（C）を切り替えて見比べられます。
     </p>
   </section>
 
-  <div class="sec-label">01　カードの束</div>
-  <div class="stage"><div class="deck" id="deck"></div></div>
+  <div class="sec-label">01　アルバム</div>
   <div class="hint">
-    <span><kbd>hover</kbd>ふわりと浮く</span>
-    <span><kbd>click</kbd>詳細を見る</span>
-    <span><kbd>束の外側</kbd>をクリックで次のカードへ</span>
+    <span><kbd>hover</kbd>カードが反応する</span>
+    <span><kbd>click</kbd>めくれながら中央へ、拡大して詳細に</span>
   </div>
-
-  <div class="sec-label">02　アルバム</div>
   <div class="grid" id="grid"></div>
 
-  <div class="sec-label">03　検討メモ</div>
+  <div class="sec-label">02　検討メモ</div>
   <div class="memo-cards">
     <div class="memo-card">
       <h3>削って得られるもの</h3>
@@ -468,12 +464,12 @@
       </ul>
     </div>
     <div class="memo-card">
-      <h3>おすすめは D（B × C の折衷）</h3>
+      <h3>いまの本命はA（ベタ塗り）</h3>
       <ul>
-        <li>Bから：白い紙・明朝の本文・タグピル＋日時の整い</li>
-        <li>Cから：タグ色マステの「貼ってある」手ざわりと±1°未満の静かな傾き</li>
-        <li>遊び心：テープの角度と位置のゆらぎ、回転印風の日付スタンプ</li>
-        <li>ホバーは紙らしく。傾きがまっすぐに直って数px浮き、影が少し伸びるだけ</li>
+        <li>浮かせるのはアイコンだけ。文字も日時もカードと同じ高さに置いた</li>
+        <li>詳細は濃紺で、アイコンの色に揃えた</li>
+        <li>クリックでカードがめくれ、中央で拡大して詳細になる</li>
+        <li>手ざわり寄りの比較用にDも残してある（マステ・紙質・静かな傾き）</li>
       </ul>
     </div>
   </div>
@@ -628,7 +624,7 @@ const PAT_CONF = {
   "pat-d": { tilt: 0,   glare: 0,   liftZ: 0,  liftY: -3, straighten: true,  shadY: 6,  shadBlur: 14, shadA: .10 },
   "pat-c": { tilt: 0,   glare: 0,   liftZ: 0,  liftY: -3, straighten: true,  shadY: 6,  shadBlur: 14, shadA: .10 },
 };
-let CUR_PAT = "pat-d";
+let CUR_PAT = "pat-a";
 
 /* D/C：カードごとのわずかな静的傾き（deg）。Dは±1°未満に抑える */
 const BASE_ROT = {
@@ -652,10 +648,6 @@ class CardMotion {
     this.ty = new Spring(28, { stiffness: 150, damping: 22 });
     this.gx = 50; this.gy = 50;
     this.glare = new Spring(0, { stiffness: 200, damping: 26 });
-    this.slotX = new Spring(0, { stiffness: 180, damping: 20 });
-    this.slotY = new Spring(0, { stiffness: 180, damping: 20 });
-    this.slotR = new Spring(0, { stiffness: 180, damping: 20 });
-    this.slotS = new Spring(1, { stiffness: 180, damping: 20 });
     this.lift = new Spring(0, { stiffness: 260, damping: 24 });  // D/C：紙のリフト（px, 負が上）
     this.rz   = new Spring(0, { stiffness: 170, damping: 19 });  // 静的な傾き（ホバーでまっすぐに直る）
     this.baseRot = 0;
@@ -699,23 +691,16 @@ class CardMotion {
     setTimeout(() => { this.op.set(1); this.ty.set(0); kick(); }, delay);
   }
 
-  slot({ x = 0, y = 0, rot = 0, scale = 1, z = 0 } = {}) {
-    this.slotX.set(x); this.slotY.set(y); this.slotR.set(rot); this.slotS.set(scale);
-    this.root.style.zIndex = z;
-    kick();
-  }
-
   update(dt) {
     let a = false;
-    [this.rx, this.ry, this.z, this.s, this.op, this.ty, this.glare,
-     this.slotX, this.slotY, this.slotR, this.slotS, this.lift, this.rz]
+    [this.rx, this.ry, this.z, this.s, this.op, this.ty, this.glare, this.lift, this.rz]
       .forEach(sp => { if (sp.step(dt)) a = true; });
 
     this.el.style.transform =
-      `translate3d(${this.slotX.v.toFixed(2)}px, ${(this.slotY.v + this.ty.v + this.lift.v).toFixed(2)}px, 0) ` +
+      `translate3d(0, ${(this.ty.v + this.lift.v).toFixed(2)}px, 0) ` +
       `rotateX(${this.rx.v.toFixed(2)}deg) rotateY(${this.ry.v.toFixed(2)}deg) ` +
-      `rotateZ(${(this.slotR.v + this.rz.v).toFixed(2)}deg) ` +
-      `translateZ(${this.z.v.toFixed(2)}px) scale(${(this.s.v * this.slotS.v).toFixed(3)})`;
+      `rotateZ(${this.rz.v.toFixed(2)}deg) ` +
+      `translateZ(${this.z.v.toFixed(2)}px) scale(${this.s.v.toFixed(3)})`;
     this.root.style.opacity = this.op.v.toFixed(3);
 
     // 影は傾きに合わせて反対側へ流し、リフト（負のY）で少し伸ばす
@@ -746,7 +731,7 @@ function cardHTML(d) {
         <div class="ava">${d.ini}</div>
         <div><b>${d.who}</b><small>${d.ch}</small></div>
       </div>
-      <div class="ava" data-hero-ava>${d.ini}</div>
+      <div class="ava" data-center-ava>${d.ini}</div>
       <div class="say">${d.msg}</div>
       <div class="who-line">${d.who}<span class="wl-tag">　/　${d.tag}</span></div>
       <div class="c-foot"><span class="tagpill">${d.tag}</span><span class="c-time">${d.time}</span></div>
@@ -755,7 +740,7 @@ function cardHTML(d) {
   </div>`;
 }
 
-function buildCard(d, { hero = false } = {}) {
+function buildCard(d) {
   const [cc, ci] = TAGS[d.tag] || ["--c-speed", "--i-speed"];
   const root = document.createElement("div");
   root.className = "card";
@@ -774,48 +759,11 @@ function buildCard(d, { hero = false } = {}) {
   root._m = m;
   root._d = d;
 
-  root.addEventListener("click", () => {
-    if (hero && root !== deckOrder[0]) { cycleDeck(root); return; }
-    openThread(d, root);
-  });
+  root.addEventListener("click", () => openThread(d, root));
   root.addEventListener("keydown", e => {
     if (e.key === "Enter" || e.key === " ") { e.preventDefault(); root.click(); }
   });
   return root;
-}
-
-/* =========================================================================
-   ヒーロー：カードの束
-   ========================================================================= */
-const SLOTS = [
-  { x: 0,   y: 0,   rot: -1.5, scale: 1,    z: 3 },
-  { x: 30,  y: 20,  rot: 4,    scale: .965, z: 2 },
-  { x: -28, y: 38,  rot: -5.5, scale: .93,  z: 1 },
-];
-let deckOrder = [];
-
-function buildDeck() {
-  const deck = document.getElementById("deck");
-  deck.querySelectorAll(".card").forEach(el => engine.items.delete(el._m));
-  deck.innerHTML = "";
-  deckOrder = DATA.slice(0, 3).map(d => {
-    const el = buildCard(d, { hero: true });
-    deck.appendChild(el);
-    return el;
-  });
-  layoutDeck();
-  deckOrder.forEach((el, i) => el._m.enter(120 + i * 90));
-}
-function layoutDeck() {
-  deckOrder.forEach((el, i) => el._m.slot(SLOTS[i]));
-}
-/** 束の後ろのカードをクリック → 前のカードを放り投げて入れ替える */
-function cycleDeck() {
-  const front = deckOrder[0];
-  // いったん外へ放る → 最後尾に戻す
-  front._m.slot({ x: -150, y: -70, rot: -16, scale: 1.02, z: 4 });
-  deckOrder.push(deckOrder.shift());
-  setTimeout(() => layoutDeck(), 230);
 }
 
 /* =========================================================================
@@ -838,12 +786,10 @@ function buildGrid() {
   });
 }
 
-/** 削除後などに束とグリッドを作り直す（現在のパターン設定を維持） */
+/** 削除後などにグリッドを作り直す（現在のパターン設定を維持） */
 function rebuildAll() {
-  buildDeck();
   buildGrid();
-  const pat = ["pat-a", "pat-b", "pat-c"].find(p => document.body.classList.contains(p)) || "pat-a";
-  setPattern(pat);
+  setPattern(CUR_PAT);
 }
 
 /* =========================================================================
@@ -931,29 +877,101 @@ function openThread(d, fromCard) {
     toast("カードを削除しました");
   });
 
-  // 元カードの位置からせり上がる（簡易 shared element）
+  // カードがめくれながら中央へ飛び、拡大して詳細になる
+  const flight = openFlight(ov, fromCard);
+  const onEsc = e => { if (e.key === "Escape") close(); };
+  const close = () => { document.removeEventListener("keydown", onEsc); flight.close(); };
+  ov.addEventListener("click", e => { if (e.target === ov || e.target.closest(".sheet-close")) close(); });
+  document.addEventListener("keydown", onEsc);
+}
+
+/* =========================================================================
+   カード → 詳細のフライトアニメーション
+
+   前半：カードの複製が、その場から中央へ飛びながら rotateY 0→90° まで回る
+   後半：90°で面が入れ替わり、詳細シートが -90°→0° に開きながら
+         カードの大きさから本来の大きさへ拡大する
+   閉じるときは、この逆をたどる
+   ========================================================================= */
+const FLY_OUT = 340;   // 前半：カードが飛んで立つまで
+const FLY_IN  = 360;   // 後半：詳細が開いて拡大するまで
+
+function openFlight(ov, card) {
   const sheet = ov.querySelector(".sheet");
-  const b = fromCard.getBoundingClientRect();
-  const s = sheet.getBoundingClientRect();
-  const dx = (b.left + b.width / 2) - (s.left + s.width / 2);
-  const dy = (b.top + b.height / 2) - (s.top + s.height / 2);
-  const scale = Math.max(.5, b.width / s.width);
-  if (!REDUCED) {
-    sheet.animate(
-      [{ transform: `translate(${dx}px, ${dy}px) scale(${scale})`, opacity: 0 },
-       { transform: "none", opacity: 1 }],
-      { duration: 420, easing: "cubic-bezier(.2,.9,.25,1.06)" });
-    ov.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200 });
+
+  if (REDUCED) {   // モーション無効時は素直に出す
+    return { close: () => ov.remove() };
   }
 
-  const close = () => {
-    if (REDUCED) return ov.remove();
-    ov.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 160 }).onfinish = () => ov.remove();
+  // カードの複製を作り、その場に固定して飛ばす（元カードは一時的に隠す）
+  const clone = card.cloneNode(true);
+  const c3 = clone.querySelector(".card3d");
+  c3.style.transform = "none";
+  c3.style.boxShadow = "0 18px 40px rgba(20,26,40,.28)";
+  clone.style.setProperty("--glare", "0");
+  clone.classList.add("fly-card");
+  ov.appendChild(clone);
+  card.style.visibility = "hidden";
+
+  const place = () => {
+    const r = card.getBoundingClientRect();
+    Object.assign(clone.style, {
+      left: r.left + "px", top: r.top + "px",
+      width: r.width + "px", height: r.height + "px",
+    });
+    return r;
   };
-  ov.addEventListener("click", e => { if (e.target === ov || e.target.closest(".sheet-close")) close(); });
-  document.addEventListener("keydown", function esc(e) {
-    if (e.key === "Escape") { close(); document.removeEventListener("keydown", esc); }
+
+  /** カード中心 → シート中心への移動量と、拡大率を測る */
+  const measure = () => {
+    const r = place();
+    const s = sheet.getBoundingClientRect();
+    return {
+      dx: (s.left + s.width / 2) - (r.left + r.width / 2),
+      dy: (s.top + s.height / 2) - (r.top + r.height / 2),
+      grow: Math.min(1.3, (s.width / r.width) * .55),   // 前半で少しだけ大きくなる
+      shrink: r.width / s.width,                        // 後半の開始サイズ＝カード幅
+    };
+  };
+
+  const m = measure();
+  const cardOut = [
+    { transform: "translate(0, 0) rotateY(0deg) scale(1)" },
+    { transform: `translate(${m.dx}px, ${m.dy}px) rotateY(90deg) scale(${m.grow})` },
+  ];
+  const sheetIn = [
+    { transform: `rotateY(-90deg) scale(${m.shrink})`, opacity: .4 },
+    { transform: "none", opacity: 1 },
+  ];
+
+  ov.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220, easing: "ease-out" });
+  const a1 = clone.animate(cardOut, { duration: FLY_OUT, easing: "cubic-bezier(.42,0,.72,.32)", fill: "forwards" });
+  a1.onfinish = () => { clone.style.visibility = "hidden"; };
+  sheet.animate(sheetIn, {
+    duration: FLY_IN, delay: FLY_OUT, easing: "cubic-bezier(.2,.85,.3,1)", fill: "backwards",
   });
+
+  let closing = false;
+  const close = () => {
+    if (closing) return;
+    closing = true;
+    const m2 = measure();   // スクロールしている場合があるので測り直す
+    sheet.animate([
+      { transform: "none", opacity: 1 },
+      { transform: `rotateY(-90deg) scale(${m2.shrink})`, opacity: .4 },
+    ], { duration: FLY_IN, easing: "cubic-bezier(.55,0,.85,.35)", fill: "forwards" });
+
+    clone.style.visibility = "";
+    clone.animate([
+      { transform: `translate(${m2.dx}px, ${m2.dy}px) rotateY(90deg) scale(${m2.grow})` },
+      { transform: "translate(0, 0) rotateY(0deg) scale(1)" },
+    ], { duration: FLY_OUT, delay: FLY_IN, easing: "cubic-bezier(.2,.85,.3,1)", fill: "both" });
+
+    ov.animate([{ opacity: 1 }, { opacity: 1 }, { opacity: 0 }], {
+      duration: FLY_IN + FLY_OUT, easing: "linear",
+    }).onfinish = () => { card.style.visibility = ""; ov.remove(); };
+  };
+  return { close };
 }
 
 /* =========================================================================
@@ -976,13 +994,17 @@ function toast(msg) {
 /* =========================================================================
    コントロール
    ========================================================================= */
+/** モーションを持つ実カードだけを返す（飛行中の複製 .fly-card は含めない） */
+const cards = () => [...document.querySelectorAll(".card")].filter(el => el._m);
+
 function setPattern(pat) {
   CUR_PAT = pat;
   document.body.classList.remove("pat-a", "pat-b", "pat-c", "pat-d");
   document.body.classList.add(pat);
   const conf = PAT_CONF[pat];
   // D・C（紙）はカードを少しずつ傾けて紙束らしく見せる
-  document.querySelectorAll(".card").forEach((el, i) => {
+  // （.fly-card は cloneNode で作った複製でモーションを持たないため除く）
+  cards().forEach((el, i) => {
     const rots = BASE_ROT[pat];
     el._m.baseRot = rots ? rots[i % rots.length] : 0;
     el._m.rz.set(el._m.baseRot);
@@ -990,7 +1012,7 @@ function setPattern(pat) {
     if (!conf.glare) el._m.glare.set(0);                    // D/C：光沢なし
   });
   // 中央の大きいアバターは A・B・D（C は左寄せの送り主行を使う）
-  document.querySelectorAll("[data-hero-ava]").forEach(a => {
+  document.querySelectorAll("[data-center-ava]").forEach(a => {
     a.style.display = pat === "pat-c" ? "none" : "";
   });
   kick();
@@ -1010,19 +1032,18 @@ function wireSeg(id, fn, attr) {
 /* =========================================================================
    起動
    ========================================================================= */
-buildDeck();
 buildGrid();
-setPattern("pat-d");
+setPattern("pat-a");
 wireSeg("segPattern", setPattern, "pat");
 wireSeg("segTheme", setTheme, "theme");
 document.getElementById("optTilt").addEventListener("change", e => {
   OPT.tilt = e.target.checked;
-  if (!OPT.tilt) document.querySelectorAll(".card").forEach(el => { el._m.rx.set(0); el._m.ry.set(0); });
+  if (!OPT.tilt) cards().forEach(el => { el._m.rx.set(0); el._m.ry.set(0); });
   kick();
 });
 document.getElementById("optGlare").addEventListener("change", e => {
   OPT.glare = e.target.checked;
-  if (!OPT.glare) document.querySelectorAll(".card").forEach(el => el._m.glare.set(0));
+  if (!OPT.glare) cards().forEach(el => el._m.glare.set(0));
   kick();
 });
 </script>
