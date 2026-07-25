@@ -22,8 +22,6 @@
     --ava: #3A4A66;
     --navy: #3A4A66; --navy-soft: #6d7a94; --navy-line: #dfe4ed; --navy-bg: #f2f4f8;
 
-    /* かすれたインク用のマスク。ノイズの明るいところだけインクが乗る */
-    --ink-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='44'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' seed='11'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 1.9 0 0 0 -0.28'/%3E%3C/filter%3E%3Crect width='150' height='44' filter='url(%23s)'/%3E%3C/svg%3E");
 
     /* ステージ（白地×薄い青の方眼） */
     --bg: #ffffff;
@@ -56,7 +54,6 @@
   /* ---------------- ヘッダー ---------------- */
   header {
     position: sticky; top: 0; z-index: 30;
-    backdrop-filter: blur(10px);
     background: rgba(255,255,255,.82);
     border-bottom: 1px solid color-mix(in srgb, var(--stage-ink) 12%, transparent);
   }
@@ -146,6 +143,13 @@
     padding: 26px 24px 18px; height: var(--card-h, 268px);
     display: flex; flex-direction: column; align-items: center; gap: 16px; overflow: hidden;
   }
+  /* ホバー時の光沢。ポインタの位置に淡く乗る */
+  .glare {
+    position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 3;
+    background: radial-gradient(330px circle at var(--gx, 50%) var(--gy, 50%), rgba(255,255,255,.75), rgba(255,255,255,0) 62%);
+    opacity: var(--glare, 0);
+  }
+  .f-front .glare { display: none; }   /* 裏返し中は光沢を出さない */
   /* 奥行きを持たせるのはアバターだけ */
   .ava {
     width: 48px; height: 48px; border-radius: 50%; flex: none; background: var(--ava);
@@ -171,25 +175,23 @@
   .kind-long .more-hint { display: block; }
   .who-line { margin-top: auto; font-size: 11px; letter-spacing: .12em; font-weight: 700; opacity: .72; position: relative; z-index: 2; }
   .c-foot { display: flex; align-items: center; gap: 8px; width: 100%; padding-top: 4px; position: relative; z-index: 2; }
-  /* ベタ塗りの面に乗るので、タグピルは白抜きの枠だけにして色を足さない */
   .tagpill {
     font-size: 10.5px; font-weight: 700; letter-spacing: .08em;
-    background: rgba(255,255,255,.22); color: var(--ci);
-    border: 1px solid color-mix(in srgb, var(--ci) 42%, transparent);
+    background: color-mix(in srgb, var(--cc) 16%, #fff);
+    color: color-mix(in srgb, var(--cc) 55%, #1d2430);
+    border: 1px solid color-mix(in srgb, var(--cc) 45%, transparent);
     border-radius: 999px; padding: 3px 11px;
   }
-  /* 日付＝かすれたゴム印。ノイズをマスクに使い、インクの乗りをまだらにする。
-     枠線にもマスクがかかるので、押しムラのある判子に見える。
-     インクはカード面の文字色（白 or 濃色）に合わせる */
+  /* 日付＝ゴム印。白い紙に押すので、インクはタグ色を深くした濃色にする。
+     以前はノイズ画像をマスクに使っていたが、カードの枚数だけ再描画が走って
+     重かったため、傾きと薄い枠だけで判子らしさを出す */
   .c-time {
     margin-left: auto; font-size: 10px; letter-spacing: .05em; padding: 2px 8px; border-radius: 2px;
-    font-family: "Courier New", monospace;
-    border: 1.5px solid var(--ci); color: var(--ci);
+    font-family: "Courier New", monospace; font-weight: 700;
+    border: 1.5px solid color-mix(in srgb, var(--cc) 42%, #1d2430);
+    color: color-mix(in srgb, var(--cc) 42%, #1d2430);
     transform: rotate(var(--stamp-rot, -2deg));
-    -webkit-mask-image: var(--ink-mask); mask-image: var(--ink-mask);
-    -webkit-mask-size: 150px 44px; mask-size: 150px 44px;
-    -webkit-mask-position: var(--stamp-shift, 0) 0; mask-position: var(--stamp-shift, 0) 0;
-    opacity: .78;
+    opacity: .85;
   }
   .corner-new {
     position: absolute; top: 14px; left: 14px; z-index: 5;
@@ -342,12 +344,13 @@
      表にカードの見た目、裏に詳細を貼り、この要素ごと回して裏返す。
      要素は1つなので、入れ替わりの隙間も二重の重なりも起きない */
   .flipwrap {
-    position: relative; transform-style: preserve-3d; will-change: transform;
+    position: relative; transform-style: preserve-3d;
+    will-change: transform; contain: layout paint;
     width: min(560px, 100%); max-height: calc(100vh - 60px);
   }
   .f-front {
     position: absolute; left: 50%; top: 50%; translate: -50% -50%;
-    transform-origin: center; pointer-events: none; z-index: 2;
+    transform-origin: center; pointer-events: none; z-index: 2; will-change: transform;
     backface-visibility: hidden; -webkit-backface-visibility: hidden;
   }
   .f-front .card3d, .f-front .face { width: 100%; height: 100%; }
@@ -1046,11 +1049,10 @@ function tick(now) {
   if (alive) requestAnimationFrame(tick); else engine.running = false;
 }
 
-/* 紙としての自然な動きだけ。3Dチルト・光沢なし。
-   静的な傾きがまっすぐに直る＋3px浮く＋影が伸びる */
-const CONF = { liftY: -3, shadY: 8, shadBlur: 18, shadA: .13 };
-/* ベタ塗りのカードはまっすぐ置く（紙＋マステ案の名残の静的な傾きは廃止）。
-   ホバーは数px浮いて影が伸びるだけ */
+/* ホバー：ポインタの位置に合わせて立体的に傾き、浮いて、光沢が乗る。
+   傾きは控えめの6.5度まで（大きいとノイズになる） */
+const CONF = { liftY: -3, liftZ: 17, tilt: 6.5, glare: .28, shadY: 8, shadBlur: 18, shadA: .13 };
+/* カードはまっすぐ置く */
 const BASE_ROT   = [0];
 const TAPE_ROT   = [-3.6, 2.4, -1.8, 3.2, -2.6, 1.6, -4.2, 2.8];
 const TAPE_SHIFT = [-14, 10, -6, 16, 4, -18, 8, -10];
@@ -1065,28 +1067,60 @@ class CardMotion {
     this.s  = new Spring(1, { stiffness: 420, damping: 28 });
     this.lift = new Spring(0, { stiffness: 260, damping: 24 });
     this.rz = new Spring(0, { stiffness: 170, damping: 19 });
+    this.rx = new Spring(0, { stiffness: 220, damping: 22 });   // 立体チルト（縦）
+    this.ry = new Spring(0, { stiffness: 220, damping: 22 });   // 立体チルト（横）
+    this.z  = new Spring(0, { stiffness: 260, damping: 26 });   // 浮き上がり
+    this.glare = new Spring(0, { stiffness: 200, damping: 26 });
+    this.gx = 50; this.gy = 50;
     this.baseRot = 0;
     engine.items.add(this);
     this.bind();
   }
   bind() {
     const r = this.root;
-    r.addEventListener("pointerenter", () => { this.lift.set(CONF.liftY); this.rz.set(0); kick(); });
-    r.addEventListener("pointerleave", () => { this.lift.set(0); this.s.set(1); this.rz.set(this.baseRot); kick(); });
+    r.addEventListener("pointermove", e => {
+      if (e.pointerType === "touch") return;
+      const b = r.getBoundingClientRect();
+      const px = (e.clientX - b.left) / b.width, py = (e.clientY - b.top) / b.height;
+      this.ry.set((px - .5) * 2 * CONF.tilt);
+      this.rx.set(-(py - .5) * 2 * CONF.tilt);
+      this.gx = px * 100; this.gy = py * 100;
+      kick();
+    });
+    r.addEventListener("pointerenter", () => {
+      this.lift.set(CONF.liftY); this.rz.set(0);
+      this.z.set(CONF.liftZ); this.glare.set(CONF.glare); kick();
+    });
+    r.addEventListener("pointerleave", () => {
+      this.lift.set(0); this.s.set(1); this.rz.set(this.baseRot);
+      this.rx.set(0); this.ry.set(0); this.z.set(0); this.glare.set(0); kick();
+    });
     r.addEventListener("pointerdown", () => { this.s.set(.97); kick(); });
     ["pointerup", "pointercancel"].forEach(t => r.addEventListener(t, () => { this.s.set(1); kick(); }));
   }
   enter(delay = 0) { setTimeout(() => { this.op.set(1); this.ty.set(0); kick(); }, delay); }
   update(dt) {
     let a = false;
-    [this.op, this.ty, this.s, this.lift, this.rz].forEach(sp => { if (sp.step(dt)) a = true; });
+    [this.op, this.ty, this.s, this.lift, this.rz,
+     this.rx, this.ry, this.z, this.glare].forEach(sp => { if (sp.step(dt)) a = true; });
+    // 動いていないカードにまで毎フレーム書き込むと、その枚数だけスタイル再計算が走る。
+    // 止まっているカードは最後の1回だけ書いて、あとは触らない
+    if (!a && this.settled) return false;
+    this.settled = !a;
     this.el.style.transform =
       `translate3d(0, ${(this.ty.v + this.lift.v).toFixed(2)}px, 0) ` +
-      `rotateZ(${this.rz.v.toFixed(2)}deg) scale(${this.s.v.toFixed(3)})`;
+      `rotateX(${this.rx.v.toFixed(2)}deg) rotateY(${this.ry.v.toFixed(2)}deg) ` +
+      `rotateZ(${this.rz.v.toFixed(2)}deg) ` +
+      `translateZ(${this.z.v.toFixed(2)}px) scale(${this.s.v.toFixed(3)})`;
     this.root.style.opacity = this.op.v.toFixed(3);
-    const sy = CONF.shadY - this.lift.v * 1.4;
-    const blur = CONF.shadBlur - this.lift.v * 2.4;
-    this.el.style.boxShadow = `0px ${sy.toFixed(1)}px ${blur.toFixed(1)}px rgba(0,0,0,${(CONF.shadA - this.lift.v * .008).toFixed(3)})`;
+    // 影は傾きに合わせて反対側へ流す
+    const sx = (-this.ry.v / CONF.tilt) * 8;
+    const sy = CONF.shadY + (this.rx.v / CONF.tilt) * 8 + this.z.v * .35 - this.lift.v * 1.4;
+    const blur = CONF.shadBlur + this.z.v * .8 - this.lift.v * 2.4;
+    this.el.style.boxShadow = `${sx.toFixed(1)}px ${sy.toFixed(1)}px ${blur.toFixed(1)}px rgba(0,0,0,${(CONF.shadA + this.z.v * .002 - this.lift.v * .008).toFixed(3)})`;
+    this.root.style.setProperty("--gx", this.gx + "%");
+    this.root.style.setProperty("--gy", this.gy + "%");
+    this.root.style.setProperty("--glare", this.glare.v.toFixed(3));
     return a;
   }
 }
@@ -1106,6 +1140,7 @@ function cardHTML(d, opts) {
   return `
   <div class="card3d">
     <div class="face front">
+      <div class="glare"></div>
       ${d.isNew ? '<div class="corner-new">NEW</div>' : ""}
       ${(opts.fav && d.fav) ? '<div class="fav-seal" title="お気に入り">★</div>' : ""}
       <div class="ava">${d.ini}</div>
