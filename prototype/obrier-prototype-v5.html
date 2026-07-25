@@ -128,7 +128,7 @@
   .month::after { content: ""; flex: 1; height: 1px; background: currentColor; opacity: .3; }
   .empty-note { grid-column: 1/-1; text-align: center; color: var(--stage-ink-soft); font-size: 12.5px; padding: 34px 0; }
 
-  /* ---------------- カード（ベタ塗り：場面タグの色でカード全面を塗る） ---------------- */
+  /* ---------------- カード（B案：白い紙＋タグ色の上帯） ---------------- */
   .card {
     position: relative; perspective: 1000px; -webkit-tap-highlight-color: transparent;
     cursor: pointer; border: none; padding: 0; background: none; font-family: inherit;
@@ -137,51 +137,38 @@
   .card.static { cursor: default; }
   .card:focus { outline: none; }
   .card:focus-visible .card3d { box-shadow: 0 0 0 3px var(--accent), 0 18px 34px rgba(0,0,0,.24) !important; }
-  .card3d { position: relative; transform-style: preserve-3d; will-change: transform; transition: box-shadow .25s ease; border-radius: 18px; }
-  .face { border-radius: 18px; transform-style: preserve-3d; }
+  .card3d { position: relative; transform-style: preserve-3d; will-change: transform; transition: box-shadow .25s ease; border-radius: 12px; }
+  .face { border-radius: 12px; transform-style: preserve-3d; }
+  /* カードの高さは全枚そろえる。中身の量で丈がばらつかないようにする */
   .front {
-    background: var(--cc); color: var(--ci); border-radius: 18px;
-    padding: 30px 26px 22px; min-height: 236px;
-    display: flex; flex-direction: column; align-items: center; gap: 18px;
-  }
-  /* ベタ塗りの面にごく薄く紙目を残す。無地の平板さを避けるため */
-  .front::after {
-    content: ""; position: absolute; inset: 0; border-radius: inherit;
-    pointer-events: none; z-index: 1; opacity: .16; mix-blend-mode: overlay;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.24 0 0 0 0 0.2 0 0 0 0 0.16 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+    background: var(--paper); color: var(--ink); border-radius: 12px;
+    border-top: 7px solid var(--cc);
+    padding: 26px 24px 18px; height: var(--card-h, 268px);
+    display: flex; flex-direction: column; align-items: center; gap: 16px; overflow: hidden;
   }
   /* 奥行きを持たせるのはアバターだけ */
   .ava {
-    width: 56px; height: 56px; border-radius: 50%; flex: none; background: var(--ava);
-    display: grid; place-items: center; color: #fff; font-size: 20px; font-weight: 800;
-    box-shadow: 0 0 0 5px rgba(255,255,255,.92), 0 6px 14px rgba(0,0,0,.16);
+    width: 48px; height: 48px; border-radius: 50%; flex: none; background: var(--ava);
+    display: grid; place-items: center; color: #fff; font-size: 17px; font-weight: 800;
+    box-shadow: 0 0 0 5px var(--paper), 0 5px 12px rgba(58,74,102,.22);
     transform: translateZ(20px); position: relative; z-index: 2;
   }
-  /* 本文はゴシック。ベタ塗りの面に白抜き（淡色カードは濃色インク）で乗せる */
+  /* 本文はゴシック */
   .say {
-    font-weight: 700; letter-spacing: .1em; line-height: 2.05; font-size: 15px;
+    font-weight: 600; letter-spacing: .06em; line-height: 2.05; font-size: 14.5px;
     text-align: center; position: relative; z-index: 2;
+    display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
   }
 
   /* ---- 中身の量でカードの見せ方を変える ----
-     感謝は一言のこともあれば長文のこともあり、絵文字のリアクションだけのこともある */
-  .kind-short .say { font-size: 17px; line-height: 1.95; letter-spacing: .08em; }
-  .kind-long .front { padding-top: 30px; }
+     丈は変えず、行数で受け止める。長文は…で止めて、全文は拡大詳細で読む */
+  .kind-short .say { font-size: 17px; line-height: 1.95; letter-spacing: .08em; -webkit-line-clamp: 3; }
   .kind-long .say {
     text-align: left; font-size: 13px; line-height: 1.9; letter-spacing: .01em; font-weight: 500;
-    display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden;
+    -webkit-line-clamp: 5;
   }
-  .more-hint { display: none; font-size: 10px; letter-spacing: .08em; opacity: .7; align-self: flex-start; margin-top: -6px; position: relative; z-index: 2; }
+  .more-hint { display: none; font-size: 10px; letter-spacing: .08em; color: var(--ink-soft); align-self: flex-start; margin-top: -4px; position: relative; z-index: 2; }
   .kind-long .more-hint { display: block; }
-  /* リアクションだけの「小さなありがとう」：丈を詰めて控えめに置く */
-  .kind-stamp .front { min-height: 172px; gap: 12px; padding: 30px 22px 16px; }
-  .kind-stamp .ava { width: 40px; height: 40px; font-size: 14px; box-shadow: 0 0 0 4px rgba(255,255,255,.92), 0 3px 8px rgba(0,0,0,.16); }
-  .stamp-face { display: none; }
-  .kind-stamp .stamp-face { display: block; font-size: 40px; line-height: 1; filter: saturate(.9); transform: rotate(-4deg); position: relative; z-index: 2; }
-  .kind-stamp .say { display: none; }
-  .kind-stamp .who-line { font-size: 10.5px; }
-  .stamp-note { display: none; }
-  .kind-stamp .stamp-note { display: block; font-size: 10px; letter-spacing: .06em; opacity: .72; position: relative; z-index: 2; }
   .who-line { margin-top: auto; font-size: 11px; letter-spacing: .12em; font-weight: 700; opacity: .72; position: relative; z-index: 2; }
   .c-foot { display: flex; align-items: center; gap: 8px; width: 100%; padding-top: 4px; position: relative; z-index: 2; }
   /* ベタ塗りの面に乗るので、タグピルは白抜きの枠だけにして色を足さない */
@@ -350,7 +337,26 @@
   }
   .sheet.wide { width: min(760px, 100%); }
   .sheet.narrow { width: min(430px, 100%); }
-  .fly-card { position: fixed; margin: 0; z-index: 70; pointer-events: none; opacity: 1 !important; will-change: transform; }
+
+  /* カード→拡大詳細は「1枚のカードの表裏」で表現する。
+     表にカードの見た目、裏に詳細を貼り、この要素ごと回して裏返す。
+     要素は1つなので、入れ替わりの隙間も二重の重なりも起きない */
+  .flipwrap {
+    position: relative; transform-style: preserve-3d; will-change: transform;
+    width: min(560px, 100%); max-height: calc(100vh - 60px);
+  }
+  .f-front {
+    position: absolute; left: 50%; top: 50%; translate: -50% -50%;
+    transform-origin: center; pointer-events: none; z-index: 2;
+    backface-visibility: hidden; -webkit-backface-visibility: hidden;
+  }
+  .f-front .card3d, .f-front .face { width: 100%; height: 100%; }
+  .f-front .card3d { transform: none !important; box-shadow: 0 18px 40px rgba(20,26,40,.28); }
+  .f-back {
+    position: relative; transform: rotateY(180deg);
+    backface-visibility: hidden; -webkit-backface-visibility: hidden;
+    max-height: calc(100vh - 60px); overflow-y: auto;
+  }
   .sheet-head { display: flex; align-items: center; gap: 10px; padding: 20px 22px 12px; }
   .sheet-head b { font-size: 13.5px; }
   .sheet-head small { display: block; font-size: 11px; color: var(--navy-soft); font-weight: 400; }
@@ -683,14 +689,6 @@ const DATA = [
       { who: "佐藤さん", ini: "佐", time: "10:31", text: "若年層向けの訴求、正直ネタ切れ気味…なんかいい案ないかな" },
       { who: "YUKIYAMA", ini: "Y", time: "10:55", mine: true, text: "逆に「親世代から子どもへ贈る」導線はどうでしょう？本人向けに売らない、という切り口です。" },
       { who: "佐藤さん", ini: "佐", time: "11:04", thanks: true, text: "すごい、いいね。この切り口なかったわ。" },
-    ]},
-  /* リアクションだけの「小さなありがとう」（F04） */
-  { who: "中村さん", ini: "中", ch: "#プロジェクトA", src: "Slack", month: "2026年 6月",
-    reaction: "🙏", tag: "スピード対応", time: "6/29 18:40",
-    summary: "共有した障害対応の手順に、その場で拝む絵文字が返ってきました。言葉になる前の感謝として、控えめに数えています。",
-    story: [
-      { who: "YUKIYAMA", ini: "Y", time: "18:36", mine: true, text: "暫定対応の手順をまとめました。まずはこれで止血できます。" },
-      { who: "中村さん", ini: "中", time: "18:40", thanks: true, text: "🙏（リアクション）" },
     ]},
   { who: "田中さん", ini: "田", ch: "#プロジェクトA", src: "Slack", month: "2026年 6月",
     msg: "さすがしごでき。今回もお願いしていい？", tag: "資料品質", time: "6/28 09:41",
@@ -1098,7 +1096,6 @@ class CardMotion {
    ========================================================================= */
 /** 中身の量からカードの見せ方を決める */
 function cardKind(d) {
-  if (d.reaction) return "kind-stamp";
   const len = String(d.msg || "").replace(/<br>/g, "").length;
   if (len <= 14) return "kind-short";
   if (len >= 54) return "kind-long";
@@ -1112,8 +1109,6 @@ function cardHTML(d, opts) {
       ${d.isNew ? '<div class="corner-new">NEW</div>' : ""}
       ${(opts.fav && d.fav) ? '<div class="fav-seal" title="お気に入り">★</div>' : ""}
       <div class="ava">${d.ini}</div>
-      <div class="stamp-face">${d.reaction || ""}</div>
-      <div class="stamp-note">リアクションの、小さなありがとう</div>
       <div class="say">${d.msg || ""}</div>
       <div class="more-hint">…続きは詳細で</div>
       <div class="who-line">${d.who}</div>
@@ -1130,9 +1125,8 @@ function buildCard(d, opts, idx) {
   if (opts.clickable) {
     root.tabIndex = 0;
     root.setAttribute("role", "button");
-    root.setAttribute("aria-label", d.reaction
-      ? `${d.who}からのリアクション ${d.reaction} の詳細を開く`
-      : `${d.who}からの「${String(d.msg).replace(/<br>/g, "")}」の詳細を開く`);
+    root.setAttribute("aria-label",
+      `${d.who}からの「${String(d.msg).replace(/<br>/g, "")}」の詳細を開く`);
   }
   root.style.setProperty("--cc", tagColor(d.tag));
   root.style.setProperty("--ci", tagInk(d.tag));
@@ -1285,8 +1279,12 @@ function openThread(d, fromCard, opts) {
       <div class="bub"><div class="bub-name">${d.who}<span>${d.time}</span></div>
       <div class="bub-text">${d.msg}</div></div></div>`;
 
+  // 1つの要素の表にカード、裏に詳細を貼る。この要素ごと回して裏返す
+  const faceHTML = fromCard ? fromCard.querySelector(".card3d").outerHTML : "";
   ov.innerHTML = `
-    <div class="sheet" role="dialog" aria-modal="true" aria-label="${d.who}からの「ありがとう」の詳細">
+    <div class="flipwrap">
+      <div class="f-front" aria-hidden="true">${faceHTML}</div>
+      <div class="f-back sheet" role="dialog" aria-modal="true" aria-label="${d.who}からの「ありがとう」の詳細">
       <div class="sheet-head">
         <div class="ava">${d.ini}</div>
         <div><b>${d.who}</b><small>${d.ch}</small></div>
@@ -1314,6 +1312,7 @@ function openThread(d, fromCard, opts) {
           ${opts.report ? '<button class="mini-btn" data-not-thanks>これは感謝ではないと報告する</button>' : ""}
           ${opts.del ? '<button class="danger-btn" data-del>このカードを削除する</button>' : ""}
         </div>` : ""}
+      </div>
       </div>
     </div>`;
   document.body.appendChild(ov);
@@ -1378,91 +1377,73 @@ function openThread(d, fromCard, opts) {
          カードの大きさから本来の大きさへ拡大する
    閉じるときは、この逆をたどる
    ========================================================================= */
-const FLY_OUT = 170;   // 前半：カードが中間地点まで飛び、真横を向くまで
-const FLY_IN  = 180;   // 後半：詳細が残り半分を進みながら開き切るまで
-const PERSP   = "perspective(1600px)";
-const HANDOFF = 24;    // 表と裏の入れ替わりを重ねる時間
-const EASE_1  = "linear";
-const EASE_2  = "cubic-bezier(.33,.33,.5,1)";
+/* =========================================================================
+   カード → 拡大詳細：1枚のカードが裏返る
+
+   表と裏を2枚用意して入れ替えるのではなく、**1つの要素**の表裏に
+   カードと詳細を貼り、その要素ごと回す。要素は常に1つなので、
+   入れ替わりの隙間も二重の重なりも原理的に起こらない。
+
+   拡大は、この要素の scale を「カード幅÷詳細幅」から 1 へ動かして表現する。
+   表面はカードの実寸で置き、逆数の scale を当てて見かけの大きさを保つ
+   （逆数はコマごとに焼き込むので、途中で伸び縮みしない）。
+   ========================================================================= */
+const FLIP_MS = 380;
+const FLIP_STEPS = 24;
 
 function openFlight(ov, card) {
-  const sheet = ov.querySelector(".sheet");
-  if (REDUCED || !card) return { close: () => ov.remove() };
+  const wrap = ov.querySelector(".flipwrap");
+  const front = ov.querySelector(".f-front");
+  const back  = ov.querySelector(".f-back");
+  if (REDUCED || !card) {
+    if (wrap) { wrap.style.transform = "none"; front.style.display = "none"; }
+    return { close: () => ov.remove() };
+  }
 
-  // カードの複製を作って飛ばす。オーバーレイの外（body直下）に置くことで、
-  // オーバーレイのフェードインに巻き込まれて一瞬消えるのを防ぐ
-  const clone = card.cloneNode(true);
-  const c3 = clone.querySelector(".card3d");
-  clone.classList.add("fly-card");
-  document.body.appendChild(clone);
+  const r = card.getBoundingClientRect();
+  const s = wrap.getBoundingClientRect();          // 詳細の最終的な位置と大きさ
+
+  // 表面はカードの実寸で置く（引き伸ばさない）
+  Object.assign(front.style, { width: r.width + "px", height: r.height + "px" });
+
+  const k  = r.width / s.width;                     // 開始時の縮尺
+  const dx = (r.left + r.width / 2) - (s.left + s.width / 2);
+  const dy = (r.top + r.height / 2) - (s.top + s.height / 2);
+
+  /** t=0→1 のコマを作る。表面の逆数 scale もここで焼き込む */
+  const frames = (reverse) => {
+    const wrapK = [], frontK = [];
+    for (let i = 0; i <= FLIP_STEPS; i++) {
+      const t = reverse ? 1 - i / FLIP_STEPS : i / FLIP_STEPS;
+      const sc = k + (1 - k) * t;
+      wrapK.push({
+        offset: i / FLIP_STEPS,
+        transform: `perspective(1800px) translate(${(dx * (1 - t)).toFixed(2)}px, ${(dy * (1 - t)).toFixed(2)}px) ` +
+                   `scale(${sc.toFixed(4)}) rotateY(${(180 * t).toFixed(2)}deg)`,
+      });
+      frontK.push({ offset: i / FLIP_STEPS, transform: `scale(${(1 / sc).toFixed(4)})` });
+    }
+    return { wrapK, frontK };
+  };
+
+  const play = (reverse) => {
+    const { wrapK, frontK } = frames(reverse);
+    const opt = { duration: FLIP_MS, easing: "linear", fill: "forwards" };
+    front.animate(frontK, opt);
+    return wrap.animate(wrapK, opt);
+  };
+
   card.style.visibility = "hidden";
-
-  // 複製はホバー中の傾き・浮きをそのまま引き継いでから、水平に戻す
-  c3.animate([{ transform: c3.style.transform || "none" }, { transform: "none" }],
-    { duration: FLY_OUT, easing: "ease-out", fill: "forwards" });
-  c3.style.boxShadow = "0 18px 40px rgba(20,26,40,.28)";
-
-  const place = () => {
-    const r = card.getBoundingClientRect();
-    Object.assign(clone.style, {
-      left: r.left + "px", top: r.top + "px",
-      width: r.width + "px", height: r.height + "px",
-    });
-    return r;
-  };
-  /** カード中心 → シート中心の道のりを測る。半分ずつ前半・後半で進む */
-  const measure = () => {
-    const r = place();
-    const s = sheet.getBoundingClientRect();
-    const dx = (s.left + s.width / 2) - (r.left + r.width / 2);
-    const dy = (s.top + s.height / 2) - (r.top + r.height / 2);
-    return {
-      halfX: dx / 2, halfY: dy / 2,
-      grow: Math.min(1.3, (s.width / r.width) * .55),
-      shrink: r.width / s.width,
-    };
-  };
-
-  const m = measure();
-  const cardOut = [
-    { transform: `${PERSP} translate(0, 0) rotateY(0deg) scale(1)` },
-    { transform: `${PERSP} translate(${m.halfX}px, ${m.halfY}px) rotateY(90deg) scale(${m.grow})` },
-  ];
-  const sheetIn = [
-    { transform: `translate(${-m.halfX}px, ${-m.halfY}px) rotateY(-90deg) scale(${m.shrink})`, opacity: 1 },
-    { transform: "none", opacity: 1 },
-  ];
-
-  ov.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 180, easing: "ease-out" });
-  const a1 = clone.animate(cardOut, { duration: FLY_OUT, easing: EASE_1, fill: "forwards" });
-  a1.onfinish = () => { clone.style.visibility = "hidden"; };
-  // 入れ替わりを少しだけ重ねる。ちょうど90°では厚みが消えて何も映らない一瞬ができるため
-  sheet.animate(sheetIn, { duration: FLY_IN, delay: FLY_OUT - HANDOFF, easing: EASE_2, fill: "backwards" });
+  ov.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, easing: "ease-out" });
+  play(false);
 
   let closing = false;
   const close = () => {
     if (closing) return;
     closing = true;
-    const m2 = measure();   // スクロールしている場合があるので測り直す
-    // 畳み終わった詳細は消す。真横向きでも薄い板として残り、
-    // 戻ってくるカードと二枚に見えてしまうため
-    sheet.animate([
-      { transform: "none", opacity: 1 },
-      { transform: `translate(${-m2.halfX}px, ${-m2.halfY}px) rotateY(-90deg) scale(${m2.shrink})`, opacity: 1 },
-    ], { duration: FLY_IN, easing: EASE_1, fill: "forwards" })
-      .onfinish = () => { sheet.style.visibility = "hidden"; };
-
-    // 複製は、詳細が畳み終わる直前まで隠しておく。
-    // 先に出すと、畳まれていく詳細と真横向きの複製が同時に見えて二枚に見える
-    setTimeout(() => { clone.style.visibility = ""; }, Math.max(0, FLY_IN - HANDOFF));
-    clone.animate([
-      { transform: `${PERSP} translate(${m2.halfX}px, ${m2.halfY}px) rotateY(90deg) scale(${m2.grow})` },
-      { transform: `${PERSP} translate(0, 0) rotateY(0deg) scale(1)` },
-    ], { duration: FLY_OUT, delay: FLY_IN, easing: EASE_2, fill: "both" })
-      // カードを戻すのと複製を消すのを同じ瞬間にやり、入れ替わりのちらつきを防ぐ
-      .onfinish = () => { card.style.visibility = ""; clone.remove(); ov.remove(); };
-
-    ov.animate([{ opacity: 1 }, { opacity: 0 }], { duration: FLY_IN + FLY_OUT, easing: "ease-in", fill: "forwards" });
+    back.scrollTop = 0;
+    play(true).onfinish = () => { card.style.visibility = ""; ov.remove(); };
+    ov.animate([{ opacity: 1 }, { opacity: 0 }], { duration: FLIP_MS, easing: "ease-in", fill: "forwards" });
   };
   return { close };
 }
@@ -1472,7 +1453,7 @@ function openFlight(ov, card) {
    ========================================================================= */
 function openCsvDialog() {
   const rows = DATA.slice(0, 4).map(d =>
-    `${d.time.replace(/\s/g, "_")},${d.who},${d.tag},${d.src},"${(d.msg || d.reaction || "").slice(0, 18)}…"`).join("\n");
+    `${d.time.replace(/\s/g, "_")},${d.who},${d.tag},${d.src},"${String(d.msg || "").replace(/<br>/g, "").slice(0, 18)}…"`).join("\n");
   openDialog({
     title: "CSVで書き出す", sub: `アルバム ${DATA.length}件 ／ じぶんのメモは含めません`,
     body: `<p class="dlg-text">受け取った日・送り主・場面タグ・出典・本文を書き出します。じぶんのメモは、あなただけのものなので含めません。</p>

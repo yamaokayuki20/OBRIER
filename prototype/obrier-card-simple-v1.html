@@ -176,8 +176,7 @@
   }
   .pat-b .ava { box-shadow: 0 0 0 5px var(--paper), 0 5px 12px rgba(80,62,40,.18); width: 48px; height: 48px; font-size: 17px; }
   .pat-b .say {
-    font-family: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
-    font-weight: 400; letter-spacing: .04em; line-height: 2.1; font-size: 15px;
+    font-weight: 600; letter-spacing: .06em; line-height: 2.05; font-size: 14.5px;
   }
   .pat-b .who-line { color: var(--ink-soft); opacity: 1; }
   .pat-b .corner-new { background: var(--accent); color: #fff; }
@@ -463,8 +462,8 @@
     <div class="ctrl">
       <span>デザイン</span>
       <div class="seg" id="segPattern">
-        <button data-pat="pat-a" aria-pressed="true">A ベタ塗り（正）</button>
-        <button data-pat="pat-b" aria-pressed="false">B 紙＋タグ色</button>
+        <button data-pat="pat-a" aria-pressed="false">A ベタ塗り</button>
+        <button data-pat="pat-b" aria-pressed="true">B 紙＋タグ色（正）</button>
         <button data-pat="pat-d" aria-pressed="false">D 紙＋マステ</button>
         <button data-pat="pat-c" aria-pressed="false">C 現行v4</button>
       </div>
@@ -520,14 +519,14 @@
       </ul>
     </div>
     <div class="memo-card">
-      <h3>採用：A（ベタ塗り）</h3>
+      <h3>採用：B（紙＋タグ色）</h3>
       <ul>
-        <li>場面タグの色でカード全面を塗る。一覧にしたとき色の面が効いて、これが一番リッチに見える</li>
-        <li>本文はゴシックの白抜き（淡い黄・ピンクだけ濃色インク）</li>
-        <li>浮かせるのはアイコンだけ。文字も日時もカードと同じ高さに置く</li>
-        <li>日付はかすれたゴム印。詳細は濃紺で、アイコンの色に揃える</li>
-        <li>クリックでカードが移動しながら裏返り、拡大して詳細になる</li>
-        <li>B・D・Cは比較用に残してある</li>
+        <li>白い紙のカードの上端に、場面タグの色を帯で置く</li>
+        <li>本文はゴシック。方眼の台紙にカードを並べた見え方になる</li>
+        <li>カードの高さは全枚そろえ、中身の量は行数で受け止める（長文は…で止めて全文は詳細で）</li>
+        <li>浮かせるのはアイコンだけ。詳細は濃紺で、アイコンの色に揃える</li>
+        <li>クリックで、1枚のカードがそのまま裏返って詳細になる</li>
+        <li>A・D・Cは比較用に残してある</li>
       </ul>
     </div>
   </div>
@@ -700,7 +699,7 @@ const PAT_CONF = {
   "pat-d": { tilt: 0,   glare: 0,   liftZ: 0,  liftY: -3, straighten: true,  shadY: 6,  shadBlur: 14, shadA: .10 },
   "pat-c": { tilt: 0,   glare: 0,   liftZ: 0,  liftY: -3, straighten: true,  shadY: 6,  shadBlur: 14, shadA: .10 },
 };
-let CUR_PAT = "pat-a";
+let CUR_PAT = "pat-b";
 
 /* D/C：カードごとのわずかな静的傾き（deg）。Dは±1°未満に抑える */
 const BASE_ROT = {
@@ -1155,7 +1154,7 @@ function wireSeg(id, fn, attr) {
    起動
    ========================================================================= */
 buildGrid();
-setPattern("pat-a");
+setPattern("pat-b");
 wireSeg("segPattern", setPattern, "pat");
 wireSeg("segTheme", setTheme, "theme");
 document.getElementById("optTilt").addEventListener("change", e => {
