@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>オブリエ｜感謝カード 方向性10案</title>
+<meta name="description" content="オブリエの感謝カードについて、現行v4をベースラインに10案を同一条件で比較した検討ボード。">
+<style>
+  :root{
+    --board:#14181a;
+    --board-2:#1a1f22;
+    --rule:#2a3236;
+    --rule-2:#39454a;
+    --ink:#e7ecec;
+    --dim:#84969b;
+    --dim-2:#5f7278;
+    --mark:#93c5d6;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+    --goth: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
+    --min: "Hiragino Mincho ProN", "Yu Mincho", YuMincho, "Noto Serif JP", serif;
+    --maru: "Hiragino Maru Gothic ProN", "Hiragino Kaku Gothic ProN", sans-serif;
+  }
+
+  html{ -webkit-text-size-adjust:100%; }
+  body{
+    margin:0;
+    background:var(--board);
+    background-image:
+      linear-gradient(var(--board-2) 1px, transparent 1px),
+      linear-gradient(90deg, var(--board-2) 1px, transparent 1px);
+    background-size: 44px 44px, 44px 44px;
+    color:var(--ink);
+    font-family:var(--goth);
+    line-height:1.7;
+  }
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;}
+  .wrap{max-width:1180px;margin:0 auto;padding:56px 24px 96px;}
+
+  /* ---------- board header ---------- */
+  .eyebrow{
+    font-family:var(--mono);font-size:11px;letter-spacing:.24em;text-transform:uppercase;
+    color:var(--mark);margin:0 0 18px;
+  }
+  h1{
+    font-size:clamp(26px,4vw,40px);line-height:1.3;margin:0 0 18px;font-weight:700;
+    letter-spacing:.01em;text-wrap:balance;
+  }
+  .lede{max-width:62ch;color:var(--dim);font-size:15px;margin:0 0 28px;}
+  .lede b{color:var(--ink);font-weight:600;}
+  .brief{
+    display:grid;gap:1px;background:var(--rule);border:1px solid var(--rule);
+    grid-template-columns:repeat(auto-fit,minmax(230px,1fr));margin:0 0 12px;
+  }
+  .brief div{background:var(--board);padding:14px 16px;}
+  .brief dt{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim-2);margin:0 0 6px;}
+  .brief dd{margin:0;font-size:13.5px;color:var(--ink);}
+  .sample{
+    border-left:2px solid var(--mark);padding:10px 0 10px 16px;margin:26px 0 0;
+    font-size:13px;color:var(--dim);
+  }
+  .sample q{color:var(--ink);font-family:var(--min);font-size:15px;}
+
+  hr.sep{border:0;border-top:1px solid var(--rule);margin:44px 0 34px;}
+
+  /* ---------- grid of specimens ---------- */
+  .grid{
+    display:grid;gap:26px;
+    grid-template-columns:repeat(auto-fill,minmax(330px,1fr));
+  }
+  .tile{margin:0;border:1px solid var(--rule);background:var(--board-2);display:flex;flex-direction:column;}
+  .stage{
+    padding:34px 26px;display:grid;place-items:center;min-height:238px;position:relative;overflow:hidden;
+  }
+  .spec{padding:16px 18px 18px;border-top:1px solid var(--rule);display:flex;flex-direction:column;gap:9px;}
+  .spec-head{display:flex;align-items:baseline;gap:10px;}
+  .num{font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--mark);flex:none;}
+  .spec h3{margin:0;font-size:15px;font-weight:700;letter-spacing:.02em;}
+  .en{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim-2);margin-left:auto;flex:none;}
+  .dots{display:flex;gap:5px;}
+  .dots i{width:13px;height:13px;border-radius:50%;display:block;box-shadow:inset 0 0 0 1px rgba(255,255,255,.14);}
+  .note{margin:0;font-size:12.5px;color:var(--dim);}
+  .note b{color:var(--ink);font-weight:600;}
+  .risk{
+    margin:0;font-size:11.5px;color:var(--dim-2);font-family:var(--mono);
+    letter-spacing:.02em;padding-top:7px;border-top:1px dashed var(--rule);
+  }
+  .flag{
+    position:absolute;top:0;left:0;font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;
+    text-transform:uppercase;background:var(--mark);color:#0e1316;padding:3px 9px;z-index:5;font-weight:700;
+  }
+  .flag.warn{background:#e0e4e2;}
+
+  /* ---------- shared card skeleton ---------- */
+  .card{
+    position:relative;width:270px;box-sizing:border-box;
+    display:flex;flex-direction:column;gap:11px;
+    transition:transform .22s ease, box-shadow .22s ease;
+  }
+  .ch{display:flex;align-items:center;gap:8px;}
+  .avt{
+    width:26px;height:26px;border-radius:50%;flex:none;display:grid;place-items:center;
+    font-size:11px;font-weight:700;color:#fff;background:#607da8;
+  }
+  .who{font-size:12.5px;font-weight:700;}
+  .ch-name{font-size:10.5px;opacity:.62;}
+  .src{margin-left:auto;font-size:9px;letter-spacing:.08em;opacity:.6;flex:none;}
+  .msg{font-size:14.5px;line-height:1.85;margin:0;}
+  .cf{display:flex;align-items:center;gap:8px;}
+  .tag{font-size:10.5px;padding:2px 9px;border-radius:999px;font-weight:600;flex:none;}
+  .tm{margin-left:auto;font-family:var(--mono);font-size:9.5px;opacity:.55;flex:none;}
+
+  /* =========================================================
+     00 — 現行 v4（ベースライン）
+     ========================================================= */
+  .p00{
+    background:
+      radial-gradient(circle at 20% 10%, rgba(255,255,255,.5), transparent 40%),
+      radial-gradient(rgba(61,50,41,.028) 1px, transparent 1px),
+      #f0e8d6;
+    background-size:auto,22px 22px,auto;
+  }
+  .p00 .card{
+    background:#fffdf7;border:1px solid #e3d8c3;border-radius:6px;
+    padding:24px 18px 15px;color:#3d3229;
+    box-shadow:0 4px 12px rgba(80,62,40,.14);transform:rotate(-.7deg);
+  }
+  .p00 .card::before{
+    content:"";position:absolute;top:-9px;left:50%;transform:translateX(-50%) rotate(-2deg);
+    width:86px;height:20px;background:rgba(201,129,148,.4);border-radius:2px;
+  }
+  .p00 .msg{font-family:var(--min);}
+  .p00 .tag{background:#f9e8ea;color:#a04a5a;}
+  .p00 .ch-name,.p00 .src{color:#6f6355;}
+
+  /* =========================================================
+     01 — 黒台紙アルバム
+     ========================================================= */
+  .p01{background:#121214;}
+  .p01 .card{
+    background:#f8f7f3;padding:22px 20px 16px;color:#1f1f22;
+    box-shadow:0 18px 40px rgba(0,0,0,.55);
+  }
+  /* フォトコーナー（黒台紙に留める三角） */
+  .p01 .card::before,.p01 .card::after{
+    content:"";position:absolute;width:0;height:0;border-style:solid;
+  }
+  .p01 .card::before{top:0;left:0;border-width:15px 15px 0 0;border-color:#2b2b30 transparent transparent transparent;}
+  .p01 .card::after{bottom:0;right:0;border-width:0 0 15px 15px;border-color:transparent transparent #2b2b30 transparent;}
+  .p01 .msg{font-family:var(--goth);font-size:14px;line-height:1.95;}
+  .p01 .tag{background:none;padding:0;font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:#8b8b90;}
+  .p01 .avt{background:#2b2b30;}
+  .p01 .card:hover{transform:translateY(-4px);box-shadow:0 26px 52px rgba(0,0,0,.65);}
+
+  /* =========================================================
+     02 — 藍の写真帖
+     ========================================================= */
+  .p02{
+    background:#16233f;
+    background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.028) 0 1px,transparent 1px 4px),
+                     repeating-linear-gradient(0deg,rgba(255,255,255,.028) 0 1px,transparent 1px 4px);
+  }
+  .p02 .card{
+    background:#eceadf;padding:24px 20px 16px;color:#1d2740;
+    border:1px solid #cdc9b8;box-shadow:0 12px 30px rgba(0,0,0,.4);
+  }
+  .p02 .card::before{
+    content:"謝";position:absolute;top:-11px;right:16px;width:26px;height:26px;
+    background:#b93a2f;color:#fff;font-family:var(--min);font-size:13px;
+    display:grid;place-items:center;border-radius:2px;transform:rotate(4deg);
+    box-shadow:0 2px 6px rgba(0,0,0,.3);
+  }
+  .p02 .msg{font-family:var(--min);color:#1d2740;}
+  .p02 .tag{background:none;border:1px solid #4a5f8c;color:#33477a;}
+  .p02 .avt{background:#33477a;}
+
+  /* =========================================================
+     03 — エアメール
+     ========================================================= */
+  .p03{background:#dde3e5;}
+  .p03 .card{
+    background:#fff;padding:8px;color:#20242a;
+    box-shadow:0 10px 26px rgba(40,60,80,.22);
+  }
+  .p03 .card::before{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    padding:5px;
+    background:repeating-linear-gradient(45deg,#d0342c 0 9px,#fff 9px 18px,#2b4d8f 18px 27px,#fff 27px 36px);
+    -webkit-mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);
+            mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);
+    -webkit-mask-composite:xor;
+  }
+  .p03 .inner{padding:14px 12px 10px;display:flex;flex-direction:column;gap:10px;}
+  .p03 .stampmark{
+    position:absolute;top:14px;right:14px;width:44px;height:44px;border-radius:50%;
+    border:1.5px dashed #2b4d8f;color:#2b4d8f;opacity:.75;transform:rotate(-12deg);
+    display:grid;place-items:center;font-family:var(--mono);font-size:7.5px;
+    letter-spacing:.06em;text-align:center;line-height:1.3;
+  }
+  .p03 .msg{font-family:var(--maru);padding-right:34px;}
+  .p03 .tag{background:#eaf0f6;color:#2b4d8f;}
+  .p03 .avt{background:#2b4d8f;}
+  .p03 .src{font-family:var(--mono);color:#d0342c;opacity:.9;}
+
+  /* =========================================================
+     04 — 標本箱
+     ========================================================= */
+  .p04{background:#1d2a22;}
+  .p04 .card{
+    background:rgba(246,246,238,.94);padding:20px 18px 15px;color:#22281f;
+    border:1px solid #b9bfa8;box-shadow:0 14px 34px rgba(0,0,0,.42);
+  }
+  .p04 .card::before{
+    content:"";position:absolute;inset:5px;border:1px solid rgba(80,95,70,.28);pointer-events:none;
+  }
+  .p04 .card::after{
+    content:"No. 0142";position:absolute;bottom:-9px;left:16px;background:#22281f;color:#e4e8dc;
+    font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;padding:2px 8px;
+  }
+  .p04 .who{font-variant:small-caps;letter-spacing:.06em;}
+  .p04 .msg{font-family:var(--min);font-size:14px;}
+  .p04 .tag{background:none;padding:0;font-family:var(--min);font-style:italic;font-size:11px;color:#4e6349;}
+  .p04 .avt{background:#4e6349;}
+
+  /* =========================================================
+     05 — 図書カード
+     ========================================================= */
+  .p05{background:#cfd2cb;}
+  .p05 .card{
+    background:#e9ebe0;padding:18px 16px 14px;color:#2a2c25;
+    border:1px solid #b7bbab;box-shadow:0 8px 20px rgba(50,55,45,.25);
+    background-image:repeating-linear-gradient(0deg,transparent 0 25px,rgba(176,60,52,.16) 25px 26px);
+  }
+  .p05 .card::before{
+    content:"";position:absolute;top:0;left:0;right:0;height:4px;background:#b03c34;
+  }
+  .p05 .msg{font-family:var(--goth);font-size:14px;}
+  .p05 .tag{background:none;padding:0;font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;color:#6a6d5e;}
+  .p05 .avt{background:#6a6d5e;border-radius:2px;}
+  .p05 .stamp{
+    position:absolute;bottom:12px;right:12px;border:1.5px solid #b03c34;color:#b03c34;
+    font-family:var(--mono);font-size:9px;letter-spacing:.08em;padding:3px 7px;
+    transform:rotate(-7deg);opacity:.8;
+  }
+  .p05 .tm{opacity:0;}
+
+  /* =========================================================
+     06 — チケット半券
+     ========================================================= */
+  .p06{background:#111114;}
+  .p06 .card{
+    background:#1c1c21;color:#f0f0f2;display:flex;flex-direction:row;gap:0;
+    box-shadow:0 14px 34px rgba(0,0,0,.6);
+  }
+  .p06 .main{padding:18px 16px 15px;display:flex;flex-direction:column;gap:10px;flex:1;min-width:0;}
+  .p06 .stub{
+    flex:none;width:44px;border-left:2px dashed #3a3a44;display:grid;place-items:center;
+  }
+  .p06 .stub span{
+    writing-mode:vertical-rl;font-family:var(--mono);font-size:9.5px;letter-spacing:.22em;color:#2ec4b6;
+  }
+  .p06 .msg{font-family:var(--goth);font-size:14px;line-height:1.8;}
+  .p06 .tag{background:#2ec4b6;color:#0d1a19;font-weight:700;letter-spacing:.04em;}
+  .p06 .avt{background:#2ec4b6;color:#0d1a19;border-radius:3px;}
+  .p06 .ch-name,.p06 .src,.p06 .tm{opacity:.5;}
+  .p06 .card:hover{transform:translateY(-3px);}
+
+  /* =========================================================
+     07 — 静のミニマル
+     ========================================================= */
+  .p07{background:#eef0ee;}
+  .p07 .card{
+    background:#fff;padding:30px 26px 24px;color:#25282a;gap:20px;
+    border-top:1px solid #25282a;
+  }
+  .p07 .who{font-size:11px;font-weight:400;letter-spacing:.1em;}
+  .p07 .ch-name,.p07 .src{font-size:9.5px;letter-spacing:.1em;opacity:.45;}
+  .p07 .avt{display:none;}
+  .p07 .msg{font-family:var(--min);font-size:16px;line-height:2.15;letter-spacing:.03em;}
+  .p07 .tag{background:none;padding:0;font-size:9.5px;letter-spacing:.16em;opacity:.5;font-weight:400;}
+  .p07 .tm{font-size:9px;opacity:.35;}
+
+  /* =========================================================
+     08 — 和紙と墨
+     ========================================================= */
+  .p08{background:#dedbd3;}
+  .p08 .card{
+    background:#f5f3ec;padding:24px 22px 18px;color:#22201c;
+    box-shadow:0 8px 22px rgba(60,55,45,.2);
+    clip-path:polygon(0 0,100% 0,99.2% 12%,100% 26%,99% 41%,100% 55%,99.3% 70%,100% 84%,99% 100%,0 100%,.7% 86%,0 71%,.9% 57%,0 43%,.8% 28%,0 14%);
+  }
+  .p08 .msg{font-family:var(--min);font-size:15px;line-height:2;color:#22201c;}
+  .p08 .seal{
+    position:absolute;bottom:16px;right:20px;width:24px;height:24px;background:#b02c22;
+    color:#f5f3ec;font-family:var(--min);font-size:12px;display:grid;place-items:center;
+    border-radius:2px;transform:rotate(-3deg);
+  }
+  .p08 .tag{background:none;padding:0;font-family:var(--min);font-size:11px;color:#6d6455;border-bottom:1px solid #c3bcab;border-radius:0;}
+  .p08 .avt{background:#4a453c;}
+  .p08 .tm{margin-right:32px;}
+
+  /* =========================================================
+     09 — 未開封の封筒（新着）
+     ========================================================= */
+  .p09{background:#2a1d30;}
+  .p09 .card{
+    background:#e9e3df;padding:0;color:#2a2429;height:150px;justify-content:flex-end;
+    box-shadow:0 16px 38px rgba(0,0,0,.5);gap:0;
+  }
+  /* 封筒のフラップ */
+  .p09 .card::before{
+    content:"";position:absolute;top:0;left:0;right:0;height:82px;
+    background:#ded6d1;
+    clip-path:polygon(0 0,100% 0,50% 100%);
+  }
+  .p09 .wax{
+    position:absolute;top:62px;left:50%;transform:translateX(-50%);
+    width:36px;height:36px;border-radius:50%;background:#8c2f3d;color:#f0dfe2;
+    display:grid;place-items:center;font-family:var(--min);font-size:15px;z-index:2;
+    box-shadow:0 3px 8px rgba(0,0,0,.35);
+  }
+  .p09 .teaser{padding:14px 18px 18px;text-align:center;position:relative;z-index:2;}
+  .p09 .teaser p{margin:0;font-size:12.5px;font-family:var(--min);}
+  .p09 .teaser small{
+    display:block;margin-top:7px;font-family:var(--mono);font-size:9px;
+    letter-spacing:.18em;color:#8c2f3d;
+  }
+  .p09 .card:hover{transform:translateY(-4px) rotate(-1deg);}
+
+  /* =========================================================
+     10 — 夜のアルバム
+     ========================================================= */
+  .p10{background:#0b1119;}
+  .p10 .card{
+    background:#151d28;padding:22px 20px 16px;color:#dfe6ee;
+    border:1px solid #24303f;box-shadow:0 0 0 1px rgba(127,209,224,.05),0 18px 40px rgba(0,0,0,.6);
+  }
+  .p10 .card::before{
+    content:"";position:absolute;top:-1px;left:14%;right:14%;height:1px;
+    background:linear-gradient(90deg,transparent,rgba(127,209,224,.6),transparent);
+  }
+  .p10 .msg{font-family:var(--min);font-size:15px;color:#eef3f8;}
+  .p10 .tag{background:none;padding:0 0 0 13px;color:#7fd1e0;font-size:10.5px;letter-spacing:.06em;position:relative;}
+  .p10 .tag::before{
+    content:"";position:absolute;left:0;top:50%;transform:translateY(-50%);
+    width:5px;height:5px;border-radius:50%;background:#7fd1e0;box-shadow:0 0 7px #7fd1e0;
+  }
+  .p10 .avt{background:#24303f;color:#7fd1e0;}
+  .p10 .ch-name,.p10 .src,.p10 .tm{opacity:.45;}
+
+  /* ---------- closing ---------- */
+  .close h2{font-size:20px;margin:0 0 8px;font-weight:700;}
+  .close p.sub{color:var(--dim);font-size:14px;margin:0 0 24px;max-width:60ch;}
+  ol.q{margin:0;padding:0;list-style:none;display:grid;gap:1px;background:var(--rule);border:1px solid var(--rule);}
+  ol.q li{background:var(--board);padding:15px 18px;display:flex;gap:15px;align-items:flex-start;}
+  ol.q .qn{font-family:var(--mono);font-size:11px;color:var(--mark);flex:none;padding-top:3px;letter-spacing:.1em;}
+  ol.q .qt{font-size:14px;}
+  ol.q .qt small{display:block;color:var(--dim);font-size:12.5px;margin-top:3px;}
+
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none !important;animation:none !important;}
+  }
+  @media (max-width:520px){
+    .wrap{padding:36px 16px 64px;}
+    .card{width:100%;max-width:270px;}
+  }
+</style>
+</head>
+<body>
+<h2 class="sr-only">オブリエの感謝カードについて、現行v4のベースラインと新規10案のビジュアル方向性を並べた比較ボード。各案にパレット、狙い、リスクの注記がつく。</h2>
+
+<div class="wrap">
+
+  <p class="eyebrow">Obrier / Card Design Study</p>
+  <h1>感謝カード、10の方向性</h1>
+  <p class="lede">
+    比較を成立させるため、<b>10案すべて同じ1枚の感謝</b>で描いています。変えたのは色・素材・書体・レイアウトだけ。
+    現行v4は <b>00</b> にベースラインとして置いてあります ——
+    クリーム地＋琥珀アクセント＋明朝という組み合わせは、いま最も既視感の強い座標です。
+    以降の10案は、そこから<b>意図的に離れる</b>ことを共通の制約にしました。
+  </p>
+
+  <dl class="brief">
+    <div><dt>守る制約</dt><dd>アルバムの世界観／非ランキング／静かで温かいトーン</dd></div>
+    <div><dt>狙う体験</dt><dd>眺めて楽しい・新着を確認したくなる</dd></div>
+    <div><dt>可変要素</dt><dd>場面タグは自動生成のため色数が読めない</dd></div>
+  </dl>
+
+  <p class="sample">
+    共通サンプル ／ 中村さん・#営業連携・Slack・6/28 15:30・タグ「気配り」<br>
+    <q>引き継ぎ資料、丁寧で安心しました。ありがとうございます。</q>
+  </p>
+
+  <hr class="sep">
+
+  <div class="grid">
+
+    <!-- 00 baseline -->
+    <figure class="tile">
+      <div class="stage p00">
+        <span class="flag warn">現行 v4</span>
+        <article class="card">
+          <div class="ch"><span class="avt">中</span><div><div class="who">中村さん</div><div class="ch-name">#営業連携</div></div><span class="src">Slack</span></div>
+          <p class="msg">引き継ぎ資料、丁寧で安心しました。ありがとうございます。</p>
+          <div class="cf"><span class="tag">気配り</span><span class="tm">6/28 15:30</span></div>
+        </article>
+      </div>
+      <figcaption class="spec">
+        <div class="spec-head"><span class="num">00</span><h3>現行ベースライン</h3><span class="en">v4</span></div>
+        <div class="dots"><i style="background:#f0e8d6"></i><i style="background:#fffdf7"></i><i style="background:#c98a3d"></i><i style="background:#3d3229"></i></div>
+        <p class="note">紙グレイン＋マステ＋微小回転＋明朝。作りは丁寧だが、<b>色の座標が既視感の中心</b>にある。</p>
+        <p class="risk">RISK: 生成AIの標準出力と見分けがつかない</p>
+      </figcaption>
+    </figure>
+
+    <!-- 01 -->
+    <figure class="tile">
+      <div class="stage p01">
+        <article class="card">
+          <div class="ch"><span class="avt">中</span><div><div class="who">中村さん</div><div class="ch-name">#営業連携</div></div><span class="src">Slack</span></div>
+          <p class="msg">引き継ぎ資料、丁寧で安心しました。ありがとうございます。</p>
+          <div class="cf"><span class="tag">気配り</span><span class="tm">6/28 15:30</span></div>
+        </article>
+      </div>
+      <figcaption class="spec">
+        <div class="spec-head"><span class="num">01</span><h3>黒台紙アルバム</h3><span class="en">Black Leaf</span></div>
+        <div class="dots"><i style="background:#121214"></i><i style="background:#f8f7f3"></i><i style="background:#2b2b30"></i><i style="background:#8b8b90"></i></div>
+        <p class="note">昔の写真アルバムそのもの。黒台紙にフォトコーナーで留める。<b>カード自体が光源になる</b>ので、並べると本当に写真を見ている感覚になる。</p>
+        <p class="risk">RISK: 暗さが「静か」を通り越して重くなりうる</p>
+      </figcaption>
+    </figure>
+
+    <!-- 02 -->
+    <figure class="tile">
+      <div class="stage p02">
+        <article class="card">
+          <div class="ch"><span class="avt">中</span><div><div class="who">中村さん</div><div class="ch-name">#営業連携</div></div><span class="src">Slack</span></div>
+          <p class="msg">引き継ぎ資料、丁寧で安心しました。ありがとうございます。</p>
+          <div class="cf"><span class="tag">気配り</span><span class="tm">6/28 15:30</span></div>
+        </article>
+      </div>
+      <figcaption class="spec">
+        <div class="spec-head"><span class="num">02</span><h3>藍の写真帖</h3><span class="en">Indigo</span></div>
+        <div class="dots"><i style="background:#16233f"></i><i style="background:#eceadf"></i><i style="background:#b93a2f"></i><i style="background:#33477a"></i></div>
+        <p class="note">藍染の台紙に生成りの札。温かみを<b>茶色ではなく藍と朱で出す</b>。和のニュアンスを保ったままセピアから完全に抜けられる。</p>
+        <p class="risk">RISK: 紺は企業SaaSに寄りやすい。質感で殺す必要あり</p>
+      </figcaption>
+    </figure>
+
+    <!-- 03 -->
+    <figure class="tile">
+      <div class="stage p03">
+        <article class="card">
+          <span class="stampmark">PAR<br>AVION</span>
+          <div class="inner">
+            <div class="ch"><span class="avt">中</span><div><div class="who">中村さん</div><div class="ch-name">#営業連携</div></div><span class="src">SLACK</span></div>
+            <p class="msg">引き継ぎ資料、丁寧で安心しました。ありがとうございます。</p>
+            <div class="cf"><span class="tag">気配り</span><span class="tm">6/28 15:30</span></div>
+          </div>
+        </article>
+      </div>
+      <figcaption class="spec">
+        <div class="spec-head"><span class="num">03</span><h3>エアメール</h3><span class="en">Par Avion</span></div>
+        <div class="dots"><i style="background:#dde3e5"></i><i style="background:#ffffff"></i><i style="background:#d0342c"></i><i style="background:#2b4d8f"></i></div>
+        <p class="note">赤青の縁と消印。<b>「誰かから、届いた」が一目で伝わる</b>唯一の案。新着との相性が抜群で、リモートで離れている前提とも噛み合う。</p>
+        <p class="risk">RISK: 記号が強く、100枚並ぶと視覚的にうるさい</p>
+      </figcaption>
+    </figure>
+
+    <!-- 04 -->
+    <figure class="tile">
+      <div class="stage p04">
+        <article class="card">
+          <div class="ch"><span class="avt">中</span><div><div class="who">中村さん</div><div class="ch-name">#営業連携</div></div><span class="src">Slack</span></div>
+          <p class="msg">引き継ぎ資料、丁寧で安心しました。ありがとうございます。</p>
+          <div class="cf"><span class="tag">気配り</span><span class="tm">6/28 15:30</span></div>
+        </article>
+      </div>
+      <figcaption class="spec">
+        <div class="spec-head"><span class="num">04</span><h3>標本箱</h3><span class="en">Herbarium</span></div>
+        <div class="dots"><i style="background:#1d2a22"></i><i style="background:#f6f6ee"></i><i style="background:#4e6349"></i><i style="background:#b9bfa8"></i></div>
+        <p class="note">グラシン紙に挟んだ押し花の標本。<b>「綴じる＝保存する」の直訳</b>で、通し番号が積み重なる快感を生む。深緑は既視感がほぼない。</p>
+        <p class="risk">RISK: 学術的で冷たく見える。人の言葉と相性を検証したい</p>
+      </figcaption>
+    </figure>
+
+    <!-- 05 -->
+    <figure class="tile">
+      <div class="stage p05">
+        <article class="card">
+          <span class="stamp">28 JUN 2026</span>
+          <div class="ch"><span class="avt">中</span><div><div class="who">中村さん</div><div class="ch-name">#営業連携</div></div><span class="src">Slack</span></div>
+          <p class="msg">引き継ぎ資料、丁寧で安心しました。ありがとうございます。</p>
+          <div class="cf"><span class="tag">気配り</span></div>
+        </article>
+      </div>
+      <figcaption class="spec">
+        <div class="spec-head"><span class="num">05</span><h3>図書カード</h3><span class="en">Library Card</span></div>
+        <div class="dots"><i style="background:#cfd2cb"></i><i style="background:#e9ebe0"></i><i style="background:#b03c34"></i><i style="background:#6a6d5e"></i></div>
+        <p class="note">貸出票の罫線とゴム印の日付。<b>日付が押されるほど価値が増す</b>形式なので、続けるほど嬉しくなる構造を最初から持っている。</p>
+        <p class="risk">RISK: ノスタルジーが強く、若い層に通じるか要検証</p>
+      </figcaption>
+    </figure>
+
+    <!-- 06 -->
+    <figure class="tile">
+      <div class="stage p06">
+        <article class="card">
+          <div class="main">
+            <div class="ch"><span class="avt">中</span><div><div class="who">中村さん</div><div class="ch-name">#営業連携</div></div><span class="src">Slack</span></div>
+            <p class="msg">引き継ぎ資料、丁寧で安心しました。ありがとうございます。</p>
+            <div class="cf"><span class="tag">気配り</span><span class="tm">6/28 15:30</span></div>
+          </div>
+          <div class="stub"><span>No.0142</span></div>
+        </article>
+      </div>
+      <figcaption class="spec">
+        <div class="spec-head"><span class="num">06</span><h3>チケット半券</h3><span class="en">Stub</span></div>
+        <div class="dots"><i style="background:#111114"></i><i style="background:#1c1c21"></i><i style="background:#2ec4b6"></i><i style="background:#f0f0f2"></i></div>
+        <p class="note">ミシン目と通し番号。<b>「いい出来事があった証拠」</b>という記号で、10案でいちばん軽快で楽しい。若い層に強い。</p>
+        <p class="risk">RISK: 「静かで温かい」トーンから最も遠い。原則との衝突</p>
+      </figcaption>
+    </figure>
+
+    <!-- 07 -->
+    <figure class="tile">
+      <div class="stage p07">
+        <article class="card">
+          <div class="ch"><div><div class="who">中村さん</div><div class="ch-name">#営業連携</div></div><span class="src">SLACK</span></div>
+          <p class="msg">引き継ぎ資料、丁寧で安心しました。ありがとうございます。</p>
+          <div class="cf"><span class="tag">気配り</span><span class="tm">6/28 15:30</span></div>
+        </article>
+      </div>
+      <figcaption class="spec">
+        <div class="spec-head"><span class="num">07</span><h3>静のミニマル</h3><span class="en">Quiet</span></div>
+        <div class="dots"><i style="background:#eef0ee"></i><i style="background:#ffffff"></i><i style="background:#25282a"></i><i style="background:#a8adad"></i></div>
+        <p class="note">装飾を全部やめて、余白と明朝と行間だけで持たせる。<b>言葉そのものが主役</b>になり、感謝の重みが逆に増す。対抗軸として置いた。</p>
+        <p class="risk">RISK: 「眺めて楽しい」の要求に真っ向から反する</p>
+      </figcaption>
+    </figure>
+
+    <!-- 08 -->
+    <figure class="tile">
+      <div class="stage p08">
+        <article class="card">
+          <span class="seal">謝</span>
+          <div class="ch"><span class="avt">中</span><div><div class="who">中村さん</div><div class="ch-name">#営業連携</div></div><span class="src">Slack</span></div>
+          <p class="msg">引き継ぎ資料、丁寧で安心しました。ありがとうございます。</p>
+          <div class="cf"><span class="tag">気配り</span><span class="tm">6/28 15:30</span></div>
+        </article>
+      </div>
+      <figcaption class="spec">
+        <div class="spec-head"><span class="num">08</span><h3>和紙と墨</h3><span class="en">Sumi</span></div>
+        <div class="dots"><i style="background:#dedbd3"></i><i style="background:#f5f3ec"></i><i style="background:#22201c"></i><i style="background:#b02c22"></i></div>
+        <p class="note">耳付きの和紙に墨、落款は朱。<b>茶色を一切使わず</b>「墨＋朱＋灰生成り」の三色に絞ることで、和の温度をセピアなしで出す。</p>
+        <p class="risk">RISK: 和に寄りすぎると外資系・IT企業に売りにくい</p>
+      </figcaption>
+    </figure>
+
+    <!-- 09 -->
+    <figure class="tile">
+      <div class="stage p09">
+        <span class="flag">新着の提案</span>
+        <article class="card">
+          <span class="wax">封</span>
+          <div class="teaser">
+            <p>中村さんから、<br>ひとこと届いています</p>
+            <small>ひらく</small>
+          </div>
+        </article>
+      </div>
+      <figcaption class="spec">
+        <div class="spec-head"><span class="num">09</span><h3>未開封の封筒</h3><span class="en">Sealed</span></div>
+        <div class="dots"><i style="background:#2a1d30"></i><i style="background:#e9e3df"></i><i style="background:#8c2f3d"></i><i style="background:#ded6d1"></i></div>
+        <p class="note">新着だけ本文を伏せる。<b>「確認したくなる」への直球の答え</b>で、月次の開封の儀とは別物（カード単位・その場で開く）。開けたら普通のカードに変わる。</p>
+        <p class="risk">RISK: 対象外事項「開封の儀」との線引きを要判断</p>
+      </figcaption>
+    </figure>
+
+    <!-- 10 -->
+    <figure class="tile">
+      <div class="stage p10">
+        <article class="card">
+          <div class="ch"><span class="avt">中</span><div><div class="who">中村さん</div><div class="ch-name">#営業連携</div></div><span class="src">Slack</span></div>
+          <p class="msg">引き継ぎ資料、丁寧で安心しました。ありがとうございます。</p>
+          <div class="cf"><span class="tag">気配り</span><span class="tm">6/28 15:30</span></div>
+        </article>
+      </div>
+      <figcaption class="spec">
+        <div class="spec-head"><span class="num">10</span><h3>夜のアルバム</h3><span class="en">After Hours</span></div>
+        <div class="dots"><i style="background:#0b1119"></i><i style="background:#151d28"></i><i style="background:#7fd1e0"></i><i style="background:#eef3f8"></i></div>
+        <p class="note">落ち込んだ夜に一人で見返す時間のための姿。<b>本命というよりダークモードの解</b>。タグが小さく発光して、暗い画面で気持ちよく光る。</p>
+        <p class="risk">RISK: 単独では弱い。他案とのペア運用が前提</p>
+      </figcaption>
+    </figure>
+
+  </div>
+
+  <hr class="sep">
+
+  <section class="close">
+    <h2>次に決めたい論点</h2>
+    <p class="sub">好き嫌いだけでなく、この5つに答えが出ると残りのデザインが一気に決まります。</p>
+    <ol class="q">
+      <li><span class="qn">Q1</span><span class="qt">地は明るいか、暗いか<small>明るい地＝日常的に開ける／暗い地＝カードが写真のように光る。ここが決まらないと色は決められない。</small></span></li>
+      <li><span class="qn">Q2</span><span class="qt">「届いた」を記号で見せるか、質感で見せるか<small>03エアメールは記号で殴る案、01・04・08は質感で伝える案。方向がまるで違う。</small></span></li>
+      <li><span class="qn">Q3</span><span class="qt">可変タグの色をどう配るか<small>タグは自動生成で増えるので、v4の固定5色は破綻する。文字列から色相を自動決定する規則が要る。</small></span></li>
+      <li><span class="qn">Q4</span><span class="qt">新着に「伏せる」を入れるか<small>09は最も効くが、廃止した開封の儀と地続きに見える。原則7（控えめ）と衝突しないか判断が必要。</small></span></li>
+      <li><span class="qn">Q5</span><span class="qt">時間が経つと、カードは変化するか<small>アルバムの本質は経年。古いカードが少し褪せる／通し番号が伸びる等を入れるかで、長期の見え方が変わる。</small></span></li>
+    </ol>
+  </section>
+
+</div>
+</body>
+</html>
