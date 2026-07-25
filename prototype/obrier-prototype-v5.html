@@ -373,15 +373,22 @@
     will-change: transform;
     width: min(560px, 100%); max-height: calc(100vh - 60px);
   }
+  /* 表・裏それぞれに will-change を置く。
+     アニメーションが終わるとブラウザは合成レイヤーを手放すため、しばらく開いたままにしてから
+     閉じると、詳細（文字の多い大きな面）を描き直してからでないと動かせず、戻り始めが引っかかる。
+     開いている間ずっとレイヤーを保つよう明示する */
   .f-front {
     position: absolute; left: 50%; top: 50%; translate: -50% -50%;
     transform-origin: center; pointer-events: none; z-index: 2;
     backface-visibility: hidden; -webkit-backface-visibility: hidden;
+    will-change: transform;
   }
   .f-front .card3d, .f-front .face { width: 100%; height: 100%; }
   .f-front .card3d { transform: none !important; box-shadow: 0 18px 40px rgba(20,26,40,.28); }
+  /* 回っている間は、ぼかしの大きい影を外す。広い面にかかるぼかしは描き直しが重い */
+  .flipwrap.spinning .f-back, .flipwrap.spinning .f-front .card3d { box-shadow: 0 10px 24px rgba(20,26,40,.22); }
   .f-back {
-    position: relative; transform: rotateY(180deg);
+    position: relative; transform: rotateY(180deg); will-change: transform;
     backface-visibility: hidden; -webkit-backface-visibility: hidden;
     max-height: calc(100vh - 60px); overflow-y: auto; overscroll-behavior: contain;
     scrollbar-gutter: stable;   /* スクロールバーの出入りで中の文字が組み直されないように */
@@ -505,7 +512,7 @@
     </div>
     <div class="me" id="meBox"><span>YUKIYAMAさん</span><div class="ava-s">Y</div></div>
     <!-- どの版を見ているかを確かめるための表示。更新されていないと思ったときはここを見る -->
-    <span class="build" title="この版の識別子">rev.10 閉じ始めにレイアウトを触らない版</span>
+    <span class="build" title="この版の識別子">rev.11 レイヤーを保つ版</span>
   </div>
 </header>
 
@@ -1488,8 +1495,11 @@ function openFlight(ov, card) {
       { transform: `perspective(1800px) translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) rotateY(0deg)` },
       { transform: `perspective(1800px) translate(0px, 0px) rotateY(180deg)` },
     ];
-    return wrap.animate(reverse ? [...f].reverse() : f,
+    wrap.classList.add("spinning");
+    const a = wrap.animate(reverse ? [...f].reverse() : f,
       { duration: FLIP_MS, easing: FLIP_EASE, fill: "forwards" });
+    a.addEventListener("finish", () => wrap.classList.remove("spinning"));
+    return a;
   };
 
   const bg = ov.querySelector(".overlay-bg");
