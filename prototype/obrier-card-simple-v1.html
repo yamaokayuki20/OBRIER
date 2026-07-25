@@ -26,6 +26,9 @@
     --ava: #3A4A66;
     --navy: #3A4A66; --navy-soft: #6d7a94; --navy-line: #dfe4ed; --navy-bg: #f2f4f8;
 
+    /* かすれたインク用のマスク。ノイズの明るいところだけインクが乗る */
+    --ink-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='44'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' seed='11'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 1.9 0 0 0 -0.28'/%3E%3C/filter%3E%3Crect width='150' height='44' filter='url(%23s)'/%3E%3C/svg%3E");
+
     /* 背景テーマ（切替）：デフォルトは白地×薄い青の方眼 */
     --bg: #ffffff;
     --grid-line: rgba(90,143,216,.13);
@@ -260,12 +263,51 @@
   }
   .pat-d .memo-dot { background: #f0dc63; box-shadow: 0 0 0 3px rgba(240,220,99,.35); transform: none; }
   .pat-d .glare { display: none; }                /* Dに光沢は不要（紙なので） */
-  /* 日付＝回転印風のスタンプ（遊び心）。色はタグ色を深くした派生色 */
+
+  /* ---- 中身の量による出し分け ----
+     感謝は一言のこともあれば長文のこともあり、絵文字のリアクションだけのこともある。
+     どれもカードとして成立するよう、書体の大きさ・行数・カードの丈を変える */
+
+  /* 短い一言：大きく見せて、余白で受ける */
+  .kind-short .say { font-size: 17px; line-height: 1.95; letter-spacing: .08em; }
+
+  /* 長文：左寄せにして行数で止める。続きは詳細で読む */
+  .kind-long .front { padding-top: 30px; }
+  .kind-long .say {
+    text-align: left; font-size: 13px; line-height: 1.9; letter-spacing: .01em; font-weight: 500;
+    display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .more-hint {
+    display: none; font-size: 10px; letter-spacing: .08em; color: var(--ink-soft);
+    align-self: flex-start; margin-top: -6px;
+  }
+  .kind-long .more-hint { display: block; }
+
+  /* リアクションだけの「小さなありがとう」：丈を詰めて控えめに置く */
+  .kind-stamp .front { min-height: 172px; gap: 12px; padding: 30px 22px 16px; }
+  .kind-stamp .ava { width: 36px; height: 36px; font-size: 13px; box-shadow: 0 0 0 3px #fffdfa, 0 3px 8px rgba(58,74,102,.22); }
+  .stamp-face { display: none; }
+  .kind-stamp .stamp-face {
+    display: block; font-size: 40px; line-height: 1;
+    filter: saturate(.9); transform: rotate(-4deg);
+  }
+  .kind-stamp .say { display: none; }
+  .kind-stamp .who-line { font-size: 10.5px; }
+  .stamp-note { display: none; }
+  .kind-stamp .stamp-note {
+    display: block; font-size: 10px; letter-spacing: .06em; color: var(--ink-soft);
+  }
+  /* 日付＝かすれたゴム印。ノイズをマスクに使い、インクの乗りをまだらにする。
+     枠線にもマスクがかかるので、押しムラのある判子に見える */
   .pat-d .c-time {
-    font-size: 10px; letter-spacing: .05em; padding: 2px 8px; border-radius: 3px;
-    border: 1px solid color-mix(in srgb, var(--cc) 45%, transparent);
+    font-size: 10px; letter-spacing: .05em; padding: 2px 8px; border-radius: 2px;
+    border: 1.5px solid color-mix(in srgb, var(--cc) 52%, #1d2430);
     color: color-mix(in srgb, var(--cc) 52%, #1d2430);
-    transform: rotate(-2deg);
+    transform: rotate(var(--stamp-rot, -2deg));
+    -webkit-mask-image: var(--ink-mask); mask-image: var(--ink-mask);
+    -webkit-mask-size: 150px 44px; mask-size: 150px 44px;
+    -webkit-mask-position: var(--stamp-shift, 0) 0; mask-position: var(--stamp-shift, 0) 0;
+    opacity: .82;
   }
 
   /* --- パターンごとの要素の出し分け --- */
@@ -506,6 +548,24 @@ const DATA = [
       { who: "YUKIYAMA", av: "av-me", ini: "Y", time: "10:55", mine: true, text: "逆に「親世代から子どもへ贈る」導線はどうでしょう？" },
       { who: "佐藤さん", av: "av-a", ini: "佐", time: "11:04", thanks: true, text: "すごい、いいね。この切り口なかったわ。" },
     ]},
+  // リアクションだけの「小さなありがとう」（F04）
+  { who: "中村さん", av: "av-h", ini: "中", ch: "#プロジェクトA", src: "Slack", month: "2026年 6月",
+    reaction: "🙏", tag: "スピード対応", time: "6/29 18:40",
+    summary: "共有した障害対応の手順に、その場で拝む絵文字が返ってきました。言葉になる前の感謝として、控えめに数えています。",
+    story: [
+      { who: "YUKIYAMA", av: "av-me", ini: "Y", time: "18:36", mine: true, text: "暫定対応の手順をまとめました。まずはこれで止血できます。" },
+      { who: "中村さん", av: "av-h", ini: "中", time: "18:40", thanks: true, text: "🙏（リアクション）" },
+    ]},
+  // 長文の感謝
+  { who: "岡田さん", av: "av-c", ini: "岡", ch: "#カスタマーサクセス", src: "Teams", month: "2026年 6月",
+    msg: "先日は本当にありがとうございました。急なお願いだったにもかかわらず、こちらの状況を丁寧に聞き取ってくださって、そのうえで実現できる案と難しい案をはっきり分けて示していただけたので、社内の合意もすぐに取れました。お客様にも自信を持って説明でき、無事に今週の納品まで進められています。次の案件でもぜひご一緒させてください。",
+    tag: "調整力", time: "6/26 20:12",
+    summary: "急な依頼に対し、実現できる案と難しい案を切り分けて提示。社内合意と納品まで一気に進み、長文の感謝が届きました。",
+    story: [
+      { who: "岡田さん", av: "av-c", ini: "岡", time: "6/24 09:12", text: "急ぎで相談です。来週の納品、仕様を一部変えられませんか…？" },
+      { who: "YUKIYAMA", av: "av-me", ini: "Y", time: "6/24 11:40", mine: true, text: "できる案が2つ、難しい案が1つあります。影響範囲を添えて整理しました。" },
+      { who: "岡田さん", av: "av-c", ini: "岡", time: "6/26 20:12", thanks: true, text: "先日は本当にありがとうございました。急なお願いだったにもかかわらず、こちらの状況を丁寧に聞き取ってくださって…（略）" },
+    ]},
   { who: "田中さん", av: "av-b", ini: "田", ch: "#プロジェクトA", src: "Slack", month: "2026年 6月",
     msg: "さすがしごでき。<br>今回もお願いしていい？", tag: "資料品質", time: "6/28 09:41",
     summary: "前回の報告書がクライアントから「わかりやすい」と好評で、次回も指名で依頼されました。",
@@ -635,6 +695,8 @@ const BASE_ROT = {
 /* D案：マスキングテープの角度・位置ゆらぎ（カードIDで決まる静的な値） */
 const TAPE_ROT   = [-3.6, 2.4, -1.8, 3.2, -2.6, 1.6, -4.2, 2.8];
 const TAPE_SHIFT = [-14, 10, -6, 16, 4, -18, 8, -10];
+/* 日付スタンプの傾き。手で押したように少しずつ違える */
+const STAMP_ROT  = [-2.4, -1.2, -3.1, -0.8, -2.8, -1.7, -3.4, -1.1];
 
 class CardMotion {
   constructor(root) {
@@ -732,7 +794,10 @@ function cardHTML(d) {
         <div><b>${d.who}</b><small>${d.ch}</small></div>
       </div>
       <div class="ava" data-center-ava>${d.ini}</div>
-      <div class="say">${d.msg}</div>
+      <div class="stamp-face">${d.reaction || ""}</div>
+      <div class="stamp-note">リアクションの、小さなありがとう</div>
+      <div class="say">${d.msg || ""}</div>
+      <div class="more-hint">…続きは詳細で</div>
       <div class="who-line">${d.who}<span class="wl-tag">　/　${d.tag}</span></div>
       <div class="c-foot"><span class="tagpill">${d.tag}</span><span class="c-time">${d.time}</span></div>
       ${d.myMemo ? '<div class="memo-dot" title="じぶんのメモあり"></div>' : ""}
@@ -740,17 +805,31 @@ function cardHTML(d) {
   </div>`;
 }
 
+/** 中身の量からカードの見せ方を決める */
+function cardKind(d) {
+  if (d.reaction) return "kind-stamp";
+  const len = String(d.msg || "").replace(/<br>/g, "").length;
+  if (len <= 14) return "kind-short";
+  if (len >= 54) return "kind-long";
+  return "kind-mid";
+}
+
 function buildCard(d) {
   const [cc, ci] = TAGS[d.tag] || ["--c-speed", "--i-speed"];
   const root = document.createElement("div");
-  root.className = "card";
+  root.className = "card " + cardKind(d);
   root.tabIndex = 0;
   root.setAttribute("role", "button");
-  root.setAttribute("aria-label", `${d.who}からの「${d.msg.replace(/<br>/g, "")}」の詳細を開く`);
+  root.setAttribute("aria-label", d.reaction
+    ? `${d.who}からのリアクション ${d.reaction} の詳細を開く`
+    : `${d.who}からの「${String(d.msg).replace(/<br>/g, "")}」の詳細を開く`);
   root.style.setProperty("--cc", `var(${cc})`);
   root.style.setProperty("--ci", `var(${ci})`);
   root.style.setProperty("--tape-rot", TAPE_ROT[d.id % TAPE_ROT.length] + "deg");
   root.style.setProperty("--tape-shift", TAPE_SHIFT[d.id % TAPE_SHIFT.length] + "px");
+  // 日付スタンプの傾きと、かすれ具合（マスクのずらし）をカードごとに散らす
+  root.style.setProperty("--stamp-rot", STAMP_ROT[d.id % STAMP_ROT.length] + "deg");
+  root.style.setProperty("--stamp-shift", (d.id * 37 % 120) + "px");
   root.style.opacity = "0";          // 登場アニメの初期値（1フレーム目のちらつき防止）
   root.innerHTML = cardHTML(d);
   root.dataset.id = d.id;
