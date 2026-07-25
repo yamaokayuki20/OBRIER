@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>オブリエ | カードデザイン検証（シンプル × リッチインタラクション）</title>
+<style>
+  :root {
+    /* オブリエ基調（v4準拠） */
+    --paper: #fffdf7; --ink: #3d3229; --ink-soft: #6f6355;
+    --accent: #c98a3d; --accent-deep: #8a5a1c; --accent-soft: #f3e3cb; --line: #e3d8c3;
+
+    /* 場面タグ＝カード色（ベタ塗り用のパステル） */
+    --c-speed: #dde9a0; --i-speed: #4a6316;
+    --c-doc:   #bcd6f7; --i-doc:   #274d80;
+    --c-coord: #d8cbf4; --i-coord: #4b3689;
+    --c-care:  #f9bfd8; --i-care:  #8e2f57;
+    --c-jr:    #fbc887; --i-jr:    #8a4c0d;
+    --c-idea:  #fbe58b; --i-idea:  #8a6208;
+    --c-share: #a9e6cf; --i-share: #14634a;
+
+    /* 背景テーマ（切替） */
+    --bg: #1c3ac9;
+    --stage-ink: #ffffff;
+    --stage-ink-soft: rgba(255,255,255,.62);
+    --grain: 0;
+  }
+  /* 背景：紙テーマ */
+  body.theme-paper {
+    --bg: #f0e8d6;
+    --stage-ink: #3d3229;
+    --stage-ink-soft: #6f6355;
+    --grain: .5;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--stage-ink);
+    font-family: "Hiragino Maru Gothic ProN", "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
+    min-height: 100vh;
+    transition: background .5s ease, color .5s ease;
+    overflow-x: hidden;
+  }
+  /* 紙テーマのときだけグレインを出す（オブリエらしさの最小単位） */
+  body::before {
+    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    opacity: var(--grain); transition: opacity .5s ease;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.24 0 0 0 0 0.2 0 0 0 0 0.16 0 0 0 0.045 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  header, main { position: relative; z-index: 1; }
+
+  /* ---------------- コントロールバー ---------------- */
+  header {
+    position: sticky; top: 0; z-index: 30;
+    backdrop-filter: blur(10px);
+    background: color-mix(in srgb, var(--bg) 78%, transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--stage-ink) 14%, transparent);
+  }
+  .bar { max-width: 1080px; margin: 0 auto; padding: 12px 20px; display: flex; align-items: center; gap: 14px 18px; flex-wrap: wrap; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; letter-spacing: .12em; font-size: 15px; }
+  .brand-mark { width: 28px; height: 28px; border-radius: 9px; background: linear-gradient(145deg, #d89a48, #b9752c); display: grid; place-items: center; color: #fff; font-size: 14px; font-weight: 800; }
+  .brand small { display: block; font-size: 9px; letter-spacing: .2em; opacity: .6; font-weight: 600; }
+  .ctrl { display: flex; align-items: center; gap: 8px; font-size: 11.5px; }
+  .ctrl > span { opacity: .62; letter-spacing: .08em; white-space: nowrap; }
+  .seg { display: flex; border: 1px solid color-mix(in srgb, var(--stage-ink) 26%, transparent); border-radius: 999px; overflow: hidden; }
+  .seg button {
+    font-family: inherit; font-size: 11.5px; padding: 6px 12px; border: none; cursor: pointer;
+    background: transparent; color: var(--stage-ink); opacity: .68; white-space: nowrap; transition: background .2s, opacity .2s;
+  }
+  .seg button:hover { opacity: 1; background: color-mix(in srgb, var(--stage-ink) 10%, transparent); }
+  .seg button[aria-pressed="true"] { background: var(--stage-ink); color: var(--bg); opacity: 1; font-weight: 700; }
+  .toggle { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; opacity: .78; }
+  .toggle input { accent-color: var(--accent); }
+
+  /* ---------------- ステージ ---------------- */
+  main { max-width: 1080px; margin: 0 auto; padding: 0 20px 90px; }
+  .lead { padding: 46px 0 10px; max-width: 620px; }
+  .lead h1 { font-size: clamp(20px, 3.6vw, 27px); line-height: 1.6; letter-spacing: .06em; font-weight: 800; }
+  .lead p { margin-top: 12px; font-size: 13px; line-height: 2; color: var(--stage-ink-soft); }
+  .sec-label { display: flex; align-items: center; gap: 12px; font-size: 11px; letter-spacing: .22em; opacity: .55; margin: 64px 0 18px; }
+  .sec-label::after { content: ""; flex: 1; height: 1px; background: currentColor; opacity: .3; }
+
+  /* ---------------- カード共通（3D） ---------------- */
+  .card {
+    position: relative; perspective: 1000px; -webkit-tap-highlight-color: transparent;
+    cursor: pointer; border: none; padding: 0; background: none; font-family: inherit;
+    text-align: left; display: block; width: 100%;
+  }
+  .card:focus { outline: none; }
+  .card:focus-visible .card3d { box-shadow: 0 0 0 3px var(--accent), 0 18px 34px rgba(0,0,0,.24) !important; }
+  .card3d {
+    position: relative; transform-style: preserve-3d; will-change: transform;
+    transition: box-shadow .25s ease;
+  }
+  /* overflow は指定しない（overflow:hidden は transform-style を flat に落とし、
+     子要素の translateZ による奥行きパララックスが効かなくなるため） */
+  .face {
+    border-radius: 18px;
+    backface-visibility: hidden; -webkit-backface-visibility: hidden;
+    transform-style: preserve-3d;
+  }
+  .face.back {
+    position: absolute; inset: 0; transform: rotateY(180deg);
+    display: flex; flex-direction: column;
+  }
+  .glare {
+    position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 3;
+    background: radial-gradient(220px circle at var(--gx, 50%) var(--gy, 50%), rgba(255,255,255,.75), rgba(255,255,255,0) 62%);
+    opacity: var(--glare, 0);
+  }
+
+  /* ---------------- パターンA：ベタ塗り（参考画像準拠） ---------------- */
+  .front {
+    background: var(--cc);
+    color: var(--ci);
+    padding: 30px 26px 26px;
+    display: flex; flex-direction: column; align-items: center; gap: 18px;
+    min-height: 236px;
+  }
+  .ava {
+    width: 56px; height: 56px; border-radius: 50%; flex: none;
+    display: grid; place-items: center; color: #fff; font-size: 20px; font-weight: 800;
+    box-shadow: 0 0 0 5px rgba(255,255,255,.9), 0 6px 14px rgba(0,0,0,.14);
+    transform: translateZ(38px);
+  }
+  .av-boss{background:#4e9b6f}.av-a{background:#5a79b8}.av-b{background:#b85a86}.av-c{background:#8a67b8}
+  .av-d{background:#c2913a}.av-e{background:#4f9aa8}.av-f{background:#7d8f4a}.av-g{background:#a86060}
+  .av-i{background:#607da8}.av-me{background:#d96f32}
+  .say {
+    font-size: 15px; line-height: 2.05; letter-spacing: .1em; text-align: center; font-weight: 700;
+    transform: translateZ(24px);
+  }
+  .who-line {
+    margin-top: auto; font-size: 11px; letter-spacing: .12em; opacity: .72; font-weight: 700;
+    transform: translateZ(14px);
+  }
+  .corner-fav {
+    position: absolute; top: 12px; right: 13px; z-index: 4;
+    width: 30px; height: 30px; border-radius: 50%; border: none; cursor: pointer;
+    background: rgba(255,255,255,.5); color: rgba(0,0,0,.24); font-size: 14px; line-height: 1;
+    display: grid; place-items: center; transform: translateZ(40px);
+    transition: background .2s, color .2s;
+  }
+  .corner-fav:hover { background: #fff; }
+  .faved .corner-fav { background: #fff; color: #e0a62f; text-shadow: 0 1px 4px rgba(224,166,47,.6); }
+  .corner-new {
+    position: absolute; top: 14px; left: 14px; z-index: 4; transform: translateZ(40px);
+    font-size: 9.5px; font-weight: 800; letter-spacing: .14em;
+    background: rgba(255,255,255,.92); color: var(--ci); border-radius: 999px; padding: 4px 10px;
+  }
+  .memo-dot {
+    position: absolute; bottom: 14px; right: 16px; z-index: 4; transform: translateZ(30px);
+    width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.9);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ci) 22%, transparent);
+  }
+
+  /* ---------------- パターンB：白紙＋タグ色アクセント（折衷案） ---------------- */
+  .pat-b .front {
+    background: var(--paper); color: var(--ink);
+    border-top: 7px solid var(--cc);
+    padding: 26px 24px 22px;
+  }
+  .pat-b .ava { box-shadow: 0 0 0 5px var(--paper), 0 5px 12px rgba(80,62,40,.18); width: 48px; height: 48px; font-size: 17px; }
+  .pat-b .say {
+    font-family: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
+    font-weight: 400; letter-spacing: .04em; line-height: 2.1; font-size: 15px;
+  }
+  .pat-b .who-line { color: var(--ink-soft); opacity: 1; }
+  .pat-b .corner-fav { background: rgba(0,0,0,.04); }
+  .pat-b .corner-new { background: var(--accent); color: #fff; }
+  .pat-b .memo-dot { background: #f0dc63; box-shadow: 0 0 0 3px rgba(240,220,99,.3); }
+  .pat-b .face { border-radius: 12px; }
+  .pat-b .wl-tag { display: none; }        /* タグはピルで出すので名前だけにする */
+
+  .tagpill {
+    font-size: 10.5px; font-weight: 700; letter-spacing: .08em;
+    background: var(--cc); color: var(--ci); border-radius: 999px; padding: 4px 12px;
+  }
+
+  /* ---------------- パターンC：現行v4（比較用の簡易再現） ---------------- */
+  .pat-c .front {
+    background: var(--paper); color: var(--ink);
+    border: 1px solid var(--line); border-radius: 6px;
+    padding: 26px 18px 16px; align-items: stretch; text-align: left; gap: 12px;
+    min-height: 200px;
+  }
+  .pat-c .face { border-radius: 6px; }
+  .pat-c .front::before { /* マスキングテープ */
+    content: ""; position: absolute; top: -9px; left: 50%; width: 86px; height: 20px;
+    background: color-mix(in srgb, var(--cc) 88%, #8a7a52);
+    transform: translate(-50%, 0) rotate(-2deg); border-radius: 2px; z-index: 4;
+    box-shadow: 0 1px 2px rgba(0,0,0,.08);
+  }
+  .pat-c .ava { width: 30px; height: 30px; font-size: 12px; box-shadow: none; transform: none; }
+  .pat-c .c-head { display: flex; align-items: center; gap: 10px; width: 100%; }
+  .pat-c .c-head b { font-size: 13px; }
+  .pat-c .c-head small { display: block; font-size: 11px; color: var(--ink-soft); font-weight: 400; }
+  .pat-c .say {
+    font-family: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
+    text-align: left; font-weight: 400; font-size: 15px; line-height: 1.85; letter-spacing: .02em;
+    transform: none;
+  }
+  .pat-c .who-line { display: none; }
+  .pat-c .corner-fav { background: none; box-shadow: none; transform: none; top: 4px; right: 6px; }
+
+  /* --- パターンごとの要素の出し分け --- */
+  .c-head { display: none; }                       /* 左寄せの送り主行：Cのみ */
+  .pat-c .c-head { display: flex; }
+  .c-foot { display: none; }                       /* タグピル＋日時の行：B/C */
+  .pat-b .c-foot, .pat-c .c-foot {
+    display: flex; align-items: center; gap: 8px; width: 100%; margin-top: auto; padding-top: 4px;
+  }
+  .c-time { margin-left: auto; font-size: 10.5px; color: var(--ink-soft); font-family: "Courier New", monospace; }
+  .pat-c .c-time { transform: rotate(-1deg); }
+
+  /* ---------------- カード裏面 ---------------- */
+  .back {
+    background: #fffdf7; color: var(--ink);
+    padding: 22px 22px 18px; gap: 12px;
+  }
+  body:not(.theme-paper) .back { background: #fffdf7; }
+  .back-label { font-size: 9.5px; letter-spacing: .2em; color: var(--accent-deep); font-weight: 800; }
+  .back-row { display: flex; align-items: center; gap: 10px; font-size: 12px; }
+  .back-row .ava { width: 34px; height: 34px; font-size: 13px; box-shadow: none; transform: none; }
+  .back-row b { font-size: 13px; }
+  .back-row small { display: block; color: var(--ink-soft); font-size: 10.5px; font-weight: 400; }
+  .src-pill { margin-left: auto; font-size: 9.5px; color: var(--ink-soft); border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; display: flex; align-items: center; gap: 5px; }
+  .src-pill::before { content: ""; width: 7px; height: 7px; border-radius: 2px; background: #611f69; }
+  .src-pill.teams::before { background: #4b53bc; }
+  .back-note { font-size: 11.5px; line-height: 1.9; color: var(--ink-soft); }
+  .back-memo { background: #fdf7d8; border-radius: 3px 12px 12px 12px; padding: 10px 12px; font-size: 11.5px; line-height: 1.8; }
+  .back-memo b { display: block; font-size: 9.5px; letter-spacing: .12em; color: #8a7a2a; margin-bottom: 4px; }
+  .back-foot { margin-top: auto; display: flex; align-items: center; gap: 8px; padding-top: 6px; }
+  .mini-btn {
+    font-family: inherit; font-size: 11px; font-weight: 700; cursor: pointer;
+    border: 1px solid var(--line); background: #fff; color: var(--accent-deep);
+    border-radius: 999px; padding: 6px 14px;
+  }
+  .mini-btn:hover { border-color: var(--accent); background: var(--accent-soft); }
+  .back-time { margin-left: auto; font-size: 10px; color: var(--ink-soft); font-family: "Courier New", monospace; }
+
+  /* ---------------- ヒーロー：カードの束 ---------------- */
+  .stage {
+    position: relative; height: 420px; display: grid; place-items: center;
+    perspective: 1200px; margin-top: 26px;
+  }
+  .deck { position: relative; width: min(360px, 82vw); height: 250px; transform-style: preserve-3d; }
+  /* 束のカードは3枚とも同じ矩形に重なっているため、当たり判定は
+     実際にずらして描画している .card3d 側で取る（後ろのカードを掴めるように） */
+  .deck .card { position: absolute; inset: 0; pointer-events: none; }
+  .deck .card3d { pointer-events: auto; }
+  .deck .front { min-height: 250px; height: 250px; }
+  .hint {
+    text-align: center; font-size: 11.5px; letter-spacing: .1em; color: var(--stage-ink-soft);
+    margin-top: 4px; display: flex; gap: 18px; justify-content: center; flex-wrap: wrap;
+  }
+  .hint kbd {
+    font-family: inherit; border: 1px solid color-mix(in srgb, var(--stage-ink) 30%, transparent);
+    border-radius: 6px; padding: 2px 8px; margin-right: 6px; font-size: 10.5px;
+  }
+
+  /* ---------------- アルバムグリッド ---------------- */
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px 20px; align-items: start; }
+  @media (max-width: 880px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) {
+    .grid { grid-template-columns: 1fr; }
+    .stage { height: 360px; }
+  }
+  .month {
+    grid-column: 1 / -1; display: flex; align-items: center; gap: 12px;
+    font-size: 12.5px; letter-spacing: .18em; font-weight: 700; color: var(--stage-ink-soft);
+    margin: 16px 0 2px;
+  }
+  .month::after { content: ""; flex: 1; height: 1px; background: currentColor; opacity: .3; }
+
+  /* ---------------- 検討メモ ---------------- */
+  .memo-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  @media (max-width: 880px) { .memo-cards { grid-template-columns: 1fr; } }
+  .memo-card {
+    border: 1px solid color-mix(in srgb, var(--stage-ink) 20%, transparent);
+    border-radius: 14px; padding: 18px 20px; font-size: 12.5px; line-height: 2;
+    color: var(--stage-ink-soft);
+    background: color-mix(in srgb, var(--stage-ink) 5%, transparent);
+  }
+  .memo-card h3 { font-size: 12.5px; letter-spacing: .1em; color: var(--stage-ink); margin-bottom: 8px; }
+  .memo-card ul { padding-left: 1.1em; }
+  .memo-card li { margin-bottom: 4px; }
+
+  /* ---------------- モーダル（経緯） ---------------- */
+  .overlay { position: fixed; inset: 0; background: rgba(28,22,16,.5); display: grid; place-items: center; z-index: 60; padding: 20px; }
+  .sheet {
+    background: var(--paper); color: var(--ink); border-radius: 22px; width: min(560px, 100%);
+    max-height: calc(100vh - 60px); overflow-y: auto; box-shadow: 0 30px 70px rgba(30,22,14,.4);
+    will-change: transform, opacity;
+  }
+  .sheet-head { display: flex; align-items: center; gap: 10px; padding: 20px 22px 12px; }
+  .sheet-head b { font-size: 13.5px; }
+  .sheet-head small { display: block; font-size: 11px; color: var(--ink-soft); font-weight: 400; }
+  .sheet-close { margin-left: auto; border: none; background: #f0e8d6; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 13px; color: var(--ink-soft); }
+  .sheet-body { padding: 4px 22px 24px; }
+  .bub-row { display: flex; gap: 10px; margin-bottom: 12px; }
+  .bub-row .ava { width: 30px; height: 30px; font-size: 12px; box-shadow: none; transform: none; }
+  .bub { flex: 1; }
+  .bub-name { font-size: 11.5px; font-weight: 700; }
+  .bub-name span { font-weight: 400; font-size: 10px; color: var(--ink-soft); margin-left: 6px; }
+  .bub-text { margin-top: 4px; font-size: 13px; line-height: 1.8; background: #f0e8d6; border-radius: 4px 14px 14px 14px; padding: 10px 14px; }
+  .mine .bub-text { background: #eef3ee; }
+  .is-thanks .bub-text { background: var(--cc); color: var(--ci); font-weight: 700; }
+  .thanks-flag { font-size: 10px; font-weight: 800; color: var(--accent); margin-top: 6px; letter-spacing: .06em; }
+  .thanks-flag::before { content: "✦ "; }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%);
+    background: var(--ink); color: #fff8ec; border-radius: 999px; padding: 10px 22px;
+    font-size: 12.5px; z-index: 80; box-shadow: 0 10px 24px rgba(0,0,0,.3); pointer-events: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .card3d { transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="bar">
+    <div class="brand"><div class="brand-mark">O</div><div>オブリエ<small>CARD DESIGN STUDY</small></div></div>
+    <div class="ctrl">
+      <span>デザイン</span>
+      <div class="seg" id="segPattern">
+        <button data-pat="pat-a" aria-pressed="true">A ベタ塗り</button>
+        <button data-pat="pat-b" aria-pressed="false">B 紙＋タグ色</button>
+        <button data-pat="pat-c" aria-pressed="false">C 現行v4</button>
+      </div>
+    </div>
+    <div class="ctrl">
+      <span>背景</span>
+      <div class="seg" id="segTheme">
+        <button data-theme="theme-vivid" aria-pressed="true">ビビッド</button>
+        <button data-theme="theme-paper" aria-pressed="false">紙</button>
+      </div>
+    </div>
+    <div class="ctrl">
+      <label class="toggle"><input type="checkbox" id="optTilt" checked> 立体チルト</label>
+      <label class="toggle"><input type="checkbox" id="optGlare" checked> 光沢</label>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="lead">
+    <h1>カードを、これ以上ないくらい削ってみる。<br>そのぶん、動きに全部かける。</h1>
+    <p>
+      情報を「言葉・送り主・場面の色」の3つだけに絞ったカードです。出典やチャネル、日時、メモといった脇の情報は、
+      裏面とモーションのなかに逃がしています。上のスイッチで、削りすぎた案（A）／折衷案（B）／現行v4（C）を切り替えて見比べられます。
+    </p>
+  </section>
+
+  <div class="sec-label">01　カードの束</div>
+  <div class="stage"><div class="deck" id="deck"></div></div>
+  <div class="hint">
+    <span><kbd>hover</kbd>傾ける</span>
+    <span><kbd>click</kbd>裏返す</span>
+    <span><kbd>束の外側</kbd>をクリックで次のカードへ</span>
+  </div>
+
+  <div class="sec-label">02　アルバム</div>
+  <div class="grid" id="grid"></div>
+
+  <div class="sec-label">03　検討メモ</div>
+  <div class="memo-cards">
+    <div class="memo-card">
+      <h3>削って得られるもの</h3>
+      <ul>
+        <li>「誰の、どんな言葉か」が一瞬で立ち上がる</li>
+        <li>場面タグが色そのものになり、一覧で偏りが見える</li>
+        <li>スマホで強い。1カラムでも密度が破綻しない</li>
+        <li>描画が軽く、モーションに予算を回せる</li>
+      </ul>
+    </div>
+    <div class="memo-card">
+      <h3>削ると失うもの</h3>
+      <ul>
+        <li>紙・マステ・明朝という「アルバムの世界観」（設計原則1）が薄まり、SaaSのカードUIに寄る</li>
+        <li>出典・チャネル・日時が表から消えるため、裏面かホバーに必ず逃がす設計が要る</li>
+        <li>色の意味を覚えるまでは、タグ名の併記が必要</li>
+      </ul>
+    </div>
+    <div class="memo-card">
+      <h3>おすすめは B</h3>
+      <ul>
+        <li>ベタ塗りの潔さは上帯とタグピルに残す</li>
+        <li>感謝の本文だけは明朝のまま守る</li>
+        <li>紙の地・グレイン・月ごとの綴じは維持</li>
+        <li>チルト／めくり／束のモーションはAと共通で使える</li>
+      </ul>
+    </div>
+  </div>
+</main>
+
+<script>
+/* =========================================================================
+   データ（v4 の DATA からカード表示に必要な分を抜粋）
+   ========================================================================= */
+const TAGS = {
+  "スピード対応": ["--c-speed", "--i-speed"],
+  "資料品質":     ["--c-doc",   "--i-doc"],
+  "調整力":       ["--c-coord", "--i-coord"],
+  "気配り":       ["--c-care",  "--i-care"],
+  "後輩サポート": ["--c-jr",    "--i-jr"],
+  "アイデア":     ["--c-idea",  "--i-idea"],
+  "情報共有":     ["--c-share", "--i-share"],
+};
+
+const DATA = [
+  { isNew: true, who: "上司さん", av: "av-boss", ini: "上", ch: "#資料作成", src: "Slack", month: "2026年 7月",
+    msg: "ありがとうございます。<br>素早い対応、助かります。", tag: "スピード対応", time: "たった今 15:58",
+    summary: "資料作成の依頼に約1分で完成版を共有。対応の速さに感謝が届きました。今月の「スピード対応」はこれで8回目です。",
+    story: [
+      { who: "上司さん", av: "av-boss", ini: "上", time: "15:57", text: "@YUKIYAMA おつかれ、いい感じの資料つくっておいて" },
+      { who: "YUKIYAMA", av: "av-me", ini: "Y", time: "15:58", mine: true, text: "おつかれさまです。ご確認をお願いします。" },
+      { who: "上司さん", av: "av-boss", ini: "上", time: "15:58", thanks: true, text: "ありがとうございます。素早い対応助かります。確認しますね。" },
+    ]},
+  { who: "佐藤さん", av: "av-a", ini: "佐", ch: "#企画チーム", src: "Slack", month: "2026年 7月",
+    msg: "すごい、いいね。<br>この切り口なかったわ。", tag: "アイデア", time: "6/30 11:04",
+    summary: "行き詰まっていた若年層向け企画に、逆転の発想と参考事例を提案。着眼点に感謝が届きました。",
+    story: [
+      { who: "佐藤さん", av: "av-a", ini: "佐", time: "10:31", text: "若年層向けの訴求、正直ネタ切れ気味…なんかいい案ないかな" },
+      { who: "YUKIYAMA", av: "av-me", ini: "Y", time: "10:55", mine: true, text: "逆に「親世代から子どもへ贈る」導線はどうでしょう？" },
+      { who: "佐藤さん", av: "av-a", ini: "佐", time: "11:04", thanks: true, text: "すごい、いいね。この切り口なかったわ。" },
+    ]},
+  { who: "田中さん", av: "av-b", ini: "田", ch: "#プロジェクトA", src: "Slack", month: "2026年 6月",
+    msg: "さすがしごでき。<br>今回もお願いしていい？", tag: "資料品質", time: "6/28 09:41",
+    summary: "前回の報告書がクライアントから「わかりやすい」と好評で、次回も指名で依頼されました。",
+    story: [
+      { who: "田中さん", av: "av-b", ini: "田", time: "09:38", text: "先週の報告書、クライアントから「今までで一番わかりやすい」って言われたよ" },
+      { who: "田中さん", av: "av-b", ini: "田", time: "09:41", thanks: true, text: "さすがしごでき。今回もお願いしていい？" },
+    ]},
+  { who: "鈴木さん", av: "av-c", ini: "鈴", ch: "新人サポート", src: "Teams", month: "2026年 6月",
+    msg: "教えていただいたおかげで<br>無事解決できました！", tag: "後輩サポート", time: "6/27 16:20",
+    summary: "経費精算に迷っていた鈴木さんに、手順メモと10分の画面共有でフォロー。寄り添う対応に感謝が届きました。",
+    story: [
+      { who: "鈴木さん", av: "av-c", ini: "鈴", time: "14:02", text: "すみません、経費精算のやり方がどうしてもわからなくて…" },
+      { who: "YUKIYAMA", av: "av-me", ini: "Y", time: "14:10", mine: true, text: "手順メモを送ります。15時から10分だけ画面共有でやりましょうか。" },
+      { who: "鈴木さん", av: "av-c", ini: "鈴", time: "16:20", thanks: true, text: "教えていただいたおかげで無事解決できました！本当にありがとうございます。" },
+    ]},
+  { who: "高橋さん", av: "av-d", ini: "高", ch: "#営業連携", src: "Slack", month: "2026年 6月",
+    msg: "まとめ方きれいで<br>助かる〜", tag: "資料品質", time: "6/25 13:55",
+    summary: "散らばっていた商談メモを論点別に再構成して共有。整理のわかりやすさに感謝が届きました。",
+    story: [
+      { who: "高橋さん", av: "av-d", ini: "高", time: "13:30", text: "先週の商談メモってどこかにまとまってる？" },
+      { who: "YUKIYAMA", av: "av-me", ini: "Y", time: "13:48", mine: true, text: "決定事項・保留・宿題の3分類でまとめ直したものがあります。" },
+      { who: "高橋さん", av: "av-d", ini: "高", time: "13:55", thanks: true, text: "ありがとうございます。まとめ方きれいで助かる〜" },
+    ]},
+  { fav: true, who: "伊藤さん", av: "av-e", ini: "伊", ch: "#プロジェクトA", src: "Slack", month: "2026年 6月",
+    msg: "調整ありがとう！<br>全員参加できることになったよ", tag: "調整力", time: "6/24 10:15",
+    summary: "8人の関係者で決まらなかったレビュー会の日程を、候補3枠の調整表で1日で確定。段取り力に感謝が届きました。",
+    story: [
+      { who: "伊藤さん", av: "av-e", ini: "伊", time: "6/23 15:02", text: "来週のレビュー会、関係者多すぎて日程が全然決まらない…" },
+      { who: "YUKIYAMA", av: "av-me", ini: "Y", time: "6/24 09:58", mine: true, text: "木曜14時で全員◯になりました。招集かけますね。" },
+      { who: "伊藤さん", av: "av-e", ini: "伊", time: "10:15", thanks: true, text: "調整ありがとう！全員参加できることになったよ" },
+    ]},
+  { who: "渡辺さん", av: "av-f", ini: "渡", ch: "問い合わせ対応", src: "Teams", month: "2026年 6月",
+    msg: "レス早くて助かります！", tag: "スピード対応", time: "6/20 11:33",
+    summary: "他部署からの仕様に関する問い合わせに5分で回答。制約条件まで添えた即レスに感謝が届きました。",
+    story: [
+      { who: "渡辺さん", av: "av-f", ini: "渡", time: "11:28", text: "この仕様って今からでも変更可能でしたっけ？" },
+      { who: "YUKIYAMA", av: "av-me", ini: "Y", time: "11:33", mine: true, text: "可能です。ただし制約が2点あります。" },
+      { who: "渡辺さん", av: "av-f", ini: "渡", time: "11:33", thanks: true, text: "レス早くて助かります！" },
+    ]},
+  { who: "山本さん", av: "av-g", ini: "山", ch: "#企画チーム", src: "Slack", month: "2026年 6月",
+    msg: "例のテンプレ、<br>チームみんな使ってるよ。", tag: "情報共有", time: "6/18 09:20",
+    summary: "自作した議事録テンプレートがチーム標準として定着。仕組みで貢献する働きに感謝が届きました。",
+    story: [
+      { who: "YUKIYAMA", av: "av-me", ini: "Y", time: "6/10 17:15", mine: true, text: "議事録のテンプレ作ってみました。よければどうぞ。" },
+      { who: "山本さん", av: "av-g", ini: "山", time: "6/18 09:20", thanks: true, text: "例のテンプレ、チームみんな使ってるよ。ありがとう" },
+    ]},
+  { myMemo: "役員まで届いたのは素直にうれしい。図解パターンをテンプレ化しておく。",
+    who: "小林さん", av: "av-i", ini: "小", ch: "プロジェクトA", src: "Teams", month: "2026年 6月",
+    msg: "資料の図解、そのまま<br>役員説明に使わせてもらった。", tag: "資料品質", time: "6/13 15:40",
+    summary: "複雑な構成案を1枚の図解に変換。役員説明にそのまま使われるクオリティに感謝が届きました。",
+    story: [
+      { who: "小林さん", av: "av-i", ini: "小", time: "6/12 13:05", text: "この構成、文章だと伝わらなくて…図にできたりする？" },
+      { who: "YUKIYAMA", av: "av-me", ini: "Y", time: "6/12 16:30", mine: true, text: "図解版を作りました。3層構造にしています。" },
+      { who: "小林さん", av: "av-i", ini: "小", time: "6/13 15:40", thanks: true, text: "そのまま役員説明に使わせてもらった。ありがとう！" },
+    ]},
+];
+DATA.forEach((d, i) => { d.id = i; d.fav = !!d.fav; });
+
+/* =========================================================================
+   スプリング（Motion の useSpring 相当を最小実装。CDN 依存なしで動かすため）
+   ========================================================================= */
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+class Spring {
+  constructor(value, { stiffness = 260, damping = 26, mass = 1 } = {}) {
+    this.v = value; this.target = value; this.vel = 0;
+    this.k = stiffness; this.c = damping; this.m = mass;
+  }
+  set(target) { this.target = target; if (REDUCED) { this.v = target; this.vel = 0; } }
+  jump(value) { this.v = this.target = value; this.vel = 0; }
+  /** @returns {boolean} まだ動いているか */
+  step(dt) {
+    if (this.v === this.target && this.vel === 0) return false;
+    // 60fps 相当に刻んで安定させる
+    const steps = Math.min(4, Math.max(1, Math.ceil(dt / (1 / 90))));
+    const h = dt / steps;
+    for (let i = 0; i < steps; i++) {
+      const force = -this.k * (this.v - this.target) - this.c * this.vel;
+      this.vel += (force / this.m) * h;
+      this.v += this.vel * h;
+    }
+    if (Math.abs(this.vel) < 0.02 && Math.abs(this.v - this.target) < 0.02) {
+      this.v = this.target; this.vel = 0; return false;
+    }
+    return true;
+  }
+}
+
+/* 1本の rAF ループで全カードを回す */
+const engine = { items: new Set(), running: false, last: 0 };
+function kick() {
+  if (engine.running) return;
+  engine.running = true; engine.last = performance.now();
+  requestAnimationFrame(tick);
+}
+function tick(now) {
+  const dt = Math.min(0.05, (now - engine.last) / 1000) || 0.016;
+  engine.last = now;
+  let alive = false;
+  engine.items.forEach(it => { if (it.update(dt)) alive = true; });
+  if (alive) requestAnimationFrame(tick); else engine.running = false;
+}
+
+/* =========================================================================
+   カードコントローラ（チルト・めくり・浮き・光沢・登場）
+   ========================================================================= */
+const OPT = { tilt: true, glare: true };
+const MAX_TILT = 13;   // deg
+const LIFT_Z   = 34;   // px
+
+class CardMotion {
+  constructor(root) {
+    this.root = root;
+    this.el = root.querySelector(".card3d");
+    this.rx = new Spring(0, { stiffness: 220, damping: 22 });
+    this.ry = new Spring(0, { stiffness: 220, damping: 22 });
+    this.z  = new Spring(0, { stiffness: 260, damping: 26 });
+    this.s  = new Spring(1, { stiffness: 420, damping: 28 });
+    this.flip = new Spring(0, { stiffness: 130, damping: 17 });   // 0 → 180
+    this.op = new Spring(0, { stiffness: 150, damping: 22 });
+    this.ty = new Spring(28, { stiffness: 150, damping: 22 });
+    this.gx = 50; this.gy = 50;
+    this.glare = new Spring(0, { stiffness: 200, damping: 26 });
+    this.slotX = new Spring(0, { stiffness: 180, damping: 20 });
+    this.slotY = new Spring(0, { stiffness: 180, damping: 20 });
+    this.slotR = new Spring(0, { stiffness: 180, damping: 20 });
+    this.slotS = new Spring(1, { stiffness: 180, damping: 20 });
+    this.baseRot = 0;
+    this.flipped = false;
+    engine.items.add(this);
+    this.bind();
+  }
+
+  bind() {
+    const r = this.root;
+    r.addEventListener("pointermove", e => {
+      if (!OPT.tilt || e.pointerType === "touch") return;
+      const b = r.getBoundingClientRect();
+      const px = (e.clientX - b.left) / b.width;
+      const py = (e.clientY - b.top) / b.height;
+      this.ry.set((px - .5) * 2 * MAX_TILT);
+      this.rx.set(-(py - .5) * 2 * MAX_TILT);
+      this.gx = px * 100; this.gy = py * 100;
+      kick();
+    });
+    r.addEventListener("pointerenter", () => {
+      this.z.set(LIFT_Z);
+      if (OPT.glare) this.glare.set(.55);
+      kick();
+    });
+    r.addEventListener("pointerleave", () => {
+      this.rx.set(0); this.ry.set(0); this.z.set(0); this.glare.set(0); this.s.set(1);
+      kick();
+    });
+    r.addEventListener("pointerdown", () => { this.s.set(.96); kick(); });
+    ["pointerup", "pointercancel"].forEach(t =>
+      r.addEventListener(t, () => { this.s.set(1); kick(); }));
+  }
+
+  toggleFlip() {
+    this.flipped = !this.flipped;
+    this.flip.set(this.flipped ? 180 : 0);
+    kick();
+  }
+
+  enter(delay = 0) {
+    setTimeout(() => { this.op.set(1); this.ty.set(0); kick(); }, delay);
+  }
+
+  slot({ x = 0, y = 0, rot = 0, scale = 1, z = 0 } = {}) {
+    this.slotX.set(x); this.slotY.set(y); this.slotR.set(rot); this.slotS.set(scale);
+    this.root.style.zIndex = z;
+    kick();
+  }
+
+  update(dt) {
+    let a = false;
+    [this.rx, this.ry, this.z, this.s, this.flip, this.op, this.ty,
+     this.glare, this.slotX, this.slotY, this.slotR, this.slotS]
+      .forEach(sp => { if (sp.step(dt)) a = true; });
+
+    const ry = this.ry.v + this.flip.v;
+    this.el.style.transform =
+      `translate3d(${this.slotX.v.toFixed(2)}px, ${(this.slotY.v + this.ty.v).toFixed(2)}px, 0) ` +
+      `rotateX(${this.rx.v.toFixed(2)}deg) rotateY(${ry.toFixed(2)}deg) ` +
+      `rotateZ(${(this.slotR.v + this.baseRot).toFixed(2)}deg) ` +
+      `translateZ(${this.z.v.toFixed(2)}px) scale(${(this.s.v * this.slotS.v).toFixed(3)})`;
+    this.root.style.opacity = this.op.v.toFixed(3);
+
+    // 影は傾きに合わせて反対側へ流す
+    const sx = (-this.ry.v / MAX_TILT) * 10;
+    const sy = 14 + (this.rx.v / MAX_TILT) * 10 + this.z.v * .35;
+    const blur = 22 + this.z.v * .8;
+    this.el.style.boxShadow = `${sx.toFixed(1)}px ${sy.toFixed(1)}px ${blur.toFixed(1)}px rgba(0,0,0,${(.16 + this.z.v * .002).toFixed(3)})`;
+
+    this.root.style.setProperty("--gx", this.gx + "%");
+    this.root.style.setProperty("--gy", this.gy + "%");
+    this.root.style.setProperty("--glare", this.glare.v.toFixed(3));
+    return a;
+  }
+}
+
+/* =========================================================================
+   カード生成
+   ========================================================================= */
+function cardHTML(d) {
+  return `
+  <div class="card3d">
+    <div class="face front">
+      <div class="glare"></div>
+      ${d.isNew ? '<div class="corner-new">NEW</div>' : ""}
+      <button class="corner-fav" data-fav aria-label="お気に入り">★</button>
+      <div class="c-head">
+        <div class="ava ${d.av}">${d.ini}</div>
+        <div><b>${d.who}</b><small>${d.ch}</small></div>
+      </div>
+      <div class="ava ${d.av}" data-hero-ava>${d.ini}</div>
+      <div class="say">${d.msg}</div>
+      <div class="who-line">${d.who}<span class="wl-tag">　/　${d.tag}</span></div>
+      <div class="c-foot"><span class="tagpill">${d.tag}</span><span class="c-time">${d.time}</span></div>
+      ${d.myMemo ? '<div class="memo-dot" title="じぶんのメモあり"></div>' : ""}
+    </div>
+    <div class="face back">
+      <div class="glare"></div>
+      <div class="back-label">この言葉について</div>
+      <div class="back-row">
+        <div class="ava ${d.av}">${d.ini}</div>
+        <div><b>${d.who}</b><small>${d.ch}</small></div>
+        <div class="src-pill ${d.src === "Teams" ? "teams" : ""}">${d.src}</div>
+      </div>
+      <div class="back-note">${d.summary}</div>
+      ${d.myMemo ? `<div class="back-memo"><b>じぶんのメモ（本人のみ）</b>${d.myMemo}</div>` : ""}
+      <div class="back-foot">
+        <button class="mini-btn" data-thread>やり取りを見る</button>
+        <span class="back-time">${d.time}</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+function buildCard(d, { hero = false } = {}) {
+  const [cc, ci] = TAGS[d.tag] || ["--c-speed", "--i-speed"];
+  const root = document.createElement("div");
+  root.className = "card" + (d.fav ? " faved" : "");
+  root.tabIndex = 0;
+  root.setAttribute("role", "button");
+  root.setAttribute("aria-label", `${d.who}からの「${d.msg.replace(/<br>/g, "")}」`);
+  root.style.setProperty("--cc", `var(${cc})`);
+  root.style.setProperty("--ci", `var(${ci})`);
+  root.style.opacity = "0";          // 登場アニメの初期値（1フレーム目のちらつき防止）
+  root.innerHTML = cardHTML(d);
+  root.dataset.id = d.id;
+
+  const m = new CardMotion(root);
+  root._m = m;
+  root._d = d;
+
+  root.addEventListener("click", e => {
+    if (e.target.closest("[data-fav]")) { toggleFav(root, d); return; }
+    if (e.target.closest("[data-thread]")) { openThread(d, root); return; }
+    if (hero && root !== deckOrder[0]) { cycleDeck(root); return; }
+    m.toggleFlip();
+  });
+  root.addEventListener("keydown", e => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); root.click(); }
+  });
+  return root;
+}
+
+function toggleFav(root, d) {
+  d.fav = !d.fav;
+  root.classList.toggle("faved", d.fav);
+  const m = root._m;
+  m.s.jump(1.14); m.s.set(1); kick();          // ぷるっと跳ねる
+  toast(d.fav ? "お気に入りに登録しました" : "お気に入りを外しました");
+}
+
+/* =========================================================================
+   ヒーロー：カードの束
+   ========================================================================= */
+const SLOTS = [
+  { x: 0,   y: 0,   rot: -1.5, scale: 1,    z: 3 },
+  { x: 30,  y: 20,  rot: 4,    scale: .965, z: 2 },
+  { x: -28, y: 38,  rot: -5.5, scale: .93,  z: 1 },
+];
+let deckOrder = [];
+
+function buildDeck() {
+  const deck = document.getElementById("deck");
+  deckOrder = DATA.slice(0, 3).map(d => {
+    const el = buildCard(d, { hero: true });
+    deck.appendChild(el);
+    return el;
+  });
+  layoutDeck();
+  deckOrder.forEach((el, i) => el._m.enter(120 + i * 90));
+}
+function layoutDeck() {
+  deckOrder.forEach((el, i) => el._m.slot(SLOTS[i]));
+}
+/** 束の後ろのカードをクリック → 前のカードを放り投げて入れ替える */
+function cycleDeck() {
+  const front = deckOrder[0];
+  if (front._m.flipped) front._m.toggleFlip();
+  // いったん外へ放る → 最後尾に戻す
+  front._m.slot({ x: -150, y: -70, rot: -16, scale: 1.02, z: 4 });
+  deckOrder.push(deckOrder.shift());
+  setTimeout(() => layoutDeck(), 230);
+}
+
+/* =========================================================================
+   アルバムグリッド
+   ========================================================================= */
+function buildGrid() {
+  const grid = document.getElementById("grid");
+  grid.innerHTML = "";
+  let last = null, n = 0;
+  DATA.forEach(d => {
+    if (d.month !== last) {
+      const h = document.createElement("div");
+      h.className = "month"; h.textContent = d.month;
+      grid.appendChild(h); last = d.month;
+    }
+    const el = buildCard(d);
+    grid.appendChild(el);
+    el._m.enter(140 + (n++) * 55);
+  });
+}
+
+/* =========================================================================
+   経緯モーダル（カードから立ち上がるように出す）
+   ========================================================================= */
+function openThread(d, fromCard) {
+  const [cc, ci] = TAGS[d.tag] || ["--c-speed", "--i-speed"];
+  const ov = document.createElement("div");
+  ov.className = "overlay";
+  ov.style.setProperty("--cc", `var(${cc})`);
+  ov.style.setProperty("--ci", `var(${ci})`);
+  ov.innerHTML = `
+    <div class="sheet" role="dialog" aria-modal="true">
+      <div class="sheet-head">
+        <div class="ava ${d.av}" style="width:34px;height:34px;font-size:13px;box-shadow:none;transform:none;">${d.ini}</div>
+        <div><b>この「ありがとう」の経緯</b><small>${d.src} ${d.ch} ・ ${d.time}</small></div>
+        <button class="sheet-close" aria-label="閉じる">✕</button>
+      </div>
+      <div class="sheet-body">
+        ${d.story.map(s => `
+          <div class="bub-row ${s.mine ? "mine" : ""} ${s.thanks ? "is-thanks" : ""}">
+            <div class="ava ${s.av}" style="box-shadow:none;transform:none;">${s.ini}</div>
+            <div class="bub">
+              <div class="bub-name">${s.who}<span>${s.time}</span></div>
+              <div class="bub-text">${s.text}</div>
+              ${s.thanks ? '<div class="thanks-flag">この言葉をアルバムに綴じました</div>' : ""}
+            </div>
+          </div>`).join("")}
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+
+  // 元カードの位置からせり上がる（簡易 shared element）
+  const sheet = ov.querySelector(".sheet");
+  const b = fromCard.getBoundingClientRect();
+  const s = sheet.getBoundingClientRect();
+  const dx = (b.left + b.width / 2) - (s.left + s.width / 2);
+  const dy = (b.top + b.height / 2) - (s.top + s.height / 2);
+  const scale = Math.max(.5, b.width / s.width);
+  if (!REDUCED) {
+    sheet.animate(
+      [{ transform: `translate(${dx}px, ${dy}px) scale(${scale})`, opacity: 0 },
+       { transform: "none", opacity: 1 }],
+      { duration: 420, easing: "cubic-bezier(.2,.9,.25,1.06)" });
+    ov.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200 });
+  }
+
+  const close = () => {
+    if (REDUCED) return ov.remove();
+    ov.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 160 }).onfinish = () => ov.remove();
+  };
+  ov.addEventListener("click", e => { if (e.target === ov || e.target.closest(".sheet-close")) close(); });
+  document.addEventListener("keydown", function esc(e) {
+    if (e.key === "Escape") { close(); document.removeEventListener("keydown", esc); }
+  });
+}
+
+/* =========================================================================
+   トースト
+   ========================================================================= */
+let toastTimer = null;
+function toast(msg) {
+  document.querySelectorAll(".toast").forEach(t => t.remove());
+  const t = document.createElement("div");
+  t.className = "toast"; t.textContent = msg;
+  document.body.appendChild(t);
+  if (!REDUCED) t.animate([{ opacity: 0, transform: "translate(-50%, 10px)" }, { opacity: 1, transform: "translate(-50%, 0)" }], { duration: 240, easing: "ease-out" });
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    if (REDUCED) return t.remove();
+    t.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200 }).onfinish = () => t.remove();
+  }, 1800);
+}
+
+/* =========================================================================
+   コントロール
+   ========================================================================= */
+function setPattern(pat) {
+  document.body.classList.remove("pat-a", "pat-b", "pat-c");
+  document.body.classList.add(pat);
+  // C（現行v4）だけは、カードを少しずつ傾けて紙束らしく見せる
+  document.querySelectorAll(".card").forEach((el, i) => {
+    el._m.baseRot = pat === "pat-c" ? [-0.7, 0.5, -0.3, 0.8][i % 4] : 0;
+  });
+  // 中央の大きいアバターは A・B のみ（C は左寄せの送り主行を使う）
+  document.querySelectorAll("[data-hero-ava]").forEach(a => {
+    a.style.display = pat === "pat-c" ? "none" : "";
+  });
+  kick();
+}
+function setTheme(theme) {
+  document.body.classList.toggle("theme-paper", theme === "theme-paper");
+}
+function wireSeg(id, fn, attr) {
+  const seg = document.getElementById(id);
+  seg.addEventListener("click", e => {
+    const btn = e.target.closest("button"); if (!btn) return;
+    seg.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(b === btn)));
+    fn(btn.dataset[attr]);
+  });
+}
+
+/* =========================================================================
+   起動
+   ========================================================================= */
+buildDeck();
+buildGrid();
+setPattern("pat-a");
+wireSeg("segPattern", setPattern, "pat");
+wireSeg("segTheme", setTheme, "theme");
+document.getElementById("optTilt").addEventListener("change", e => {
+  OPT.tilt = e.target.checked;
+  if (!OPT.tilt) document.querySelectorAll(".card").forEach(el => { el._m.rx.set(0); el._m.ry.set(0); });
+  kick();
+});
+document.getElementById("optGlare").addEventListener("change", e => {
+  OPT.glare = e.target.checked;
+  if (!OPT.glare) document.querySelectorAll(".card").forEach(el => el._m.glare.set(0));
+  kick();
+});
+</script>
+</body>
+</html>

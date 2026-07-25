@@ -17,6 +17,7 @@ Slack / Teams のやり取りから感謝の言葉をLLMで自動検出し、受
 | ファイル | 内容 |
 |---|---|
 | prototype/obrier-prototype-v4.html | **最新プロトタイプ（正）**。本人ビュー＋上司ビューのSPAモック。実装の見た目・挙動・文言はこれに準拠する |
+| prototype/obrier-card-simple-v1.html | カードデザインの検証用（**正ではない**）。カードを極限まで削ったA案／折衷のB案／現行v4のC案を切り替えて見比べる単体ページ。3Dチルト・めくり・カードの束などリッチなインタラクションの実験も兼ねる |
 | docs/requirements.md | 要件定義 v1.1（F01〜F17、対象外事項、画面一覧S01〜S08、非機能） |
 | docs/basic-design.md | システム構成・画面設計・データ設計・外部連携・権限 v1.1 |
 | docs/detailed-design.md | 画面詳細・API・DB・検出ロジック・バッチ・通知文言 v1.1 |
