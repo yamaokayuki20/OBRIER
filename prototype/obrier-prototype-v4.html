@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>オブリエ | ありがとうを、綴じる</title>
+<style>
+  :root {
+    --bg: #f0e8d6; --paper: #fffdf7; --ink: #3d3229; --ink-soft: #6f6355;
+    --accent: #c98a3d; --accent-deep: #8a5a1c; --accent-soft: #f3e3cb;
+    --new: #fff8ec; --line: #e3d8c3;
+    --sent-color: #5f8f72;
+    --tag-speed: #e3f0e6; --tag-speed-ink: #3f7a52;
+    --tag-doc: #e7ecf6;   --tag-doc-ink: #4a6396;
+    --tag-idea: #fdf1dc;  --tag-idea-ink: #a4711f;
+    --tag-care: #f9e8ea;  --tag-care-ink: #a04a5a;
+    --tag-coord: #ece6f6; --tag-coord-ink: #6b51a3;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background:
+      radial-gradient(circle at 20% 10%, rgba(255,255,255,.5), transparent 40%),
+      radial-gradient(circle at 90% 80%, rgba(201,138,61,.06), transparent 50%),
+      radial-gradient(rgba(61,50,41,.028) 1px, transparent 1px),
+      var(--bg);
+    background-size: auto, auto, 22px 22px, auto;
+    color: var(--ink);
+    font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
+    min-height: 100vh;
+  }
+  /* 紙の質感（グレイン） */
+  body::before {
+    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: .5;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.24 0 0 0 0 0.2 0 0 0 0 0.16 0 0 0 0.045 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  header, main { position: relative; z-index: 1; }
+
+  header { background: rgba(255,253,247,.9); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 10; }
+  .bar { max-width: 1140px; margin: 0 auto; padding: 12px 20px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 19px; letter-spacing: .12em; }
+  .logo-mark { width: 30px; height: 30px; border-radius: 9px; background: linear-gradient(145deg, #d89a48, #b9752c); display: grid; place-items: center; color: #fff; font-size: 15px; font-weight: 800; box-shadow: 0 2px 6px rgba(185,117,44,.35); }
+  .logo small { font-size: 9px; letter-spacing: .22em; color: var(--ink-soft); font-weight: 600; display: block; }
+  .tabs { display: flex; gap: 4px; margin-left: 16px; overflow-x: auto; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { padding: 8px 15px; border-radius: 999px; font-size: 13px; color: var(--ink-soft); cursor: pointer; transition: all .15s; white-space: nowrap; }
+  .tab:hover { background: rgba(0,0,0,.04); }
+  .tab.active { background: var(--accent-soft); color: var(--accent-deep); font-weight: 700; }
+  .spacer { flex: 1; }
+  .role-switch { display: flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; font-size: 12px; flex: none; }
+  .role-btn { padding: 7px 14px; cursor: pointer; color: var(--ink-soft); background: var(--paper); white-space: nowrap; }
+  .role-btn.active { background: var(--ink); color: #fff; font-weight: 700; }
+  .me { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-soft); flex: none; }
+  .avatar { width: 30px; height: 30px; border-radius: 50%; flex: none; display: grid; place-items: center; color: #fff; font-size: 12px; font-weight: 700; }
+  .av-me{background:#d96f32}.av-boss{background:#4e9b6f}.av-a{background:#5a79b8}.av-b{background:#b85a86}
+  .av-c{background:#8a67b8}.av-d{background:#c2913a}.av-e{background:#4f9aa8}.av-f{background:#7d8f4a}
+  .av-g{background:#a86060}.av-h{background:#607da8}.av-i{background:#9a7fb5}
+
+  main { max-width: 1140px; margin: 0 auto; padding: 30px 20px 70px; }
+  .hero h1 { font-size: 15px; font-weight: 600; color: var(--ink-soft); letter-spacing: .05em; }
+  .count-wrap { display: flex; align-items: baseline; gap: 8px; }
+  .count { font-size: 52px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.25; transition: transform .3s; }
+  .count.pop { transform: scale(1.1); color: var(--accent); }
+  .count-unit { font-size: 14px; color: var(--ink-soft); }
+  .hero-note { font-size: 12px; color: var(--ink-soft); margin: 8px 0 22px; }
+  .toolbar { display: flex; gap: 10px; margin-bottom: 8px; align-items: center; flex-wrap: wrap; }
+  select.select, .ghost-btn { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; font-size: 13px; color: var(--ink); cursor: pointer; font-family: inherit; }
+  .ghost-btn:hover { border-color: var(--accent); color: var(--accent-deep); }
+  .check { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-soft); cursor: pointer; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; }
+  .check input { accent-color: var(--accent); }
+  .search-input { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; font-size: 13px; font-family: inherit; width: 160px; }
+  .view-note { margin-left: auto; font-size: 12px; color: var(--ink-soft); }
+  .filter-chip { display: inline-flex; align-items: center; gap: 8px; background: var(--accent-soft); color: var(--accent-deep); border-radius: 999px; padding: 6px 14px; font-size: 12.5px; font-weight: 700; }
+  .filter-chip button { border: none; background: none; cursor: pointer; color: inherit; font-size: 13px; font-weight: 800; }
+
+  /* ---------- album ---------- */
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px 18px; padding-top: 14px; }
+  @media (max-width: 860px) { .grid { grid-template-columns: repeat(2,1fr); } }
+  @media (max-width: 580px) { .grid { grid-template-columns: 1fr; } }
+  .month-divider { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; color: var(--accent-deep); font-size: 14px; font-weight: 700; letter-spacing: .14em; margin-top: 6px; font-family: "Hiragino Mincho ProN", serif; }
+  .month-divider::before { content: ""; width: 34px; height: 12px; background: rgba(201,138,61,.3); border-radius: 2px; transform: rotate(-3deg); }
+  .month-divider::after { content: ""; height: 1px; background: var(--line); flex: 1; }
+
+  .card { position: relative; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 24px 18px 16px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 4px 12px rgba(80,62,40,.12); cursor: pointer; transition: transform .18s ease, box-shadow .18s ease; }
+  .grid .card:nth-child(4n+1) { transform: rotate(-.7deg); }
+  .grid .card:nth-child(4n+2) { transform: rotate(.5deg); }
+  .grid .card:nth-child(4n+3) { transform: rotate(-.3deg); }
+  .grid .card:nth-child(4n)   { transform: rotate(.8deg); }
+  .card:hover { transform: rotate(0deg) translateY(-3px) !important; box-shadow: 0 10px 22px rgba(80,62,40,.18); z-index: 2; }
+  .card.static { cursor: default; }
+  /* タグ連動マスキングテープ */
+  .card::before { content: ""; position: absolute; top: -9px; left: 50%; transform: translateX(-50%) rotate(-2deg); width: 86px; height: 20px; background: rgba(222,196,148,.55); border-radius: 2px; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+  .card.tape-speed::before { background: rgba(106,168,126,.4); }
+  .card.tape-doc::before   { background: rgba(123,147,196,.4); }
+  .card.tape-idea::before  { background: rgba(217,174,95,.45); }
+  .card.tape-care::before  { background: rgba(201,129,148,.4); }
+  .card.tape-coord::before { background: rgba(152,127,192,.4); }
+  /* お気に入り星シール */
+  .fav-btn { position: absolute; top: 6px; right: 8px; border: none; background: none; font-size: 17px; cursor: pointer; color: #cfc4ae; transition: transform .15s, color .15s; z-index: 2; padding: 4px; }
+  .fav-btn:hover { transform: scale(1.25) rotate(8deg); }
+  .card.faved .fav-btn { color: #e0a62f; text-shadow: 0 1px 3px rgba(224,166,47,.5); }
+  /* 自分メモの付箋 */
+  .memo-flag { position: absolute; bottom: -7px; right: 22px; width: 38px; height: 16px; background: #f6e97b; transform: rotate(3deg); box-shadow: 0 2px 3px rgba(0,0,0,.12); border-radius: 1px; }
+  .card-head { display: flex; align-items: center; gap: 10px; padding-right: 20px; }
+  .who { font-size: 13px; font-weight: 700; }
+  .meta { font-size: 11px; color: var(--ink-soft); }
+  .src { margin-left: auto; font-size: 10px; color: var(--ink-soft); border: 1px solid var(--line); border-radius: 6px; padding: 2px 7px; display: flex; align-items: center; gap: 4px; flex: none; }
+  .src::before { content: ""; width: 7px; height: 7px; border-radius: 2px; background: #611f69; }
+  .src.teams::before { background: #4b53bc; }
+  .msg { font-family: "Hiragino Mincho ProN", "Yu Mincho", serif; font-size: 15px; line-height: 1.85; letter-spacing: .02em; flex: 1; }
+  .card-foot { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .tag { font-size: 11px; border-radius: 999px; padding: 3px 10px; font-weight: 600; background: var(--accent-soft); color: var(--accent-deep); }
+  .t-speed{background:var(--tag-speed);color:var(--tag-speed-ink)}.t-doc{background:var(--tag-doc);color:var(--tag-doc-ink)}
+  .t-idea{background:var(--tag-idea);color:var(--tag-idea-ink)}.t-care{background:var(--tag-care);color:var(--tag-care-ink)}
+  .t-coord{background:var(--tag-coord);color:var(--tag-coord-ink)}
+  .time { margin-left: auto; font-size: 10.5px; color: var(--ink-soft); font-family: "Courier New", monospace; letter-spacing: .04em; transform: rotate(-1deg); }
+  .card.new { border: 1.5px solid var(--accent); background: var(--new); box-shadow: 0 8px 22px rgba(201,138,61,.25); animation: arrive .7s cubic-bezier(.2,.9,.3,1.2) both; }
+  .badge-new { font-size: 10px; font-weight: 800; color: #fff; background: var(--accent); border-radius: 6px; padding: 2px 8px; letter-spacing: .1em; }
+  @keyframes arrive { 0% { opacity: 0; transform: translateY(-18px) scale(.96); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+  .hidden { display: none !important; }
+  .empty-note { grid-column: 1/-1; text-align: center; color: var(--ink-soft); font-size: 13px; padding: 40px 0; }
+
+  /* ---------- panels ---------- */
+  .panel { background: var(--paper); border: 1px solid var(--line); border-radius: 16px; padding: 22px; box-shadow: 0 1px 3px rgba(61,50,41,.05); }
+  .panel h2 { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+  .panel .panel-sub { font-size: 11.5px; color: var(--ink-soft); margin-bottom: 16px; }
+  .insight-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  @media (max-width: 780px) { .insight-grid { grid-template-columns: 1fr; } }
+  .bar-row { display: flex; align-items: center; gap: 12px; margin-bottom: 13px; }
+  .bar-label { width: 110px; font-size: 12.5px; font-weight: 600; flex: none; }
+  .bar-track { flex: 1; height: 13px; background: var(--bg); border-radius: 999px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 999px; background: var(--accent); opacity: .75; }
+  .bar-count { width: 46px; text-align: right; font-size: 12.5px; font-weight: 700; flex: none; font-variant-numeric: tabular-nums; }
+  .top-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  @media (max-width: 780px) { .top-grid { grid-template-columns: 1fr; } }
+  .top-card { background: var(--bg); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 8px; cursor: pointer; transition: transform .15s, box-shadow .15s; }
+  .top-card:hover { transform: translateY(-2px); box-shadow: 0 6px 14px rgba(80,62,40,.12); }
+  .rank { font-size: 24px; font-weight: 800; color: var(--accent); line-height: 1; }
+  .top-title { font-size: 13.5px; font-weight: 700; line-height: 1.5; }
+  .top-quote { font-size: 11.5px; color: var(--ink-soft); line-height: 1.6; }
+  .top-count { font-size: 11px; font-weight: 700; color: var(--accent); margin-top: auto; }
+  .top-count::after { content: " → アルバムで見る"; font-weight: 400; color: var(--ink-soft); }
+  .map-groups { display: flex; flex-wrap: wrap; gap: 14px; }
+  .map-group { background: var(--bg); border-radius: 14px; padding: 14px 16px; flex: 1; min-width: 200px; }
+  .map-group h3 { font-size: 12px; color: var(--accent-deep); margin-bottom: 10px; letter-spacing: .06em; }
+  .map-people { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; background: var(--paper); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px 4px 4px; font-size: 12px; font-weight: 600; }
+  .chip .avatar { width: 24px; height: 24px; font-size: 10px; }
+  .chip small { color: var(--ink-soft); font-weight: 400; }
+
+  /* ---------- chart (株チャート風) ---------- */
+  .chart-tabs { display: flex; gap: 4px; margin-bottom: 10px; flex-wrap: wrap; }
+  .chart-tab { padding: 5px 12px; border-radius: 8px; font-size: 12px; color: var(--ink-soft); cursor: pointer; border: 1px solid transparent; }
+  .chart-tab:hover { background: var(--bg); }
+  .chart-tab.active { background: var(--accent-soft); color: var(--accent-deep); font-weight: 700; }
+  .chart-legend { display: flex; gap: 18px; font-size: 11.5px; color: var(--ink-soft); margin-bottom: 8px; }
+  .lg-recv::before { content: "―― "; color: var(--accent); font-weight: 800; }
+  .lg-sent::before { content: "―― "; color: var(--sent-color); font-weight: 800; }
+  .chart-scroll { overflow-x: auto; overscroll-behavior-x: contain; }
+  .chart-inner { position: relative; }
+  .line-grid { stroke: var(--line); stroke-width: 1; }
+  .line-recv { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; }
+  .line-sent { fill: none; stroke: var(--sent-color); stroke-width: 2.5; stroke-linejoin: round; }
+  .axis-label { font-size: 10.5px; fill: var(--ink-soft); }
+  .cross-line { position: absolute; top: 8px; bottom: 24px; width: 1px; background: rgba(61,50,41,.35); pointer-events: none; display: none; }
+  .chart-tip { position: absolute; background: var(--ink); color: #fff8ec; border-radius: 10px; padding: 8px 12px; font-size: 11.5px; line-height: 1.7; pointer-events: none; display: none; white-space: nowrap; z-index: 5; box-shadow: 0 6px 16px rgba(0,0,0,.25); }
+  .chart-tip b { font-variant-numeric: tabular-nums; }
+  .tip-recv { color: #f0c98e; }
+  .tip-sent { color: #a8d4b8; }
+
+  /* ---------- boss table ---------- */
+  .table-scroll { overflow-x: auto; }
+  .member-table { width: 100%; min-width: 640px; border-collapse: separate; border-spacing: 0; background: var(--paper); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+  .member-table th { background: var(--accent-soft); color: var(--accent-deep); font-size: 12px; letter-spacing: .05em; padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .member-table th.sortable { cursor: pointer; user-select: none; }
+  .member-table th.sortable:hover { background: #ecd9bb; }
+  .member-table td { padding: 13px 14px; border-bottom: 1px solid var(--line); font-size: 13px; vertical-align: middle; }
+  .member-table tr:last-child td { border-bottom: none; }
+  .member-table tbody tr { cursor: pointer; transition: background .15s; }
+  .member-table tbody tr:hover { background: var(--new); }
+  .mt-name { display: flex; align-items: center; gap: 10px; font-weight: 700; }
+  .mt-name small { display: block; font-weight: 400; color: var(--ink-soft); font-size: 11px; }
+  .mt-num { font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .mt-num small { font-size: 10px; font-weight: 400; color: var(--ink-soft); margin-left: 2px; }
+  .alert-chip { display: inline-flex; align-items: center; gap: 6px; background: #fbeeee; border: 1px solid #e5c4c4; color: #7c3a3a; border-radius: 999px; padding: 3px 10px; font-size: 11px; font-weight: 700; }
+
+  /* ---------- member detail ---------- */
+  .back-link { font-size: 13px; color: var(--accent-deep); cursor: pointer; margin-bottom: 14px; display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
+  .back-link:hover { text-decoration: underline; }
+  .detail-head { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; flex-wrap: wrap; }
+  .detail-head .avatar { width: 44px; height: 44px; font-size: 17px; }
+  .detail-name { font-size: 20px; font-weight: 800; }
+  .detail-sub { font-size: 12px; color: var(--ink-soft); }
+  .boss-panel { border-left: 4px solid var(--accent); margin-bottom: 20px; }
+  .boss-label { display: inline-flex; align-items: center; gap: 6px; font-size: 10.5px; font-weight: 800; letter-spacing: .1em; color: #fff; background: var(--accent-deep); border-radius: 6px; padding: 3px 10px; margin-bottom: 12px; }
+  .boss-grid { display: grid; grid-template-columns: 3fr 2fr; gap: 20px; align-items: start; }
+  @media (max-width: 860px) { .boss-grid { grid-template-columns: 1fr; } }
+  .report-list { display: flex; flex-direction: column; gap: 8px; }
+  .report-item { display: flex; align-items: center; gap: 10px; background: var(--bg); border-radius: 10px; padding: 10px 14px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background .15s; }
+  .report-item:hover { background: var(--accent-soft); }
+  .report-item small { margin-left: auto; color: var(--ink-soft); font-weight: 400; font-size: 11px; }
+  .sub-tabs { display: flex; gap: 4px; margin: 6px 0 4px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+  .sub-tab { padding: 9px 16px; font-size: 13px; color: var(--ink-soft); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; }
+  .sub-tab.active { color: var(--accent-deep); font-weight: 700; border-bottom-color: var(--accent); }
+  .same-note { font-size: 11.5px; color: var(--ink-soft); margin: 10px 0 4px; }
+
+  /* ---------- modal ---------- */
+  .overlay { position: fixed; inset: 0; background: rgba(45,36,28,.45); display: grid; place-items: center; z-index: 50; animation: fadein .2s ease both; }
+  @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
+  .modal { background: var(--paper); border-radius: 20px; width: min(680px, calc(100vw - 32px)); max-height: calc(100vh - 60px); overflow-y: auto; box-shadow: 0 24px 60px rgba(45,36,28,.35); animation: rise .25s cubic-bezier(.2,.9,.3,1.1) both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(16px) scale(.98); } to { opacity: 1; transform: none; } }
+  .modal-head { display: flex; align-items: center; gap: 10px; padding: 18px 22px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--paper); border-radius: 20px 20px 0 0; z-index: 1; }
+  .modal-title { font-size: 14px; font-weight: 700; }
+  .modal-sub { font-size: 11px; color: var(--ink-soft); }
+  .close { margin-left: auto; border: none; background: var(--bg); color: var(--ink-soft); width: 34px; height: 34px; border-radius: 50%; font-size: 14px; cursor: pointer; flex: none; }
+  .close:hover { background: var(--line); }
+  button:focus-visible, .tab:focus-visible, .card:focus-visible, tr:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .modal-body { padding: 20px 22px; }
+  .thread-label { font-size: 11px; color: var(--ink-soft); letter-spacing: .08em; display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+  .thread-label::before, .thread-label::after { content: ""; height: 1px; background: var(--line); flex: 1; }
+  .bubble-row { display: flex; gap: 10px; margin-bottom: 14px; }
+  .bubble { flex: 1; }
+  .bubble-name { font-size: 12px; font-weight: 700; }
+  .bubble-name span { font-weight: 400; font-size: 10px; color: var(--ink-soft); margin-left: 6px; }
+  .bubble-text { margin-top: 4px; font-size: 13.5px; line-height: 1.7; background: var(--bg); border-radius: 4px 14px 14px 14px; padding: 10px 14px; }
+  .bubble-row.mine .bubble-text { background: #eef3ee; }
+  .bubble-row.thanks .bubble-text { background: var(--new); border: 1.5px solid var(--accent); box-shadow: 0 3px 12px rgba(201,138,61,.18); }
+  .thanks-flag { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 800; color: var(--accent); margin-top: 6px; letter-spacing: .06em; }
+  .thanks-flag::before { content: "✦"; }
+  .file-chip { margin-top: 8px; display: flex; align-items: center; gap: 8px; background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; font-size: 12px; font-weight: 600; width: fit-content; }
+  .file-icon { width: 26px; height: 26px; border-radius: 6px; background: #1d6f42; color: #fff; display: grid; place-items: center; font-size: 12px; font-weight: 800; }
+  .oblier-note { margin-top: 18px; background: var(--accent-soft); border-radius: 14px; padding: 14px 16px; font-size: 12.5px; line-height: 1.7; }
+  .oblier-note b { display: flex; align-items: center; gap: 6px; font-size: 11px; letter-spacing: .1em; color: var(--accent-deep); margin-bottom: 4px; }
+
+  /* じぶんのメモ（付箋風） */
+  .my-memo { margin-top: 14px; background: #fdf7d8; border-radius: 3px 14px 14px 14px; padding: 14px 16px; box-shadow: 0 3px 8px rgba(0,0,0,.06); }
+  .my-memo .mm-head { display: flex; align-items: center; gap: 8px; font-size: 11px; letter-spacing: .1em; color: #8a7a2a; font-weight: 800; margin-bottom: 8px; }
+  .privacy { position: relative; cursor: help; font-size: 13px; }
+  .privacy .pop { display: none; position: absolute; bottom: 130%; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff8ec; font-size: 11px; font-weight: 400; letter-spacing: 0; border-radius: 8px; padding: 8px 12px; white-space: nowrap; z-index: 10; box-shadow: 0 6px 16px rgba(0,0,0,.25); }
+  .privacy:hover .pop, .privacy:focus .pop { display: block; }
+  .my-memo textarea { width: 100%; border: 1px dashed #d8cb8a; background: transparent; border-radius: 8px; padding: 10px; font-family: inherit; font-size: 13px; line-height: 1.7; resize: vertical; min-height: 60px; color: var(--ink); }
+  .my-memo textarea:focus { outline: 2px solid #d8cb8a; }
+  .mm-save { margin-top: 8px; background: #8a7a2a; color: #fff; border: none; border-radius: 8px; padding: 7px 16px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; }
+  .modal-foot { padding: 0 22px 18px; display: flex; justify-content: flex-end; gap: 10px; }
+  .danger-link { font-size: 11px; color: var(--ink-soft); background: none; border: none; cursor: pointer; text-decoration: underline; font-family: inherit; }
+  .danger-link:hover { color: #a04a5a; }
+  .confirm-box { text-align: center; padding: 30px 26px 26px; }
+  .confirm-box h3 { font-size: 15px; margin-bottom: 10px; }
+  .confirm-box p { font-size: 12.5px; color: var(--ink-soft); line-height: 1.8; margin-bottom: 20px; }
+  .danger-btn { background: #b04a4a; color: #fff; border: none; border-radius: 10px; padding: 10px 22px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; }
+
+  /* ---------- 1on1 report ---------- */
+  .r-sec { margin-bottom: 20px; }
+  .r-sec > h3 { font-size: 12px; color: var(--accent-deep); letter-spacing: .08em; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+  .r-sec > h3::after { content: ""; height: 1px; background: var(--line); flex: 1; }
+  .digest-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .digest-item { background: var(--bg); border-radius: 12px; padding: 10px 16px; font-size: 12px; color: var(--ink-soft); }
+  .digest-item b { display: block; font-size: 16px; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .digest-note { font-size: 12.5px; line-height: 1.8; margin-top: 10px; }
+  .praise { background: var(--bg); border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; }
+  .praise-quote { font-family: "Hiragino Mincho ProN", serif; font-size: 13.5px; line-height: 1.7; }
+  .praise-from { font-size: 11px; color: var(--ink-soft); margin: 4px 0 8px; }
+  .praise-say { font-size: 12.5px; line-height: 1.7; background: var(--paper); border-left: 3px solid var(--accent); border-radius: 0 8px 8px 0; padding: 8px 12px; }
+  .praise-say b { font-size: 10.5px; color: var(--accent-deep); letter-spacing: .06em; display: block; margin-bottom: 2px; }
+  .alert-box { background: #fbeeee; border: 1px solid #e5c4c4; border-radius: 12px; padding: 12px 14px; font-size: 12.5px; line-height: 1.7; color: #7c3a3a; }
+  .alert-box b { display: block; font-size: 11px; letter-spacing: .08em; margin-bottom: 4px; }
+  .ok-box { background: #eef5ef; border: 1px solid #cfe2d2; border-radius: 12px; padding: 12px 14px; font-size: 12.5px; color: #3f6a4c; line-height: 1.7; }
+  .q-item { display: flex; gap: 10px; margin-bottom: 8px; font-size: 13px; line-height: 1.7; background: var(--bg); border-radius: 10px; padding: 10px 14px; }
+  .q-item::before { content: "Q"; font-weight: 800; color: var(--accent); }
+  .carry-box { background: var(--paper); border: 1.5px dashed var(--line); border-radius: 12px; padding: 12px 14px; font-size: 12.5px; color: var(--ink-soft); line-height: 1.7; }
+
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--ink); color: #fff8ec; border-radius: 999px; padding: 11px 22px; font-size: 13px; z-index: 80; opacity: 0; transition: all .3s ease; pointer-events: none; max-width: calc(100vw - 40px); text-align: center; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .demo-btn { position: fixed; right: 18px; bottom: 18px; background: var(--ink); color: #fff; border: none; border-radius: 999px; padding: 10px 18px; font-size: 12px; cursor: pointer; opacity: .25; transition: opacity .2s; z-index: 20; font-family: inherit; }
+  .demo-btn:hover { opacity: 1; }
+
+  /* ---------- mobile ---------- */
+  @media (max-width: 640px) {
+    .bar { padding: 10px 14px; }
+    .logo { font-size: 16px; }
+    .tabs { order: 3; width: 100%; margin-left: 0; }
+    .me span { display: none; }
+    main { padding: 20px 14px 60px; }
+    .count { font-size: 40px; }
+    .toolbar { gap: 8px; }
+    .view-note { display: none; }
+    .search-input { width: 100%; }
+    .modal-body { padding: 16px; }
+    .digest-row { gap: 8px; }
+    .boss-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="bar">
+    <div class="logo"><div class="logo-mark">O</div><div>オブリエ<small>OBRIER</small></div></div>
+    <nav class="tabs" id="personTabs">
+      <div class="tab active" data-v="album" onclick="showView('album')">アルバム</div>
+      <div class="tab" data-v="shape" onclick="showView('shape')">あなたのカタチ</div>
+      <div class="tab" data-v="sent" onclick="showView('sent')">おくった ありがとう</div>
+    </nav>
+    <div class="spacer"></div>
+    <div class="role-switch">
+      <div class="role-btn active" id="roleP" onclick="setRole('person')">本人</div>
+      <div class="role-btn" id="roleB" onclick="setRole('boss')">上司</div>
+    </div>
+    <div class="me" id="meBox"><span>YUKIYAMAさん</span><div class="avatar av-me">Y</div></div>
+  </div>
+</header>
+
+<main>
+
+<!-- ============ 本人：アルバム ============ -->
+<section id="viewAlbum">
+  <div class="hero">
+    <h1>あなたに届いたありがとう</h1>
+    <div class="count-wrap"><div class="count" id="count">264</div><div class="count-unit">通</div></div>
+  </div>
+  <div class="hero-note">Slack・Teams のやり取りから、あなた宛ての感謝を自動でこのアルバムに綴じています。カードを押すと経緯が見られます。</div>
+  <div class="toolbar">
+    <select class="select" id="tagFilter" onchange="applyFilters()"><option value="">場面：すべて</option></select>
+    <label class="check"><input type="checkbox" id="favFilter" onchange="applyFilters()">★ お気に入りのみ</label>
+    <button class="ghost-btn" onclick="toast('CSVを書き出しました（デモ）')">CSV書き出し</button>
+    <span id="activeFilter"></span>
+    <div class="view-note">新しい順</div>
+  </div>
+  <div class="grid" id="grid"></div>
+</section>
+
+<!-- ============ 本人：カタチ ============ -->
+<section id="viewShape" class="hidden">
+  <div class="hero">
+    <h1>あなたのカタチ</h1>
+    <div class="count-wrap"><div class="count" style="font-size:26px; padding:10px 0;">もらったありがとうから見えてきた、あなたの得意</div></div>
+  </div>
+  <div class="hero-note">265通の感謝の言葉を、オブリエが読み解いて分類しています。場面タグは感謝の内容から自動で生まれ、増えていきます。</div>
+  <div id="myShape"></div>
+</section>
+
+<!-- ============ 本人：おくった ============ -->
+<section id="viewSent" class="hidden">
+  <div class="hero">
+    <h1>あなたがおくったありがとう</h1>
+    <div class="count-wrap"><div class="count">31</div><div class="count-unit">通</div></div>
+  </div>
+  <div class="hero-note">あなたが伝えた感謝も、ここに綴じられています。</div>
+  <div class="grid" id="sentGrid"></div>
+</section>
+
+<!-- ============ 上司：メンバー一覧 ============ -->
+<section id="viewTeam" class="hidden">
+  <div class="hero">
+    <h1>チームのありがとう ― 企画部 第2チーム</h1>
+    <div class="count-wrap"><div class="count" style="font-size:26px; padding:10px 0;">メンバーのようす</div></div>
+  </div>
+  <div class="hero-note">行を押すと、メンバーの詳細と月次レポートを見られます。</div>
+  <div class="toolbar">
+    <select class="select" id="teamPeriod" onchange="renderMembers()">
+      <option value="1">期間：1か月</option>
+      <option value="3">期間：3か月</option>
+      <option value="12">期間：1年</option>
+    </select>
+    <input class="search-input" id="teamSearch" placeholder="名前でしぼり込み" oninput="renderMembers()">
+    <label class="check"><input type="checkbox" id="alertOnly" onchange="renderMembers()">要確認のみ</label>
+  </div>
+  <div class="chart-legend" style="margin-bottom:8px;"><span class="lg-recv">もらった</span><span class="lg-sent">おくった</span></div>
+  <div class="table-scroll">
+    <table class="member-table">
+      <thead><tr>
+        <th>メンバー</th>
+        <th class="sortable" onclick="setSort('recv')">もらった <span id="sortRecv"></span></th>
+        <th class="sortable" onclick="setSort('sent')">おくった <span id="sortSent"></span></th>
+        <th>推移（直近6か月）</th>
+      </tr></thead>
+      <tbody id="memberRows"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============ 上司：メンバー詳細 ============ -->
+<section id="viewMember" class="hidden">
+  <div class="back-link" onclick="showBossView('team')">← メンバー一覧にもどる</div>
+  <div class="detail-head" id="detailHead"></div>
+
+  <div class="panel boss-panel">
+    <div class="boss-label">上司メニュー ― このパネルは本人には表示されません</div>
+    <div class="boss-grid">
+      <div>
+        <h2 style="font-size:13px; margin-bottom:10px;">月次レポート（1on1の準備メモ）</h2>
+        <div class="report-list" id="reportList"></div>
+      </div>
+      <div id="detailAlert"></div>
+    </div>
+  </div>
+
+  <div class="same-note">ここから下は、本人が見ている画面と同じものです。</div>
+  <div class="sub-tabs">
+    <div class="sub-tab active" data-s="album" onclick="showMemberSub('album')">アルバム</div>
+    <div class="sub-tab" data-s="shape" onclick="showMemberSub('shape')">カタチ</div>
+    <div class="sub-tab" data-s="sent" onclick="showMemberSub('sent')">おくった</div>
+  </div>
+  <div id="memberSub"></div>
+</section>
+
+</main>
+
+<button class="demo-btn" id="demoBtn" onclick="playDemo()">▶ 新着デモを再生</button>
+<div class="toast" id="toastEl"></div>
+
+<script>
+/* ================= util ================= */
+const $ = id => document.getElementById(id);
+const TAG_CLS = { "スピード対応":"t-speed","資料品質":"t-doc","アイデア":"t-idea","情報共有":"t-idea","企画構成":"t-idea",
+  "気配り":"t-care","後輩サポート":"t-care","調整力":"t-coord","折衝":"t-coord","リスク管理":"t-coord","育成":"t-care",
+  "顧客対応":"t-care","正確さ":"t-doc","ファシリテーション":"t-coord" };
+const tagCls = t => TAG_CLS[t] || '';
+const TAPE = { "t-speed":"tape-speed","t-doc":"tape-doc","t-idea":"tape-idea","t-care":"tape-care","t-coord":"tape-coord" };
+
+/* 疑似乱数（決定的） */
+function seeded(seed) { let s = seed; return () => { s = (s * 9301 + 49297) % 233280; return s / 233280; }; }
+/* 月次60か月ぶん生成 */
+function genMonthly(seed, base, slope, amp, sentBase, sentSlope) {
+  const r = seeded(seed); const labels = [], recv = [], sent = [];
+  const names = ["1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"];
+  let y = 2021, mIdx = 7; // 2021年8月スタート
+  for (let i = 0; i < 60; i++) {
+    labels.push((mIdx === 0 ? `${y}年` : '') + names[mIdx]);
+    recv.push(Math.max(0, Math.round(base + i * slope + Math.sin(i * .8 + seed) * amp + r() * 3)));
+    sent.push(Math.max(0, Math.round(sentBase + i * sentSlope + Math.sin(i * .6 + seed) * 1.2 + r() * 2)));
+    mIdx++; if (mIdx > 11) { mIdx = 0; y++; }
+  }
+  recv[59] = Math.round(recv[58] * .25); sent[59] = Math.round(sent[58] * .3); // 当月は集計中
+  return { labels, recv, sent };
+}
+function genDaily(seed, level) {
+  const r = seeded(seed); const labels = [], recv = [], sent = [];
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(2026, 6, 4); d.setDate(d.getDate() - i);
+    labels.push(`${d.getMonth() + 1}/${d.getDate()}`);
+    recv.push(Math.round(r() * level));
+    sent.push(Math.round(r() * level * .4));
+  }
+  return { labels, recv, sent };
+}
+function slice(h, n) { return { labels: h.labels.slice(-n), recv: h.recv.slice(-n), sent: h.sent.slice(-n) }; }
+
+/* ================= 本人データ ================= */
+const DATA = [
+  { isNew: true, who: "上司さん", av: "av-boss", ini: "上", ch: "#資料作成", src: "Slack", srcCls: "", month: "2026年 7月",
+    msg: "ありがとうございます。素早い対応助かります。確認しますね。", tag: "スピード対応", time: "たった今 15:58",
+    summary: "上司さんからの資料作成の依頼に、約1分で完成版を共有。対応の速さに感謝が届きました。今月の「スピード対応」はこれで8回目です。",
+    story: [
+      { who: "上司さん", av: "av-boss", ini: "上", time: "15:57", text: "@YUKIYAMA おつかれ、いい感じの資料つくっておいて" },
+      { who: "YUKIYAMA", av: "av-me", ini: "Y", time: "15:58", mine: true, text: "@上司 おつかれさまです。すごい資料です。ご確認をお願いします。", file: "すごい資料.xlsx" },
+      { who: "上司さん", av: "av-boss", ini: "上", time: "15:58", thanks: true, text: "@YUKIYAMA ありがとうございます。素早い対応助かります。確認しますね。" },
+    ]},
+  { who: "上司さん", av: "av-boss", ini: "上", ch: "#資料作成", src: "Slack", srcCls: "", month: "2026年 7月",
+    msg: "ありがとう、助かります。", tag: "スピード対応", time: "昨日 18:12",
+    summary: "会議の前倒しで急遽必要になったアジェンダを当日中に作成。締切前倒しへの対応力に感謝が届きました。",
+    story: [
+      { who: "上司さん", av: "av-boss", ini: "上", time: "16:40", text: "明日の定例、先方の都合で1日早まった…アジェンダ今日中いける？" },
+      { who: "YUKIYAMA", av: "av-me", ini: "Y", time: "17:26", mine: true, text: "アジェンダできました。論点は前回の持ち越し2件＋新規1件です。", file: "定例アジェンダ_0703.docx" },
+      { who: "上司さん", av: "av-boss", ini: "上", time: "18:12", thanks: true, text: "ありがとう、助かります。" },
+    ]},
+  { who: "佐藤さん", av: "av-a", ini: "佐", ch: "#企画チーム", src: "Slack", srcCls: "", month: "2026年 6月",
+    msg: "すごい、いいね。この切り口なかったわ。", tag: "アイデア", time: "6/30 11:04",
+    summary: "行き詰まっていた若年層向け企画に、逆転の発想（親世代から贈る導線）と参考事例2件を提案。着眼点に感謝が届きました。",
+    story: [
+      { who: "佐藤さん", av: "av-a", ini: "佐", time: "10:31", text: "若年層向けの訴求、正直ネタ切れ気味…なんかいい案ないかな" },
+      { who: "YUKIYAMA", av: "av-me", ini: "Y", time: "10:55", mine: true, text: "逆に「親世代から子どもへ贈る」導線はどうでしょう？本人向けに売らない、という切り口です。" },
+      { who: "佐藤さん", av: "av-a", ini: "佐", time: "11:04", thanks: true, text: "すごい、いいね。この切り口なかったわ。" },
+    ]},
+  { who: "田中さん", av: "av-b", ini: "田", ch: "#プロジェクトA", src: "Slack", srcCls: "", month: "2026年 6月",
+    msg: "さすがしごでき。今回もお願いしていい？", tag: "資料品質", time: "6/28 09:41",
+    summary: "前回作成した報告書がクライアントから「わかりやすい」と好評で、次回も指名で依頼されました。",
+    story: [
+      { who: "田中さん", av: "av-b", ini: "田", time: "09:38", text: "先週の報告書、クライアントから「今までで一番わかりやすい」って言われたよ" },
+      { who: "田中さん", av: "av-b", ini: "田", time: "09:41", thanks: true, text: "さすがしごでき。今回もお願いしていい？" },
+      { who: "YUKIYAMA", av: "av-me", ini: "Y", time: "09:45", mine: true, text: "よかったです…！もちろんです。" },
+    ]},
+  { who: "鈴木さん", av: "av-c", ini: "鈴", ch: "新人サポート", src: "Teams", srcCls: "teams", month: "2026年 6月",
+    msg: "教えていただいたおかげで無事解決できました！本当にありがとうございます。", tag: "後輩サポート", time: "6/27 16:20",
+    summary: "経費精算に迷っていた新人の鈴木さんに、手順メモ＋10分の画面共有でフォロー。寄り添う対応に感謝が届きました。",
+    story: [
+      { who: "鈴木さん", av: "av-c", ini: "鈴", time: "14:02", text: "すみません、経費精算のやり方がどうしてもわからなくて…" },
+      { who: "YUKIYAMA", av: "av-me", ini: "Y", time: "14:10", mine: true, text: "あれ最初わかりにくいですよね。手順メモを送ります。15時から10分だけ画面共有でやりましょうか。" },
+      { who: "鈴木さん", av: "av-c", ini: "鈴", time: "16:20", thanks: true, text: "教えていただいたおかげで無事解決できました！本当にありがとうございます。" },
+    ]},
+  { who: "高橋さん", av: "av-d", ini: "高", ch: "#営業連携", src: "Slack", srcCls: "", month: "2026年 6月",
+    msg: "ありがとうございます。確認します。まとめ方きれいで助かる〜", tag: "資料品質", time: "6/25 13:55",
+    summary: "散らばっていた商談メモを論点別に再構成して共有。整理のわかりやすさに感謝が届きました。",
+    story: [
+      { who: "高橋さん", av: "av-d", ini: "高", time: "13:30", text: "先週の商談メモってどこかにまとまってる？" },
+      { who: "YUKIYAMA", av: "av-me", ini: "Y", time: "13:48", mine: true, text: "論点別にまとめ直したものがあります。決定事項・保留・宿題の3分類です。" },
+      { who: "高橋さん", av: "av-d", ini: "高", time: "13:55", thanks: true, text: "ありがとうございます。確認します。まとめ方きれいで助かる〜" },
+    ]},
+  { who: "伊藤さん", av: "av-e", ini: "伊", ch: "#プロジェクトA", src: "Slack", srcCls: "", month: "2026年 6月",
+    msg: "調整ありがとう！全員参加できることになったよ", tag: "調整力", time: "6/24 10:15",
+    summary: "8人の関係者で決まらなかったレビュー会の日程を、候補3枠の調整表で1日で確定。段取り力に感謝が届きました。",
+    story: [
+      { who: "伊藤さん", av: "av-e", ini: "伊", time: "6/23 15:02", text: "来週のレビュー会、関係者多すぎて日程が全然決まらない…" },
+      { who: "YUKIYAMA", av: "av-me", ini: "Y", time: "6/24 09:58", mine: true, text: "木曜14時で全員◯になりました。招集かけますね。" },
+      { who: "伊藤さん", av: "av-e", ini: "伊", time: "10:15", thanks: true, text: "調整ありがとう！全員参加できることになったよ" },
+    ]},
+  { who: "渡辺さん", av: "av-f", ini: "渡", ch: "問い合わせ対応", src: "Teams", srcCls: "teams", month: "2026年 6月",
+    msg: "レス早くて助かります！", tag: "スピード対応", time: "6/20 11:33",
+    summary: "他部署からの仕様に関する問い合わせに5分で回答。判断に必要な制約条件まで添えた即レスに感謝が届きました。",
+    story: [
+      { who: "渡辺さん", av: "av-f", ini: "渡", time: "11:28", text: "この仕様って今からでも変更可能でしたっけ？" },
+      { who: "YUKIYAMA", av: "av-me", ini: "Y", time: "11:33", mine: true, text: "可能です。ただし制約が2点：①来週火曜までに確定 ②画面Bに影響が出ます。" },
+      { who: "渡辺さん", av: "av-f", ini: "渡", time: "11:33", thanks: true, text: "レス早くて助かります！" },
+    ]},
+  { who: "山本さん", av: "av-g", ini: "山", ch: "#企画チーム", src: "Slack", srcCls: "", month: "2026年 6月",
+    msg: "例のテンプレ、チームみんな使ってるよ。ありがとう", tag: "情報共有", time: "6/18 09:20",
+    summary: "自作した議事録テンプレートがチーム標準として定着。仕組みで貢献する働きに感謝が届きました。",
+    story: [
+      { who: "YUKIYAMA", av: "av-me", ini: "Y", time: "6/10 17:15", mine: true, text: "議事録のテンプレ作ってみました。よければどうぞ。", file: "議事録テンプレ_v1.docx" },
+      { who: "山本さん", av: "av-g", ini: "山", time: "6/18 09:20", thanks: true, text: "例のテンプレ、チームみんな使ってるよ。ありがとう" },
+    ]},
+  { who: "小林さん", av: "av-i", ini: "小", ch: "プロジェクトA", src: "Teams", srcCls: "teams", month: "2026年 6月",
+    msg: "資料の図解、そのまま役員説明に使わせてもらった。ありがとう！", tag: "資料品質", time: "6/13 15:40",
+    summary: "複雑な構成案を1枚の図解に変換。役員説明にそのまま使われるクオリティに感謝が届きました。",
+    story: [
+      { who: "小林さん", av: "av-i", ini: "小", time: "6/12 13:05", text: "この構成、文章だと伝わらなくて…図にできたりする？" },
+      { who: "YUKIYAMA", av: "av-me", ini: "Y", time: "6/12 16:30", mine: true, text: "図解版を作りました。3層構造にしています。", file: "構成図解_v2.pptx" },
+      { who: "小林さん", av: "av-i", ini: "小", time: "6/13 15:40", thanks: true, text: "資料の図解、そのまま役員説明に使わせてもらった。ありがとう！" },
+    ]},
+  { who: "森さん", av: "av-c", ini: "森", ch: "新人サポート", src: "Teams", srcCls: "teams", month: "2026年 6月",
+    msg: "先日はレビューありがとうございました。めちゃくちゃ勉強になりました", tag: "後輩サポート", time: "6/11 10:08",
+    summary: "後輩の初めての企画書を、良い点を先に伝えるスタイルでレビュー。育てる姿勢に感謝が届きました。",
+    story: [
+      { who: "森さん", av: "av-c", ini: "森", time: "6/9 11:20", text: "初めて企画書を書いたんですが、提出前に見てもらえますか…？" },
+      { who: "YUKIYAMA", av: "av-me", ini: "Y", time: "6/9 14:05", mine: true, text: "骨子とても良いです。提案コメントを3点だけ入れました。" },
+      { who: "森さん", av: "av-c", ini: "森", time: "6/11 10:08", thanks: true, text: "先日はレビューありがとうございました。めちゃくちゃ勉強になりました" },
+    ]},
+];
+DATA.forEach((d, i) => { d.id = i; d.fav = false; d.myMemo = ""; });
+DATA[6].fav = true; // デモ：伊藤さんの調整カードをお気に入り済みに
+DATA[9].myMemo = "役員まで届いたのは素直にうれしい。図解パターンをテンプレ化しておく。";
+
+const SENT = [
+  { who: "佐藤さんへ", av: "av-a", ini: "佐", ch: "#企画チーム", src: "Slack", srcCls: "", month: "2026年 7月",
+    msg: "昨日のレビュー会の仕切り、すごく助かりました。おかげで論点が絞れました。", tag: "調整力", time: "7/2 09:15" },
+  { who: "鈴木さんへ", av: "av-c", ini: "鈴", ch: "新人サポート", src: "Teams", srcCls: "teams", month: "2026年 6月",
+    msg: "先週のデータ集計、正確で早くて助かりました。ありがとう！", tag: "スピード対応", time: "6/26 17:40" },
+  { who: "高橋さんへ", av: "av-d", ini: "高", ch: "#営業連携", src: "Slack", srcCls: "", month: "2026年 6月",
+    msg: "お客様の温度感の共有ありがとうございました。企画の方向修正ができました。", tag: "気配り", time: "6/19 10:02" },
+];
+
+/* 本人のカタチデータ */
+const MY_SHAPE = {
+  tags: [["スピード対応",82],["資料品質",68],["調整力",55],["気配り",42],["後輩サポート",28],["情報共有",22],["アイデア",18],["正確さ",12]],
+  memo: "「対応の速さ」への感謝が最多です。最近は「後輩サポート」が増えていて、頼られる範囲が広がっています。",
+  tops: [
+    { title: "急ぎの依頼に、すぐ動く", quote: "「素早い対応助かります」「レス早くて助かります！」", count: 82, tag: "スピード対応" },
+    { title: "複雑な情報を、わかりやすく整える", quote: "「まとめ方きれいで助かる」「役員説明に使わせてもらった」", count: 68, tag: "資料品質" },
+    { title: "人と人の間の、段取りをつくる", quote: "「全員参加できることになったよ」「整理うまくて助かった」", count: 55, tag: "調整力" },
+    { title: "気づいて、先回りする", quote: "「フォローありがとう。気づいてなかった」", count: 42, tag: "気配り" },
+    { title: "後輩のつまずきに、寄り添う", quote: "「おかげで解決できました」「勉強になりました」", count: 28, tag: "後輩サポート" },
+    { title: "チームに、仕組みを残す", quote: "「例のテンプレ、みんな使ってるよ」", count: 22, tag: "情報共有" },
+    { title: "違う角度から、案を出す", quote: "「この切り口なかったわ」", count: 18, tag: "アイデア" },
+    { title: "細部まで、正確に仕上げる", quote: "「数字が合ってて安心する」", count: 12, tag: "正確さ" },
+  ],
+  groups: [
+    { dept: "企画チーム", people: [["av-boss","上","上司さん",46],["av-a","佐","佐藤さん",31],["av-g","山","山本さん",12]] },
+    { dept: "営業部", people: [["av-d","高","高橋さん",24],["av-h","中","中村さん",18]] },
+    { dept: "プロジェクトA・その他", people: [["av-b","田","田中さん",38],["av-c","鈴","鈴木さん",22],["av-i","森","森さん",15]] },
+  ],
+  monthly: genMonthly(3, 4, .8, 3, 6, -.05),
+  daily30: genDaily(3, 3),
+};
+
+/* ================= メンバーデータ ================= */
+function mkShape(tags, memo, tops, groups, monthly, daily) {
+  return { tags, memo, tops, groups, monthly, daily30: daily };
+}
+const MEMBERS = [
+  { key:"yuki", name:"YUKIYAMAさん", role:"企画・3年目", av:"av-me", ini:"Y", alert:false,
+    latest:"素早い対応助かります", shape: MY_SHAPE,
+    reports:{
+      "2026年6月": {
+        digest:{ recv:52, sent:3, trendNote:"もらったありがとうは4か月連続で増えています。一方、おくった数は少しずつ減っています。", newSenders:["森さん"], upTag:"後輩サポート" },
+        praises:[
+          { quote:"調整ありがとう！全員参加できることになったよ", from:"伊藤さん ・ 6/24", fact:"8人で決まらなかったレビュー会の日程を、調整表を作って1日で確定させました。", say:"伊藤さんがすごく助かったって言ってたよ。あの調整、どう段取りしたの？" },
+          { quote:"資料の図解、そのまま役員説明に使わせてもらった", from:"小林さん ・ 6/13", fact:"複雑な構成案を1枚の図解にし、役員説明でそのまま採用されました。", say:"小林さんの件、作った図解が役員まで届いてたね。" },
+        ],
+        sign:null,
+        signNote:"受け取りは好調です。ただ、おくった感謝が減少傾向にあります。仕事を抱え込みはじめているサインの可能性もあるため、負荷の話題には軽く触れてみてください。",
+        questions:[
+          "最近いちばん手応えがあった仕事は？（図解の件が話しやすいきっかけになります）",
+          "急ぎの依頼が増えているようだけど、負荷は大丈夫？",
+          "後輩サポートの感謝が増えています。教える側の役割、本人はどう感じているか聞いてみてください",
+        ],
+        carry:"（前回の1on1の持ち越しメモがここに表示されます。例：資格取得の相談 → 会社補助の確認は完了）" },
+      "2026年5月": {
+        digest:{ recv:48, sent:3, trendNote:"受け取りは増加。おくった数は横ばいでした。", newSenders:[], upTag:"調整力" },
+        praises:[{ quote:"整理うまくて助かった", from:"中村さん ・ 5/16", fact:"クライアントヒアリングに同席し、その場で論点を整理しました。", say:"中村さんとのヒアリング同席、評判よかったよ。" }],
+        sign:null, signNote:"特記すべきサインはありません。",
+        questions:["ヒアリング同席のような社外対応、もっとやってみたい？","5月に始まった新体制はどう？"],
+        carry:"（前回の持ち越しメモ）" },
+    }},
+  { key:"sato", name:"佐藤さん", role:"企画・5年目", av:"av-a", ini:"佐", alert:false,
+    shape: mkShape(
+      [["アイデア",56],["企画構成",41],["資料品質",33],["ファシリテーション",21],["気配り",14]],
+      "アイデア起点の感謝が中心です。会議を前に進める役割（ファシリテーション）への感謝が増えはじめています。",
+      [
+        { title: "行き詰まりに、新しい切り口を出す", quote: "「その発想なかった」「方向性ばっちり」", count: 56, tag: "アイデア" },
+        { title: "企画を、骨太に組み立てる", quote: "「コンペの構成、筋がいいね」", count: 41, tag: "企画構成" },
+        { title: "会議を、前に進める", quote: "「今日の会議、進めやすかった」", count: 21, tag: "ファシリテーション" },
+      ],
+      [{ dept: "企画チーム", people: [["av-g","山","山本さん",22],["av-boss","上","上司さん",18],["av-me","Y","YUKIYAMAさん",11]] }],
+      genMonthly(7, 12, .3, 4, 12, .1), genDaily(7, 2)),
+    reports:{
+      "2026年6月": {
+        digest:{ recv:26, sent:17, trendNote:"受け取り・おくった数ともに安定して多く、チームの感謝の循環の起点になっています。", newSenders:["渡辺さん"], upTag:"ファシリテーション" },
+        praises:[{ quote:"コンペの構成、筋がいいね", from:"上司さん ・ 6/21", fact:"新規コンペの提案骨子を主導しました。", say:"コンペの骨子、あの筋の良さはどこから来たのか聞かせて。" }],
+        sign:null, signNote:"良い状態が続いています。次の挑戦の話題が合いそうです。",
+        questions:["いまの仕事で物足りなさはない？","ファシリの感謝が増えています。会議設計の役割を広げることに興味は？"],
+        carry:"（前回の持ち越しメモ）" },
+    }},
+  { key:"suzuki", name:"鈴木さん", role:"企画・1年目", av:"av-c", ini:"鈴", alert:false,
+    shape: mkShape(
+      [["スピード対応",18],["正確さ",15],["気配り",9]],
+      "入社1年目ながら、集計・準備まわりの確実な仕事に感謝が集まっています。",
+      [
+        { title: "頼まれたことを、正確に早く返す", quote: "「集計、正確で早い！」", count: 18, tag: "スピード対応" },
+        { title: "細かいところに、気を配る", quote: "「朝会の準備いつも助かる」", count: 9, tag: "気配り" },
+      ],
+      [{ dept: "企画チーム", people: [["av-me","Y","YUKIYAMAさん",14],["av-a","佐","佐藤さん",9]] }],
+      genMonthly(11, 1, .35, 1.5, 3, .15), genDaily(11, 1.5)),
+    reports:{
+      "2026年6月": {
+        digest:{ recv:9, sent:8, trendNote:"受け取りが毎月着実に増えています。入社1年目として良い立ち上がりです。", newSenders:["田中さん"], upTag:"正確さ" },
+        praises:[{ quote:"データ集計、正確で早い", from:"YUKIYAMAさん ・ 6/26", fact:"依頼されたデータ集計をミスなく前倒しで納品しました。", say:"集計の正確さ、先輩たちが頼りにしはじめてるよ。" }],
+        sign:null, signNote:"成長の実感につながる声かけが有効なタイミングです。",
+        questions:["入社3か月、いちばん自信がついたことは？","次に挑戦してみたい仕事はある？"],
+        carry:"（前回の持ち越しメモ）" },
+    }},
+  { key:"takahashi", name:"高橋さん", role:"営業連携・4年目", av:"av-d", ini:"高", alert:true,
+    shape: mkShape(
+      [["気配り",31],["顧客対応",24],["スピード対応",12],["正確さ",8]],
+      "お客様や同僚への丁寧な目配りに感謝が集まっています。直近2か月は受け取り・おくりともに減少しています。",
+      [
+        { title: "相手の不安に、先に気づく", quote: "「引き継ぎ丁寧で安心した」", count: 31, tag: "気配り" },
+        { title: "お客様との間に、信頼をつくる", quote: "「先方が名指しで褒めてたよ」", count: 24, tag: "顧客対応" },
+      ],
+      [{ dept: "営業部", people: [["av-h","中","中村さん",16],["av-e","伊","伊藤さん",8]] }],
+      (() => { const h = genMonthly(23, 10, .1, 2, 6, 0); h.recv.splice(57,3,13,6,2); h.sent.splice(57,3,6,1,0); return h; })(),
+      genDaily(23, .8)),
+    reports:{
+      "2026年6月": {
+        digest:{ recv:6, sent:1, trendNote:"もらった数・おくった数がともに2か月連続で大きく減っています。5月のチーム編成替え以降の変化です。", newSenders:[], upTag:null },
+        praises:[{ quote:"引き継ぎ資料、丁寧で安心しました", from:"中村さん ・ 6/28", fact:"顧客フォローの引き継ぎ資料を頼まれる前に自主的に作成しました。", say:"中村さんが、引き継ぎの丁寧さに安心したって言ってたよ。" }],
+        sign:"受発信がともに2か月連続で減少しています。業務の孤立や負荷、役割の見えにくさのサインかもしれません。詰問にならないよう、まず最近の仕事の手応えから聞いてみてください。",
+        signNote:"",
+        questions:["編成替えから1か月、新しい体制はどんな感じ？","いま一番時間を取られている仕事は？","困ったとき、チームで聞ける相手はいる？"],
+        carry:"（前回の持ち越しメモ。例：新体制の役割分担を確認する → 未対応）" },
+      "2026年5月": {
+        digest:{ recv:13, sent:6, trendNote:"前月からやや減少。編成替え直後のため様子見の月でした。", newSenders:[], upTag:null },
+        praises:[{ quote:"フォロー助かりました", from:"営業部 ・ 5月", fact:"顧客対応の引き継ぎ期間中もフォローを継続しました。", say:"引き継ぎ中のフォロー、ちゃんと見えてたよ。" }],
+        sign:null, signNote:"編成替え直後のため、翌月の推移に注意してください。",
+        questions:["新チームで気になっていることは？"],
+        carry:"（前回の持ち越しメモ）" },
+    }},
+  { key:"tanaka", name:"田中さん", role:"PM・7年目", av:"av-b", ini:"田", alert:false,
+    shape: mkShape(
+      [["調整力",61],["折衝",48],["資料品質",30],["リスク管理",22],["気配り",15],["育成",9]],
+      "調整・折衝への感謝が安定して届いています。送る側としてもチームの循環の要です。",
+      [
+        { title: "決まらない話を、まとめる", quote: "「部署間の折衝、さすがでした」", count: 61, tag: "調整力" },
+        { title: "先のリスクに、手を打つ", quote: "「リスク整理、助かりました」", count: 22, tag: "リスク管理" },
+      ],
+      [{ dept: "プロジェクトA", people: [["av-i","小","小林さん",20],["av-boss","上","上司さん",15],["av-e","伊","伊藤さん",12]] }],
+      genMonthly(31, 13, .05, 2, 11, .05), genDaily(31, 1.2)),
+    reports:{
+      "2026年6月": {
+        digest:{ recv:15, sent:14, trendNote:"受け取り・おくった数ともに長期間安定しています。チームの感謝循環の要です。", newSenders:[], upTag:"リスク管理" },
+        praises:[{ quote:"部署間の折衝、さすがでした", from:"上司さん ・ 6/20", fact:"難航していた部署間調整をまとめました。", say:"あの折衝の進め方、若手に共有してもらえないか相談したい。" }],
+        sign:null, signNote:"安定稼働ですが、感謝の場面が調整系に集中しています。本人のやりたい方向と合っているかは確認の価値があります。",
+        questions:["調整・折衝の仕事が中心になっているが、本人としてはどう？","育成の感謝が出はじめています。メンター役への興味は？"],
+        carry:"（前回の持ち越しメモ）" },
+    }},
+  { key:"mori", name:"森さん", role:"企画・1年目", av:"av-i", ini:"森", alert:false,
+    shape: mkShape(
+      [["資料品質",19],["気配り",12],["スピード対応",7]],
+      "資料まわりの感謝が伸びています。新しい送り主が増えていて、関係の広がりが見えます。",
+      [
+        { title: "調べたことを、わかりやすくまとめる", quote: "「参考資料、わかりやすかった！」", count: 19, tag: "資料品質" },
+        { title: "まわりを、そっと支える", quote: "「気づいてくれてありがとう」", count: 12, tag: "気配り" },
+      ],
+      [{ dept: "企画チーム", people: [["av-me","Y","YUKIYAMAさん",8],["av-f","渡","渡辺さん",6]] }],
+      genMonthly(41, 0, .3, 1, 2, .15), genDaily(41, 1)),
+    reports:{
+      "2026年6月": {
+        digest:{ recv:11, sent:9, trendNote:"受け取りが大きく伸びた月でした。資料まわりの得意が早くも形になりつつあります。", newSenders:["渡辺さん","小林さん"], upTag:"資料品質" },
+        praises:[{ quote:"骨子とても良いです", from:"YUKIYAMAさん ・ 6/9", fact:"初めての企画書を書き上げ、先輩レビューで骨子を高く評価されました。", say:"初めての企画書、良かったって聞いてるよ。書いてみてどうだった？" }],
+        sign:null, signNote:"新しい送り主が2人増えており、関係の広がりが見えます。",
+        questions:["初めての企画書、やってみて何が一番大変だった？","資料づくりの感謝が増えてるけど、本人の手応えは？"],
+        carry:"（前回の持ち越しメモ）" },
+    }},
+];
+/* メンバーのアルバム・おくった（デモ簡易データ） */
+const MEMBER_CARDS = {
+  sato: [{ who:"山本さん", av:"av-g", ini:"山", ch:"#企画チーム", src:"Slack", srcCls:"", month:"2026年 7月", msg:"企画書のたたき、方向性ばっちりでした！", tag:"企画構成", time:"7/3 14:20" },
+         { who:"上司さん", av:"av-boss", ini:"上", ch:"#企画チーム", src:"Slack", srcCls:"", month:"2026年 6月", msg:"コンペの構成、筋がいいね。ありがとう。", tag:"アイデア", time:"6/21 10:02" }],
+  suzuki: [{ who:"YUKIYAMAさん", av:"av-me", ini:"Y", ch:"#企画チーム", src:"Slack", srcCls:"", month:"2026年 6月", msg:"先週のデータ集計、正確で早くて助かりました。ありがとう！", tag:"正確さ", time:"6/26 17:40" }],
+  takahashi: [{ who:"中村さん", av:"av-h", ini:"中", ch:"#営業連携", src:"Slack", srcCls:"", month:"2026年 6月", msg:"引き継ぎ資料、丁寧で安心しました。ありがとうございます。", tag:"気配り", time:"6/28 15:30" }],
+  tanaka: [{ who:"小林さん", av:"av-i", ini:"小", ch:"プロジェクトA", src:"Teams", srcCls:"teams", month:"2026年 7月", msg:"リスク整理、助かりました。", tag:"リスク管理", time:"7/1 16:45" }],
+  mori: [{ who:"渡辺さん", av:"av-f", ini:"渡", ch:"問い合わせ対応", src:"Teams", srcCls:"teams", month:"2026年 7月", msg:"参考資料のまとめ、わかりやすかったです！", tag:"資料品質", time:"7/2 11:30" }],
+};
+
+/* ================= card / album ================= */
+let lastOpened = null;
+function cardHTML(d, i, listName, clickable = true) {
+  const cls = tagCls(d.tag);
+  return `
+  <div class="card ${d.isNew ? 'new hidden' : ''} ${clickable ? '' : 'static'} ${TAPE[cls] || ''} ${d.fav ? 'faved' : ''}"
+       ${d.isNew ? 'id="newCard"' : ''} tabindex="0" data-id="${d.id ?? ''}"
+       ${clickable ? `onclick="lastOpened=this; openModal('${listName}',${i})"` : ''}>
+    ${listName === 'DATA' ? `<button class="fav-btn" aria-label="お気に入り" onclick="event.stopPropagation(); toggleFav(${i}, this)">★</button>` : ''}
+    <div class="card-head">
+      <div class="avatar ${d.av}">${d.ini}</div>
+      <div><div class="who">${d.who}</div><div class="meta">${d.ch}</div></div>
+      <div class="src ${d.srcCls}">${d.src}</div>
+    </div>
+    <div class="msg">${d.msg}</div>
+    <div class="card-foot">
+      ${d.isNew ? '<span class="badge-new">NEW</span>' : ''}
+      <span class="tag ${cls}">${d.tag}</span>
+      <span class="time">${d.time}</span>
+    </div>
+    ${d.myMemo ? '<div class="memo-flag" title="じぶんのメモあり"></div>' : ''}
+  </div>`;
+}
+function renderAlbum(el, list, listName, clickable = true) {
+  let html = '', lastMonth = null;
+  list.forEach(d => {
+    const i = listName === 'DATA' ? DATA.indexOf(d) : (listName === 'SENT' ? SENT.indexOf(d) : 0);
+    if (d.month !== lastMonth) { html += `<div class="month-divider">${d.month}</div>`; lastMonth = d.month; }
+    html += cardHTML(d, i, listName, clickable);
+  });
+  el.innerHTML = html || '<div class="empty-note">条件に合うカードがありません。</div>';
+}
+
+/* フィルタ */
+const filter = { tag: "", fav: false };
+function applyFilters() {
+  filter.tag = $('tagFilter').value;
+  filter.fav = $('favFilter').checked;
+  const list = DATA.filter(d => (!filter.tag || d.tag === filter.tag) && (!filter.fav || d.fav));
+  renderAlbum($('grid'), list, 'DATA');
+  $('activeFilter').innerHTML = filter.tag ? `<span class="filter-chip">${filter.tag} <button onclick="clearTagFilter()">✕</button></span>` : '';
+  if (filter.tag || filter.fav) { const n = $('newCard'); if (n) n.classList.remove('hidden'); }
+}
+function clearTagFilter() { $('tagFilter').value = ''; applyFilters(); }
+function initTagFilter() {
+  const tags = [...new Set(DATA.map(d => d.tag))];
+  $('tagFilter').innerHTML = '<option value="">場面：すべて</option>' + tags.map(t => `<option value="${t}">${t}</option>`).join('');
+}
+function gotoAlbumWithTag(tag) {
+  showView('album');
+  $('tagFilter').value = tag;
+  applyFilters();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function toggleFav(i, btn) {
+  DATA[i].fav = !DATA[i].fav;
+  btn.closest('.card').classList.toggle('faved', DATA[i].fav);
+  toast(DATA[i].fav ? 'お気に入りに登録しました' : 'お気に入りを外しました');
+  if (filter.fav) applyFilters();
+}
+
+/* ================= modal ================= */
+function openModal(listName, i) {
+  const d = (listName === 'DATA' ? DATA : SENT)[i];
+  const bubbles = d.story ? d.story.map(s => `
+    <div class="bubble-row ${s.mine ? 'mine' : ''} ${s.thanks ? 'thanks' : ''}">
+      <div class="avatar ${s.av}">${s.ini}</div>
+      <div class="bubble">
+        <div class="bubble-name">${s.who}<span>${s.time}</span></div>
+        <div class="bubble-text">${s.text}${s.file ? `<div class="file-chip"><div class="file-icon">X</div>${s.file}</div>` : ''}</div>
+        ${s.thanks ? '<div class="thanks-flag">この言葉をアルバムに綴じました</div>' : ''}
+      </div>
+    </div>`).join('') : `<div class="bubble-text" style="background:var(--bg);">${d.msg}</div>`;
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.innerHTML = `
+    <div class="modal">
+      <div class="modal-head">
+        <div class="logo-mark" style="width:26px;height:26px;font-size:13px;">O</div>
+        <div><div class="modal-title">この「ありがとう」の経緯</div><div class="modal-sub">${d.src} ${d.ch} ・ ${d.time}</div></div>
+        <button class="close" aria-label="閉じる" onclick="this.closest('.overlay').remove()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="thread-label">やり取りの流れ</div>
+        ${bubbles}
+        ${d.summary ? `<div class="oblier-note"><b>オブリエのメモ</b>${d.summary}</div>` : ''}
+        ${listName === 'DATA' ? `
+        <div class="my-memo">
+          <div class="mm-head">じぶんのメモ
+            <span class="privacy" tabindex="0">🔒<span class="pop">このメモはあなただけに表示されます。上司には見えません</span></span>
+          </div>
+          <textarea id="memoText" placeholder="うれしかったこと、思ったことを自由に">${d.myMemo || ''}</textarea>
+          <button class="mm-save" onclick="saveMemo(${i}, this)">メモを保存</button>
+        </div>` : ''}
+      </div>
+      ${listName === 'DATA' ? `<div class="modal-foot"><button class="danger-link" onclick="confirmDelete(${i}, this)">アルバムから削除</button></div>` : ''}
+    </div>`;
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+function saveMemo(i, btn) {
+  DATA[i].myMemo = btn.closest('.my-memo').querySelector('textarea').value.trim();
+  toast('メモを保存しました（あなただけに表示されます）');
+  applyFilters();
+}
+function confirmDelete(i, btn) {
+  const parent = btn.closest('.overlay');
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.innerHTML = `
+    <div class="modal" style="width:min(420px, calc(100vw - 40px));">
+      <div class="confirm-box">
+        <h3>このカードをアルバムから削除しますか？</h3>
+        <p>削除すると、あとから元に戻すことはできません。<br>本当によろしいですか？</p>
+        <div style="display:flex; gap:10px; justify-content:center;">
+          <button class="ghost-btn" onclick="this.closest('.overlay').remove()">やめる</button>
+          <button class="danger-btn" onclick="doDelete(${i}, this)">削除する</button>
+        </div>
+      </div>
+    </div>`;
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+  parent.remove();
+}
+function doDelete(i, btn) {
+  btn.closest('.overlay').remove();
+  const idx = DATA.findIndex(d => d.id === DATA[i].id);
+  if (idx >= 0) DATA.splice(idx, 1);
+  applyFilters();
+  initTagFilter();
+  toast('アルバムから削除しました');
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('.overlay').forEach(o => o.remove()); });
+
+/* ================= toast / demo ================= */
+let toastTimer;
+function toast(msg) {
+  const t = $('toastEl');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+}
+function playDemo() {
+  const newCard = $('newCard');
+  if (!newCard) return;
+  newCard.classList.add('hidden'); newCard.classList.remove('new');
+  $('count').textContent = '264'; $('count').classList.remove('pop');
+  void newCard.offsetWidth;
+  setTimeout(() => {
+    newCard.classList.remove('hidden'); newCard.classList.add('new');
+    setTimeout(() => { $('count').textContent = '265'; $('count').classList.add('pop'); setTimeout(() => $('count').classList.remove('pop'), 400); }, 350);
+  }, 900);
+}
+window.addEventListener('load', playDemo);
+
+/* ================= 株チャート風 推移ウィジェット ================= */
+const PERIODS = [["1w","1週間"],["1m","1か月"],["1y","1年"],["3y","3年"],["5y","5年"]];
+function chartWidget(mount, shape, defaultPeriod = "1y") {
+  const el = typeof mount === 'string' ? $(mount) : mount;
+  let period = defaultPeriod;
+  el.innerHTML = `
+    <div class="chart-tabs">${PERIODS.map(([k, l]) => `<div class="chart-tab ${k === period ? 'active' : ''}" data-p="${k}">${l}</div>`).join('')}</div>
+    <div class="chart-legend"><span class="lg-recv">もらった</span><span class="lg-sent">おくった</span></div>
+    <div class="chart-scroll"><div class="chart-inner">
+      <div class="cross-line"></div><div class="chart-tip"></div>
+      <div class="chart-svg"></div>
+    </div></div>`;
+  const tabs = el.querySelectorAll('.chart-tab');
+  tabs.forEach(t => t.onclick = () => { period = t.dataset.p; tabs.forEach(x => x.classList.toggle('active', x === t)); draw(); });
+
+  function dataFor() {
+    if (period === "1w") return { d: slice(shape.daily30, 7), unit: "日" };
+    if (period === "1m") return { d: shape.daily30, unit: "日" };
+    if (period === "1y") return { d: slice(shape.monthly, 12), unit: "月" };
+    if (period === "3y") return { d: slice(shape.monthly, 36), unit: "月" };
+    return { d: shape.monthly, unit: "月" };
+  }
+  let geo = null;
+  function draw() {
+    const { d } = dataFor();
+    const n = d.labels.length;
+    const px = n <= 12 ? 0 : (n <= 36 ? 30 : 26);
+    const contW = el.querySelector('.chart-scroll').clientWidth || 500;
+    const w = px === 0 ? contW : Math.max(contW, n * px);
+    const h = 210, padL = 8, padR = 8, padT = 8, padB = 24;
+    const max = Math.max(...d.recv, ...d.sent) * 1.15 || 1;
+    const x = i => padL + i * (w - padL - padR) / (n - 1);
+    const y = v => h - padB - v / max * (h - padT - padB);
+    const pts = arr => arr.map((v, i) => `${x(i)},${y(v)}`).join(' ');
+    const step = Math.ceil(n / 12);
+    const labels = d.labels.map((l, i) => i % step === 0 ? `<text class="axis-label" x="${x(i)}" y="${h - 6}" text-anchor="middle">${l}</text>` : '').join('');
+    const gridY = [0.25, 0.5, 0.75, 1].map(f => `<line class="line-grid" x1="${padL}" y1="${y(max * f / 1.15)}" x2="${w - padR}" y2="${y(max * f / 1.15)}"/>`).join('');
+    el.querySelector('.chart-svg').innerHTML =
+      `<svg width="${w}" height="${h}">${gridY}
+        <polyline class="line-recv" points="${pts(d.recv)}"/>
+        <polyline class="line-sent" points="${pts(d.sent)}"/>
+        ${labels}</svg>`;
+    geo = { d, n, w, x };
+    const inner = el.querySelector('.chart-inner');
+    inner.style.width = w + 'px';
+    el.querySelector('.chart-scroll').scrollLeft = w; // 最新側へ
+  }
+  const inner = el.querySelector('.chart-inner');
+  const cross = el.querySelector('.cross-line');
+  const tip = el.querySelector('.chart-tip');
+  inner.addEventListener('mousemove', e => {
+    if (!geo) return;
+    const rect = inner.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    let best = 0, bd = 1e9;
+    for (let i = 0; i < geo.n; i++) { const dd = Math.abs(geo.x(i) - mx); if (dd < bd) { bd = dd; best = i; } }
+    const cx = geo.x(best);
+    cross.style.display = 'block'; cross.style.left = cx + 'px';
+    tip.style.display = 'block';
+    tip.innerHTML = `${geo.d.labels[best]}<br><span class="tip-recv">もらった <b>${geo.d.recv[best]}</b></span>　<span class="tip-sent">おくった <b>${geo.d.sent[best]}</b></span>`;
+    const tw = tip.offsetWidth;
+    tip.style.left = Math.min(Math.max(cx - tw / 2, 4), geo.w - tw - 4) + 'px';
+    tip.style.top = '14px';
+  });
+  inner.addEventListener('mouseleave', () => { cross.style.display = 'none'; tip.style.display = 'none'; });
+  draw();
+  window.addEventListener('resize', draw);
+}
+
+/* ================= カタチ画面（本人・メンバー共通） ================= */
+function tagBars(tags) {
+  const max = Math.max(...tags.map(t => t[1]));
+  return tags.map(([n, c]) => `
+    <div class="bar-row"><div class="bar-label">${n}</div>
+    <div class="bar-track"><div class="bar-fill" style="width:${Math.round(c / max * 100)}%"></div></div>
+    <div class="bar-count">${c}</div></div>`).join('');
+}
+function renderShapeInto(el, S, allowJump) {
+  const uid = 'chart_' + Math.random().toString(36).slice(2, 8);
+  const topsHtml = (list) => list.map((t, i) => `
+    <div class="top-card" ${allowJump ? `onclick="gotoAlbumWithTag('${t.tag}')"` : ''}>
+      <div class="rank">${i + 1}</div>
+      <div class="top-title">${t.title}</div>
+      <div class="top-quote">${t.quote}</div>
+      <div class="top-count">${t.count}回のありがとう</div>
+    </div>`).join('');
+  el.innerHTML = `
+    <div class="insight-grid">
+      <div class="panel">
+        <h2>感謝された場面</h2>
+        <div class="panel-sub">タグは現在 ${S.tags.length}つ（自動で増えていきます）</div>
+        ${tagBars(S.tags)}
+        <div class="oblier-note" style="margin-top:14px;"><b>オブリエのメモ</b>${S.memo}</div>
+        <button class="ghost-btn" style="margin-top:14px;" onclick="toast('実績シート（STAR形式）を書き出しました（デモ）')">実績としてエクスポート（STAR形式）</button>
+      </div>
+      <div class="panel">
+        <h2>ありがとうの推移</h2>
+        <div class="panel-sub">チャートにマウスをのせると、その時点の数が見られます</div>
+        <div id="${uid}"></div>
+      </div>
+    </div>
+    <div class="panel" style="margin-bottom:16px;">
+      <h2>よく感謝される場面</h2>
+      <div class="panel-sub">${allowJump ? '押すと、その場面のありがとうをアルバムで見られます' : ''}</div>
+      <div class="top-grid" id="${uid}_tops">${topsHtml(S.tops.slice(0, 3))}</div>
+      ${S.tops.length > 3 ? `<div style="text-align:center; margin-top:14px;"><button class="ghost-btn" onclick="expandTops('${uid}', this)">もっと見る（TOP${Math.min(S.tops.length, 10)}まで）</button></div>` : ''}
+    </div>
+    <div class="panel">
+      <h2>ありがとうの広がり</h2>
+      <div class="panel-sub">どこから届いているか</div>
+      <div class="map-groups">${S.groups.map(g => `
+        <div class="map-group"><h3>${g.dept}</h3><div class="map-people">
+          ${g.people.map(([av, ini, name, c]) => `<span class="chip"><span class="avatar ${av}">${ini}</span>${name}<small>（${c}）</small></span>`).join('')}
+        </div></div>`).join('')}
+      </div>
+    </div>`;
+  el.dataset.uid = uid;
+  window['_tops_' + uid] = { S, allowJump, topsHtml };
+  chartWidget(uid, S);
+}
+function expandTops(uid, btn) {
+  const ctx = window['_tops_' + uid];
+  $(uid + '_tops').innerHTML = ctx.topsHtml(ctx.S.tops.slice(0, 10));
+  btn.remove();
+}
+
+/* ================= 本人タブ ================= */
+const personViews = { album: 'viewAlbum', shape: 'viewShape', sent: 'viewSent' };
+function showView(name) {
+  Object.values(personViews).forEach(v => $(v).classList.add('hidden'));
+  $(personViews[name]).classList.remove('hidden');
+  document.querySelectorAll('#personTabs .tab').forEach(t => t.classList.toggle('active', t.dataset.v === name));
+}
+
+/* ================= ロール切替 ================= */
+function setRole(role) {
+  const boss = role === 'boss';
+  $('roleP').classList.toggle('active', !boss);
+  $('roleB').classList.toggle('active', boss);
+  $('personTabs').classList.toggle('hidden', boss);
+  $('meBox').innerHTML = boss ? '<span>上司さん（マネージャー）</span><div class="avatar av-boss">上</div>' : '<span>YUKIYAMAさん</span><div class="avatar av-me">Y</div>';
+  $('demoBtn').classList.toggle('hidden', boss);
+  Object.values(personViews).forEach(v => $(v).classList.add('hidden'));
+  $('viewTeam').classList.add('hidden'); $('viewMember').classList.add('hidden');
+  if (boss) { renderMembers(); $('viewTeam').classList.remove('hidden'); }
+  else showView('album');
+}
+function showBossView(name) {
+  $('viewTeam').classList.toggle('hidden', name !== 'team');
+  $('viewMember').classList.toggle('hidden', name !== 'member');
+}
+
+/* ================= 上司：一覧テーブル ================= */
+let sortKey = null, sortDir = -1;
+function setSort(key) {
+  if (sortKey === key) sortDir *= -1; else { sortKey = key; sortDir = -1; }
+  renderMembers();
+}
+function periodSum(shape, months) {
+  const r = shape.monthly.recv.slice(-months).reduce((a, b) => a + b, 0);
+  const s = shape.monthly.sent.slice(-months).reduce((a, b) => a + b, 0);
+  return { r, s };
+}
+function sparkline(shape, w = 130, h = 34) {
+  const hist = slice(shape.monthly, 6);
+  const max = Math.max(...hist.recv, ...hist.sent) || 1;
+  const n = hist.recv.length;
+  const x = i => 3 + i * (w - 6) / (n - 1);
+  const y = v => h - 4 - v / max * (h - 10);
+  const pts = arr => arr.map((v, i) => `${x(i)},${y(v)}`).join(' ');
+  return `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">
+    <polyline class="line-recv" style="stroke-width:2" points="${pts(hist.recv)}"/>
+    <polyline class="line-sent" style="stroke-width:2" points="${pts(hist.sent)}"/></svg>`;
+}
+function renderMembers() {
+  const months = parseInt($('teamPeriod').value, 10);
+  const q = $('teamSearch').value.trim();
+  const alertOnly = $('alertOnly').checked;
+  let rows = MEMBERS.map((m, i) => ({ m, i, ...periodSum(m.shape, months) }))
+    .filter(x => (!q || x.m.name.includes(q)) && (!alertOnly || x.m.alert));
+  if (sortKey === 'recv') rows.sort((a, b) => (a.r - b.r) * sortDir);
+  if (sortKey === 'sent') rows.sort((a, b) => (a.s - b.s) * sortDir);
+  $('sortRecv').textContent = sortKey === 'recv' ? (sortDir < 0 ? '▼' : '▲') : '';
+  $('sortSent').textContent = sortKey === 'sent' ? (sortDir < 0 ? '▼' : '▲') : '';
+  $('memberRows').innerHTML = rows.map(x => `
+    <tr tabindex="0" onclick="openMember(${x.i})">
+      <td><div class="mt-name"><div class="avatar ${x.m.av}">${x.m.ini}</div><div>${x.m.name}${x.m.alert ? ' <span class="alert-chip">要確認</span>' : ''}<small>${x.m.role}</small></div></div></td>
+      <td><span class="mt-num">${x.r}<small>通</small></span></td>
+      <td><span class="mt-num" style="color:var(--sent-color)">${x.s}<small>通</small></span></td>
+      <td>${sparkline(x.m.shape)}</td>
+    </tr>`).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--ink-soft);">該当するメンバーがいません</td></tr>';
+}
+
+/* ================= 上司：メンバー詳細 ================= */
+let currentMember = null;
+function openMember(i) {
+  const m = MEMBERS[i];
+  currentMember = m;
+  const p = periodSum(m.shape, 1);
+  $('detailHead').innerHTML = `
+    <div class="avatar ${m.av}">${m.ini}</div>
+    <div><div class="detail-name">${m.name}</div>
+    <div class="detail-sub">${m.role} ・ 今月：もらった ${p.r}通 ／ おくった ${p.s}通</div></div>`;
+  const months = Object.keys(m.reports);
+  $('reportList').innerHTML = months.map((mo, j) => `
+    <div class="report-item" onclick="openReport('${m.key}','${mo}')">${mo} のレポート<small>${j === 0 ? '最新' : ''}</small></div>`).join('')
+    + (months.length === 1 ? '<div style="font-size:11px;color:var(--ink-soft);margin-top:6px;">それ以前のレポートは蓄積中です</div>' : '');
+  $('detailAlert').innerHTML = m.alert ? '<span class="alert-chip" style="margin-top:26px;">⚠ 最新レポートにアラートがあります</span>' : '';
+  showMemberSub('album');
+  showBossView('member');
+}
+function showMemberSub(name) {
+  document.querySelectorAll('.sub-tab').forEach(t => t.classList.toggle('active', t.dataset.s === name));
+  const m = currentMember;
+  const el = $('memberSub');
+  if (name === 'album') {
+    el.innerHTML = '<div class="grid"></div>';
+    if (m.key === 'yuki') renderAlbum(el.firstChild, DATA.filter(d => !d.isNew), 'DATA', true);
+    else renderAlbum(el.firstChild, MEMBER_CARDS[m.key] || [], '', false);
+  } else if (name === 'shape') {
+    el.innerHTML = '<div></div>';
+    renderShapeInto(el.firstChild, m.shape, false);
+  } else {
+    const sent = m.key === 'yuki' ? SENT : [];
+    el.innerHTML = '<div class="grid"></div>';
+    if (sent.length) renderAlbum(el.firstChild, sent, 'SENT', true);
+    else el.innerHTML = '<div class="hero-note">まだ綴じられていません。</div>';
+  }
+}
+
+/* ================= 上司：1on1準備レポート ================= */
+function openReport(key, month) {
+  const m = MEMBERS.find(x => x.key === key);
+  const r = m.reports[month];
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.innerHTML = `
+    <div class="modal" style="width:min(740px, calc(100vw - 32px));">
+      <div class="modal-head">
+        <div class="avatar ${m.av}">${m.ini}</div>
+        <div><div class="modal-title">1on1の準備メモ ― ${m.name}</div><div class="modal-sub">${month} ・ 5分で読めるようにまとめています</div></div>
+        <button class="close" aria-label="閉じる" onclick="this.closest('.overlay').remove()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="r-sec"><h3>① 今月のようす</h3>
+          <div class="digest-row">
+            <div class="digest-item"><b>${r.digest.recv}通</b>もらった</div>
+            <div class="digest-item"><b>${r.digest.sent}通</b>おくった</div>
+            ${r.digest.newSenders.length ? `<div class="digest-item"><b>${r.digest.newSenders.join('・')}</b>新しい送り主</div>` : ''}
+            ${r.digest.upTag ? `<div class="digest-item"><b>${r.digest.upTag}</b>増えている場面</div>` : ''}
+          </div>
+          <div class="digest-note">${r.digest.trendNote}</div>
+        </div>
+        <div class="r-sec"><h3>② そのまま伝えられる称賛</h3>
+          ${r.praises.map(p => `
+            <div class="praise">
+              <div class="praise-quote">「${p.quote}」</div>
+              <div class="praise-from">${p.from} ― ${p.fact}</div>
+              <div class="praise-say"><b>伝え方の例</b>${p.say}</div>
+            </div>`).join('')}
+        </div>
+        <div class="r-sec"><h3>③ 気にかけたいサイン</h3>
+          ${r.sign ? `<div class="alert-box"><b>⚠ アラート</b>${r.sign}</div>` : `<div class="ok-box">${r.signNote || '特記すべきサインはありません。'}</div>`}
+        </div>
+        <div class="r-sec"><h3>④ 聞いてみたい問い</h3>
+          ${r.questions.map(q => `<div class="q-item">${q}</div>`).join('')}
+        </div>
+        <div class="r-sec"><h3>⑤ 前回からの持ち越し</h3>
+          <div class="carry-box">${r.carry}</div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="ghost-btn" onclick="toast('1on1メモを保存しました（デモ）')">1on1メモを書く</button>
+        <button class="ghost-btn" onclick="toast('レポートをPDFで書き出しました（デモ）')">PDFで書き出す</button>
+      </div>
+    </div>`;
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+
+/* ================= init ================= */
+initTagFilter();
+applyFilters();
+renderAlbum($('sentGrid'), SENT, 'SENT');
+renderShapeInto($('myShape'), MY_SHAPE, true);
+</script>
+
+</body>
+</html>
