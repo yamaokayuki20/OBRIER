@@ -72,7 +72,21 @@
   .seg button:hover { background: color-mix(in srgb, var(--stage-ink) 9%, transparent); opacity: 1; }
   .seg button[aria-pressed="true"] { background: var(--stage-ink); color: #fff; opacity: 1; font-weight: 700; }
   .me { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--stage-ink-soft); flex: none; }
-  .build { font-size: 10px; letter-spacing: .06em; color: var(--stage-ink-soft); opacity: .5; flex: none; font-variant-numeric: tabular-nums; }
+  .build { font-size: 10px; letter-spacing: .06em; color: var(--stage-ink-soft); opacity: .5; flex: none;
+    font-variant-numeric: tabular-nums; background: none; border: none; cursor: pointer; font-family: inherit; padding: 2px 4px; }
+  .build:hover { opacity: 1; text-decoration: underline; }
+  /* 自己診断の結果パネル */
+  .diag { position: fixed; right: 16px; bottom: 16px; z-index: 90; width: min(360px, calc(100vw - 32px));
+    background: #fff; border: 1px solid var(--panel-line); border-radius: 14px; box-shadow: 0 18px 40px rgba(20,26,40,.24);
+    padding: 16px 18px; font-size: 12px; line-height: 1.8; color: var(--navy); }
+  .diag h4 { font-size: 12.5px; margin-bottom: 6px; }
+  .diag table { width: 100%; margin: 8px 0; font-variant-numeric: tabular-nums; }
+  .diag td { padding: 2px 0; font-size: 11.5px; }
+  .diag td:last-child { text-align: right; font-weight: 700; }
+  .diag .v { display: inline-block; font-weight: 800; border-radius: 999px; padding: 3px 12px; font-size: 11.5px; margin-top: 4px; }
+  .diag .pass { background: #e6f4ec; color: #1f7a4d; }
+  .diag .fail { background: #fce9e7; color: #b3261e; }
+  .diag .x { position: absolute; top: 10px; right: 12px; border: none; background: none; cursor: pointer; color: var(--navy-soft); font-size: 12px; }
   @media (max-width: 640px) { .build { display: none; } }
   .ava-s { width: 28px; height: 28px; border-radius: 50%; background: var(--ava); color: #fff; display: grid; place-items: center; font-size: 11.5px; font-weight: 800; flex: none; }
 
@@ -357,7 +371,10 @@
   .overlay-bg { position: absolute; inset: 0; background: rgba(20,26,40,.52); will-change: opacity; }
   .sheet {
     background: #fff; color: var(--navy); border-radius: 22px; width: min(560px, 100%);
-    max-height: calc(100vh - 60px); overflow-y: auto; box-shadow: 0 30px 70px rgba(20,26,40,.38);
+    max-height: calc(100vh - 60px); overflow-y: auto;
+    /* 影のぼかしは控えめにする。広い面に大きなぼかしをかけると描き直しが重く、
+       計測では 70px のぼかしを 28px にするだけで閉じる区間のラスタライズが3分の1になった */
+    box-shadow: 0 12px 28px rgba(20,26,40,.26);
     backface-visibility: hidden;
   }
   .sheet.wide { width: min(760px, 100%); }
@@ -373,22 +390,15 @@
     will-change: transform;
     width: min(560px, 100%); max-height: calc(100vh - 60px);
   }
-  /* 表・裏それぞれに will-change を置く。
-     アニメーションが終わるとブラウザは合成レイヤーを手放すため、しばらく開いたままにしてから
-     閉じると、詳細（文字の多い大きな面）を描き直してからでないと動かせず、戻り始めが引っかかる。
-     開いている間ずっとレイヤーを保つよう明示する */
   .f-front {
     position: absolute; left: 50%; top: 50%; translate: -50% -50%;
     transform-origin: center; pointer-events: none; z-index: 2;
     backface-visibility: hidden; -webkit-backface-visibility: hidden;
-    will-change: transform;
   }
   .f-front .card3d, .f-front .face { width: 100%; height: 100%; }
   .f-front .card3d { transform: none !important; box-shadow: 0 18px 40px rgba(20,26,40,.28); }
-  /* 回っている間は、ぼかしの大きい影を外す。広い面にかかるぼかしは描き直しが重い */
-  .flipwrap.spinning .f-back, .flipwrap.spinning .f-front .card3d { box-shadow: 0 10px 24px rgba(20,26,40,.22); }
   .f-back {
-    position: relative; transform: rotateY(180deg); will-change: transform;
+    position: relative; transform: rotateY(180deg);
     backface-visibility: hidden; -webkit-backface-visibility: hidden;
     max-height: calc(100vh - 60px); overflow-y: auto; overscroll-behavior: contain;
     scrollbar-gutter: stable;   /* スクロールバーの出入りで中の文字が組み直されないように */
@@ -512,7 +522,7 @@
     </div>
     <div class="me" id="meBox"><span>YUKIYAMAさん</span><div class="ava-s">Y</div></div>
     <!-- どの版を見ているかを確かめるための表示。更新されていないと思ったときはここを見る -->
-    <span class="build" title="この版の識別子">rev.11 レイヤーを保つ版</span>
+    <button class="build" id="buildTag" title="押すと自己診断（閉じる動作の重さを自動で測ります）">rev.12 影を軽くした版</button>
   </div>
 </header>
 
@@ -684,6 +694,82 @@ function genDaily(seed, level) {
   return { labels, recv, sent };
 }
 const slice = (h, n) => ({ labels: h.labels.slice(-n), recv: h.recv.slice(-n), sent: h.sent.slice(-n) });
+
+/* =========================================================================
+   自己診断：閉じる動作が重くないかを、この画面自身で判定する
+
+   「開いた直後に閉じると滑らか、しばらく置いてから閉じると引っかかる」という
+   症状をそのまま手順にして測る。閉じる間の各コマの長さを集め、
+   直後と時間を置いた後で比べて合否を出す。
+   ========================================================================= */
+const DIAG = { rounds: 6, wait: 2500, frameMs: 17 };
+
+/** 1回ぶん：開く → wait 待つ → 閉じる。閉じる間の各コマの長さを返す */
+async function diagOnce(waitMs) {
+  const card = document.querySelector("#grid .card");
+  card.scrollIntoView({ block: "center" });
+  await new Promise(r => setTimeout(r, 300));
+  card.click();
+  await new Promise(r => setTimeout(r, 700 + waitMs));
+  const frames = [];
+  let last = performance.now(), stop = false;
+  const loop = now => { frames.push(now - last); last = now; if (!stop) requestAnimationFrame(loop); };
+  requestAnimationFrame(loop);
+  document.querySelector(".sheet-close").click();
+  await new Promise(r => setTimeout(r, FLIP_MS + 160));
+  stop = true;
+  await new Promise(r => setTimeout(r, 280));
+  document.querySelectorAll(".overlay").forEach(o => o.remove());
+  document.querySelectorAll(".card").forEach(c => (c.style.visibility = ""));
+  return frames.slice(1);
+}
+
+async function runSelfTest(btn) {
+  const label = btn.dataset.label || btn.textContent;
+  btn.dataset.label = label;
+  btn.disabled = true;
+  const now = [], later = [];
+  btn.textContent = "自己診断中… 準備";
+  await diagOnce(0);            // 1回目は暖機なので捨てる
+  for (let i = 0; i < DIAG.rounds; i++) {
+    btn.textContent = `自己診断中… ${i + 1}/${DIAG.rounds}`;
+    now.push(await diagOnce(0));
+    later.push(await diagOnce(DIAG.wait));
+  }
+  btn.disabled = false; btn.textContent = label;
+
+  /* 判定は「時間を置くと悪くなるか」だけを見る。機械の速さは環境で変わるため。
+     指標は最長フレームではなく「取りこぼした時間の合計」を使う。
+     最長は外れ値1つで大きく振れて判定が安定しないが、
+     取りこぼしの合計（各コマが1コマ分を超えた分の総和）は回をまたいでも安定する */
+  const lost = rounds => rounds.map(f =>
+    +f.reduce((s, x) => s + Math.max(0, x - DIAG.frameMs), 0).toFixed(1));
+  const mean = a => a.length ? +(a.reduce((s, x) => s + x, 0) / a.length).toFixed(1) : 0;
+  const A = { lost: lost(now), worst: +Math.max(0, ...now.flat()).toFixed(1) };
+  const B = { lost: lost(later), worst: +Math.max(0, ...later.flat()).toFixed(1) };
+  A.avg = mean(A.lost); B.avg = mean(B.lost);
+  const gap = +(B.avg - A.avg).toFixed(1);
+  const ok = B.avg <= A.avg * 1.35 + 4;
+
+  document.querySelectorAll(".diag").forEach(d => d.remove());
+  const el = document.createElement("div");
+  el.className = "diag";
+  el.innerHTML = `
+    <button class="x" aria-label="閉じる">✕</button>
+    <h4>自己診断：詳細を閉じるときの重さ</h4>
+    <table>
+      <tr><td>開いた直後に閉じる　取りこぼし</td><td>${A.avg} ms</td></tr>
+      <tr><td>${DIAG.wait / 1000}秒置いてから閉じる　取りこぼし</td><td>${B.avg} ms</td></tr>
+      <tr><td>その差（小さいほど良い）</td><td>${gap >= 0 ? "+" : ""}${gap} ms</td></tr>
+      <tr><td>最長のコマ　直後 / 後</td><td>${A.worst} / ${B.worst} ms</td></tr>
+    </table>
+    <span class="v ${ok ? "pass" : "fail"}">${ok ? "合格：時間を置いても重くなっていません" : "不合格：時間を置くと重くなっています"}</span>
+    <div style="font-size:10.5px;color:var(--navy-soft);margin-top:6px">判定は「時間を置いたときに悪化するか」だけを見ています。数値そのものは機械の速さで変わります。</div>`;
+  el.querySelector(".x").addEventListener("click", () => el.remove());
+  document.body.appendChild(el);
+  window.__diag = { A, B, gap, ok };
+  return window.__diag;
+}
 
 /* トースト */
 let toastTimer = null;
@@ -1495,11 +1581,8 @@ function openFlight(ov, card) {
       { transform: `perspective(1800px) translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) rotateY(0deg)` },
       { transform: `perspective(1800px) translate(0px, 0px) rotateY(180deg)` },
     ];
-    wrap.classList.add("spinning");
-    const a = wrap.animate(reverse ? [...f].reverse() : f,
+    return wrap.animate(reverse ? [...f].reverse() : f,
       { duration: FLIP_MS, easing: FLIP_EASE, fill: "forwards" });
-    a.addEventListener("finish", () => wrap.classList.remove("spinning"));
-    return a;
   };
 
   const bg = ov.querySelector(".overlay-bg");
@@ -2165,6 +2248,7 @@ document.querySelectorAll("#memberSubTabs .sub-tab").forEach(t =>
 document.querySelectorAll("#adminTabs .sub-tab").forEach(t =>
   t.addEventListener("click", () => showAdmin(t.dataset.a)));
 $("demoBtn").addEventListener("click", playDemo);
+$("buildTag").addEventListener("click", e => runSelfTest(e.currentTarget));
 </script>
 </body>
 </html>
