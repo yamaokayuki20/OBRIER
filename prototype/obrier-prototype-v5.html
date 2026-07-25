@@ -1,0 +1,2109 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>オブリエ | 届いたありがとうを、あなたのアルバムに</title>
+<style>
+  :root {
+    /* 紙・インク（カード面で使う） */
+    --paper: #fffdfa; --ink: #3d3229; --ink-soft: #6f6355;
+    --accent: #c98a3d; --accent-deep: #8a5a1c; --accent-soft: #f3e3cb;
+
+    /* 場面タグ7色（card-simple-v1 で確定）。
+       ベタ塗りのカードに乗せる文字色（インク）を色ごとに対で持つ。
+       淡い黄・ピンクだけ濃色インク、それ以外は白インク */
+    --c-speed: #F08A24; --c-doc: #3D85C8; --c-coord: #55B7BF; --c-care: #F2A0BC;
+    --c-jr: #33915F; --c-idea: #F5C63C; --c-share: #E8502F;
+    --i-speed: #ffffff; --i-doc: #ffffff; --i-coord: #ffffff; --i-care: #7c2b45;
+    --i-jr: #ffffff; --i-idea: #6b4a05; --i-share: #ffffff;
+
+    /* アバター＝全員この1色。拡大詳細の文字色もこの濃紺に揃える */
+    --ava: #3A4A66;
+    --navy: #3A4A66; --navy-soft: #6d7a94; --navy-line: #dfe4ed; --navy-bg: #f2f4f8;
+
+    /* かすれたインク用のマスク。ノイズの明るいところだけインクが乗る */
+    --ink-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='44'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' seed='11'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 1.9 0 0 0 -0.28'/%3E%3C/filter%3E%3Crect width='150' height='44' filter='url(%23s)'/%3E%3C/svg%3E");
+
+    /* ステージ（白地×薄い青の方眼） */
+    --bg: #ffffff;
+    --grid-line: rgba(90,143,216,.13);
+    --stage-ink: #2c3345;
+    --stage-ink-soft: rgba(44,51,69,.62);
+
+    /* パネル */
+    --panel-line: #e4e8f0; --panel-bg: #ffffff; --panel-soft: #f6f8fb;
+
+    /* チャート2系列 */
+    --line-recv: #3A4A66; --line-sent: #55B7BF;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    background-color: var(--bg);
+    background-image:
+      repeating-linear-gradient(0deg,  var(--grid-line) 0, var(--grid-line) 1px, transparent 1px, transparent 24px),
+      repeating-linear-gradient(90deg, var(--grid-line) 0, var(--grid-line) 1px, transparent 1px, transparent 24px);
+    color: var(--stage-ink);
+    font-family: "Hiragino Maru Gothic ProN", "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  header, main { position: relative; z-index: 1; }
+  .hidden { display: none !important; }
+
+  /* ---------------- ヘッダー ---------------- */
+  header {
+    position: sticky; top: 0; z-index: 30;
+    backdrop-filter: blur(10px);
+    background: rgba(255,255,255,.82);
+    border-bottom: 1px solid color-mix(in srgb, var(--stage-ink) 12%, transparent);
+  }
+  .bar { max-width: 1140px; margin: 0 auto; padding: 11px 20px; display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; letter-spacing: .12em; font-size: 15px; flex: none; }
+  .brand-mark { width: 28px; height: 28px; border-radius: 9px; background: linear-gradient(145deg, #d89a48, #b9752c); display: grid; place-items: center; color: #fff; font-size: 14px; font-weight: 800; }
+  .brand small { display: block; font-size: 9px; letter-spacing: .2em; opacity: .55; font-weight: 600; }
+  .tabs { display: flex; gap: 4px; margin-left: 8px; overflow-x: auto; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { padding: 7px 14px; border-radius: 999px; font-size: 12.5px; color: var(--stage-ink-soft); cursor: pointer; white-space: nowrap; transition: background .15s, color .15s; }
+  .tab:hover { background: color-mix(in srgb, var(--stage-ink) 7%, transparent); }
+  .tab.active { background: var(--stage-ink); color: #fff; font-weight: 700; }
+  .spacer { flex: 1; }
+  .seg { display: flex; border: 1px solid color-mix(in srgb, var(--stage-ink) 24%, transparent); border-radius: 999px; overflow: hidden; flex: none; }
+  .seg button { font-family: inherit; font-size: 11.5px; padding: 6px 12px; border: none; cursor: pointer; background: transparent; color: var(--stage-ink); opacity: .68; white-space: nowrap; }
+  .seg button:hover { background: color-mix(in srgb, var(--stage-ink) 9%, transparent); opacity: 1; }
+  .seg button[aria-pressed="true"] { background: var(--stage-ink); color: #fff; opacity: 1; font-weight: 700; }
+  .me { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--stage-ink-soft); flex: none; }
+  .ava-s { width: 28px; height: 28px; border-radius: 50%; background: var(--ava); color: #fff; display: grid; place-items: center; font-size: 11.5px; font-weight: 800; flex: none; }
+
+  /* ---------------- 本体 ---------------- */
+  main { max-width: 1140px; margin: 0 auto; padding: 26px 20px 90px; }
+  .hero h1 { font-size: 14px; font-weight: 700; color: var(--stage-ink-soft); letter-spacing: .06em; }
+  .count-wrap { display: flex; align-items: baseline; gap: 8px; margin-top: 2px; }
+  .count { font-size: 50px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.25; transition: transform .3s, color .3s; }
+  .count.pop { transform: scale(1.08); color: var(--accent); }
+  .count-unit { font-size: 13px; color: var(--stage-ink-soft); }
+  .lead-line { font-size: 22px; font-weight: 800; letter-spacing: .04em; padding: 8px 0 2px; }
+  .hero-note { font-size: 12px; color: var(--stage-ink-soft); line-height: 1.9; margin: 8px 0 18px; max-width: 720px; }
+
+  /* 節目演出（F09）：控えめな帯 */
+  .ms-wrap { display: flex; flex-direction: column; gap: 8px; margin: 0 0 18px; }
+  .ms {
+    display: flex; align-items: center; gap: 11px; font-size: 12px; line-height: 1.7;
+    background: var(--paper); border: 1px solid rgba(61,50,41,.10); border-left: 3px solid var(--accent);
+    border-radius: 8px; padding: 9px 12px 9px 14px; color: var(--ink-soft);
+  }
+  .ms-mark { font-size: 11px; font-weight: 800; letter-spacing: .08em; color: var(--accent-deep); flex: none; }
+  .ms b { color: var(--ink); font-weight: 700; }
+  .ms-x { margin-left: auto; border: none; background: none; cursor: pointer; color: var(--ink-soft); font-size: 12px; opacity: .6; padding: 2px 4px; flex: none; }
+  .ms-x:hover { opacity: 1; }
+
+  /* ---------------- ツールバー ---------------- */
+  .toolbar { display: flex; gap: 9px; align-items: center; flex-wrap: wrap; margin-bottom: 6px; }
+  .select, .btn, .check, .search-input {
+    background: #fff; border: 1px solid var(--panel-line); border-radius: 10px;
+    padding: 7px 12px; font-size: 12.5px; color: var(--stage-ink); font-family: inherit;
+  }
+  .select, .btn, .check { cursor: pointer; }
+  .btn:hover, .select:hover, .check:hover { border-color: var(--navy-soft); background: var(--panel-soft); }
+  .btn-primary { background: var(--navy); color: #fff; border-color: var(--navy); font-weight: 700; }
+  .btn-primary:hover { background: #2f3d57; color: #fff; }
+  .check { display: inline-flex; align-items: center; gap: 6px; color: var(--stage-ink-soft); }
+  .check input { accent-color: var(--navy); }
+  .search-input { width: 170px; }
+  .view-note { margin-left: auto; font-size: 11.5px; color: var(--stage-ink-soft); }
+  .filter-chip { display: inline-flex; align-items: center; gap: 8px; background: var(--navy-bg); color: var(--navy); border-radius: 999px; padding: 6px 13px; font-size: 12px; font-weight: 700; }
+  .filter-chip button { border: none; background: none; cursor: pointer; color: inherit; font-size: 12px; font-weight: 800; }
+
+  /* ---------------- アルバムグリッド ---------------- */
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px 20px; align-items: start; padding-top: 14px; }
+  @media (max-width: 880px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
+  .month {
+    grid-column: 1 / -1; display: flex; align-items: center; gap: 12px;
+    font-size: 12.5px; letter-spacing: .18em; font-weight: 700; color: var(--stage-ink-soft);
+    margin: 14px 0 2px;
+  }
+  .month::after { content: ""; flex: 1; height: 1px; background: currentColor; opacity: .3; }
+  .empty-note { grid-column: 1/-1; text-align: center; color: var(--stage-ink-soft); font-size: 12.5px; padding: 34px 0; }
+
+  /* ---------------- カード（ベタ塗り：場面タグの色でカード全面を塗る） ---------------- */
+  .card {
+    position: relative; perspective: 1000px; -webkit-tap-highlight-color: transparent;
+    cursor: pointer; border: none; padding: 0; background: none; font-family: inherit;
+    text-align: left; display: block; width: 100%;
+  }
+  .card.static { cursor: default; }
+  .card:focus { outline: none; }
+  .card:focus-visible .card3d { box-shadow: 0 0 0 3px var(--accent), 0 18px 34px rgba(0,0,0,.24) !important; }
+  .card3d { position: relative; transform-style: preserve-3d; will-change: transform; transition: box-shadow .25s ease; border-radius: 18px; }
+  .face { border-radius: 18px; transform-style: preserve-3d; }
+  .front {
+    background: var(--cc); color: var(--ci); border-radius: 18px;
+    padding: 30px 26px 22px; min-height: 236px;
+    display: flex; flex-direction: column; align-items: center; gap: 18px;
+  }
+  /* ベタ塗りの面にごく薄く紙目を残す。無地の平板さを避けるため */
+  .front::after {
+    content: ""; position: absolute; inset: 0; border-radius: inherit;
+    pointer-events: none; z-index: 1; opacity: .16; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.24 0 0 0 0 0.2 0 0 0 0 0.16 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  /* 奥行きを持たせるのはアバターだけ */
+  .ava {
+    width: 56px; height: 56px; border-radius: 50%; flex: none; background: var(--ava);
+    display: grid; place-items: center; color: #fff; font-size: 20px; font-weight: 800;
+    box-shadow: 0 0 0 5px rgba(255,255,255,.92), 0 6px 14px rgba(0,0,0,.16);
+    transform: translateZ(20px); position: relative; z-index: 2;
+  }
+  /* 本文はゴシック。ベタ塗りの面に白抜き（淡色カードは濃色インク）で乗せる */
+  .say {
+    font-weight: 700; letter-spacing: .1em; line-height: 2.05; font-size: 15px;
+    text-align: center; position: relative; z-index: 2;
+  }
+
+  /* ---- 中身の量でカードの見せ方を変える ----
+     感謝は一言のこともあれば長文のこともあり、絵文字のリアクションだけのこともある */
+  .kind-short .say { font-size: 17px; line-height: 1.95; letter-spacing: .08em; }
+  .kind-long .front { padding-top: 30px; }
+  .kind-long .say {
+    text-align: left; font-size: 13px; line-height: 1.9; letter-spacing: .01em; font-weight: 500;
+    display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .more-hint { display: none; font-size: 10px; letter-spacing: .08em; opacity: .7; align-self: flex-start; margin-top: -6px; position: relative; z-index: 2; }
+  .kind-long .more-hint { display: block; }
+  /* リアクションだけの「小さなありがとう」：丈を詰めて控えめに置く */
+  .kind-stamp .front { min-height: 172px; gap: 12px; padding: 30px 22px 16px; }
+  .kind-stamp .ava { width: 40px; height: 40px; font-size: 14px; box-shadow: 0 0 0 4px rgba(255,255,255,.92), 0 3px 8px rgba(0,0,0,.16); }
+  .stamp-face { display: none; }
+  .kind-stamp .stamp-face { display: block; font-size: 40px; line-height: 1; filter: saturate(.9); transform: rotate(-4deg); position: relative; z-index: 2; }
+  .kind-stamp .say { display: none; }
+  .kind-stamp .who-line { font-size: 10.5px; }
+  .stamp-note { display: none; }
+  .kind-stamp .stamp-note { display: block; font-size: 10px; letter-spacing: .06em; opacity: .72; position: relative; z-index: 2; }
+  .who-line { margin-top: auto; font-size: 11px; letter-spacing: .12em; font-weight: 700; opacity: .72; position: relative; z-index: 2; }
+  .c-foot { display: flex; align-items: center; gap: 8px; width: 100%; padding-top: 4px; position: relative; z-index: 2; }
+  /* ベタ塗りの面に乗るので、タグピルは白抜きの枠だけにして色を足さない */
+  .tagpill {
+    font-size: 10.5px; font-weight: 700; letter-spacing: .08em;
+    background: rgba(255,255,255,.22); color: var(--ci);
+    border: 1px solid color-mix(in srgb, var(--ci) 42%, transparent);
+    border-radius: 999px; padding: 3px 11px;
+  }
+  /* 日付＝かすれたゴム印。ノイズをマスクに使い、インクの乗りをまだらにする。
+     枠線にもマスクがかかるので、押しムラのある判子に見える。
+     インクはカード面の文字色（白 or 濃色）に合わせる */
+  .c-time {
+    margin-left: auto; font-size: 10px; letter-spacing: .05em; padding: 2px 8px; border-radius: 2px;
+    font-family: "Courier New", monospace;
+    border: 1.5px solid var(--ci); color: var(--ci);
+    transform: rotate(var(--stamp-rot, -2deg));
+    -webkit-mask-image: var(--ink-mask); mask-image: var(--ink-mask);
+    -webkit-mask-size: 150px 44px; mask-size: 150px 44px;
+    -webkit-mask-position: var(--stamp-shift, 0) 0; mask-position: var(--stamp-shift, 0) 0;
+    opacity: .78;
+  }
+  .corner-new {
+    position: absolute; top: 14px; left: 14px; z-index: 5;
+    font-size: 9.5px; font-weight: 800; letter-spacing: .14em; border-radius: 999px; padding: 4px 10px;
+    background: rgba(255,255,255,.94); color: color-mix(in srgb, var(--cc) 62%, #1d2430);
+  }
+  .fav-seal { position: absolute; top: 12px; right: 14px; z-index: 5; font-size: 14px; color: #ffd66b; transform: rotate(9deg); text-shadow: 0 1px 4px rgba(0,0,0,.35); }
+  .memo-dot { position: absolute; bottom: 14px; right: 16px; z-index: 5; width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.92); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ci) 22%, transparent); }
+
+  /* ---------------- パネル ---------------- */
+  /* min-width:0 がないと、チャートの実寸（inline width）がグリッド列を押し広げる */
+  .panel { background: var(--panel-bg); border: 1px solid var(--panel-line); border-radius: 14px; padding: 20px 22px; min-width: 0; }
+  .chart-scroll, .table-scroll { max-width: 100%; }
+  .panel + .panel, .panel-stack > * + * { margin-top: 16px; }
+  .panel h2 { font-size: 13.5px; font-weight: 800; letter-spacing: .04em; }
+  .panel-sub { font-size: 11.5px; color: var(--stage-ink-soft); margin: 4px 0 16px; line-height: 1.7; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; align-items: start; }
+  @media (max-width: 860px) { .two-col { grid-template-columns: 1fr; } }
+  .note-box { background: var(--panel-soft); border-radius: 10px; padding: 12px 14px; font-size: 12px; line-height: 1.9; color: var(--stage-ink-soft); }
+  .note-box > b:first-child { display: block; font-size: 10px; letter-spacing: .16em; color: var(--navy); margin-bottom: 4px; }
+  .note-box b { color: var(--stage-ink); }
+  .mini-note { font-size: 11px; color: var(--stage-ink-soft); line-height: 1.8; }
+
+  /* タグ内訳バー（可変・経年比較つき） */
+  .bar-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .bar-label { width: 108px; font-size: 12.5px; font-weight: 700; flex: none; }
+  .bar-track { flex: 1; height: 13px; background: var(--panel-soft); border-radius: 999px; position: relative; }
+  .bar-fill { height: 100%; border-radius: 999px; background: var(--cc); opacity: .85; }
+  .bar-mark { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--stage-ink); opacity: .45; border-radius: 2px; }
+  .bar-count { width: 66px; text-align: right; font-size: 12.5px; font-weight: 700; flex: none; font-variant-numeric: tabular-nums; }
+  .bar-count small { font-weight: 600; font-size: 10.5px; color: var(--line-sent); margin-left: 3px; }
+  .cmp-row { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; font-size: 11.5px; color: var(--stage-ink-soft); }
+
+  /* よく感謝される場面 */
+  .top-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  @media (max-width: 780px) { .top-grid { grid-template-columns: 1fr; } }
+  .top-card { background: var(--panel-soft); border-radius: 12px; padding: 15px 16px; display: flex; flex-direction: column; gap: 7px; border: 1px solid transparent; transition: transform .15s, box-shadow .15s, border-color .15s; text-align: left; font-family: inherit; }
+  .top-card.jump { cursor: pointer; }
+  .top-card.jump:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(44,51,69,.10); border-color: var(--panel-line); }
+  .top-rank { font-size: 11px; font-weight: 800; letter-spacing: .12em; color: color-mix(in srgb, var(--cc) 55%, #1d2430); }
+  .top-title { font-size: 13.5px; font-weight: 800; line-height: 1.6; color: var(--stage-ink); }
+  .top-quote { font-size: 11.5px; color: var(--stage-ink-soft); line-height: 1.7; }
+  .top-count { font-size: 11px; font-weight: 700; color: var(--navy); margin-top: auto; }
+  .top-count span { font-weight: 400; color: var(--stage-ink-soft); }
+
+  /* 広がりマップ */
+  .map-groups { display: flex; flex-wrap: wrap; gap: 14px; }
+  .map-group { background: var(--panel-soft); border-radius: 12px; padding: 14px 16px; flex: 1; min-width: 210px; }
+  .map-group h3 { font-size: 11.5px; color: var(--navy); margin-bottom: 10px; letter-spacing: .08em; }
+  .map-people { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { display: inline-flex; align-items: center; gap: 7px; background: #fff; border: 1px solid var(--panel-line); border-radius: 999px; padding: 4px 12px 4px 4px; font-size: 12px; font-weight: 700; }
+  .chip .ava-x { width: 22px; height: 22px; border-radius: 50%; background: var(--ava); color: #fff; display: grid; place-items: center; font-size: 10px; font-weight: 800; }
+  .chip small { color: var(--stage-ink-soft); font-weight: 400; }
+
+  /* 小さなありがとう（絵文字リアクション） */
+  .react-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .react-num { font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .react-emo { display: flex; gap: 6px; }
+  .react-emo span { background: var(--panel-soft); border: 1px solid var(--panel-line); border-radius: 999px; padding: 4px 10px; font-size: 12px; }
+
+  /* ---------------- チャート ---------------- */
+  .chart-tabs { display: flex; gap: 4px; margin-bottom: 10px; flex-wrap: wrap; }
+  .chart-tab { padding: 5px 12px; border-radius: 8px; font-size: 11.5px; color: var(--stage-ink-soft); cursor: pointer; border: 1px solid transparent; font-family: inherit; background: none; }
+  .chart-tab:hover { background: var(--panel-soft); }
+  .chart-tab.active { background: var(--navy); color: #fff; font-weight: 700; }
+  .chart-legend { display: flex; gap: 18px; font-size: 11.5px; color: var(--stage-ink-soft); margin-bottom: 8px; }
+  .lg-recv::before { content: "―― "; color: var(--line-recv); font-weight: 800; }
+  .lg-sent::before { content: "―― "; color: var(--line-sent); font-weight: 800; }
+  .chart-scroll { overflow-x: auto; overscroll-behavior-x: contain; }
+  .chart-inner { position: relative; }
+  .line-grid { stroke: var(--panel-line); stroke-width: 1; }
+  .line-recv { fill: none; stroke: var(--line-recv); stroke-width: 2.2; stroke-linejoin: round; }
+  .line-sent { fill: none; stroke: var(--line-sent); stroke-width: 2.2; stroke-linejoin: round; }
+  .axis-label { font-size: 10.5px; fill: var(--stage-ink-soft); }
+  .cross-line { position: absolute; top: 6px; bottom: 24px; width: 1px; background: rgba(44,51,69,.35); pointer-events: none; display: none; }
+  .chart-tip { position: absolute; background: var(--navy); color: #fff; border-radius: 10px; padding: 8px 12px; font-size: 11.5px; line-height: 1.7; pointer-events: none; display: none; white-space: nowrap; z-index: 5; box-shadow: 0 6px 16px rgba(20,26,40,.28); }
+  .chart-tip b { font-variant-numeric: tabular-nums; }
+  .tip-recv { color: #cdd6e8; }
+  .tip-sent { color: #a9e2e6; }
+
+  /* ---------------- テーブル ---------------- */
+  .table-scroll { overflow-x: auto; }
+  .tbl { width: 100%; border-collapse: separate; border-spacing: 0; background: #fff; border: 1px solid var(--panel-line); border-radius: 14px; overflow: hidden; }
+  .tbl.wide { min-width: 640px; }
+  .tbl th { background: var(--panel-soft); color: var(--stage-ink); font-size: 11.5px; letter-spacing: .06em; padding: 11px 14px; text-align: left; border-bottom: 1px solid var(--panel-line); white-space: nowrap; font-weight: 800; }
+  .tbl th.sortable { cursor: pointer; user-select: none; }
+  .tbl th.sortable:hover { background: var(--navy-bg); }
+  .tbl td { padding: 12px 14px; border-bottom: 1px solid var(--panel-line); font-size: 12.5px; vertical-align: middle; }
+  .tbl tr:last-child td { border-bottom: none; }
+  .tbl tbody tr.clickable { cursor: pointer; }
+  .tbl tbody tr.clickable:hover { background: #fafbfd; }
+  .mt-name { display: flex; align-items: center; gap: 10px; font-weight: 700; }
+  .mt-name small { display: block; font-weight: 400; color: var(--stage-ink-soft); font-size: 11px; }
+  .mt-num { font-size: 17px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .mt-num small { font-size: 10px; font-weight: 400; color: var(--stage-ink-soft); margin-left: 2px; }
+  .alert-chip { display: inline-flex; align-items: center; gap: 6px; background: #fdeceb; border: 1px solid #eccfca; color: #b0432f; border-radius: 999px; padding: 3px 10px; font-size: 10.5px; font-weight: 700; }
+
+  /* ---------------- メンバー詳細・上司限定 ---------------- */
+  .back-link { font-size: 12.5px; color: var(--navy); cursor: pointer; margin-bottom: 14px; display: inline-flex; align-items: center; gap: 6px; font-weight: 700; background: none; border: none; font-family: inherit; }
+  .back-link:hover { text-decoration: underline; }
+  .detail-head { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; flex-wrap: wrap; }
+  .detail-head .ava-l { width: 46px; height: 46px; border-radius: 50%; background: var(--ava); color: #fff; display: grid; place-items: center; font-size: 18px; font-weight: 800; }
+  .detail-name { font-size: 19px; font-weight: 800; }
+  .detail-sub { font-size: 12px; color: var(--stage-ink-soft); }
+  .boss-panel { border-left: 3px solid var(--accent); margin-bottom: 20px; }
+  .boss-label { display: inline-flex; align-items: center; gap: 6px; font-size: 10.5px; font-weight: 800; letter-spacing: .08em; color: #fff; background: var(--accent-deep); border-radius: 6px; padding: 4px 11px; margin-bottom: 14px; }
+  .boss-grid { display: grid; grid-template-columns: 3fr 2fr; gap: 20px; align-items: start; }
+  @media (max-width: 860px) { .boss-grid { grid-template-columns: 1fr; } }
+  .report-list { display: flex; flex-direction: column; gap: 8px; }
+  .report-item { display: flex; align-items: center; gap: 10px; background: var(--panel-soft); border: 1px solid transparent; border-radius: 10px; padding: 11px 14px; font-size: 12.5px; font-weight: 700; cursor: pointer; font-family: inherit; color: var(--stage-ink); text-align: left; width: 100%; }
+  .report-item:hover { border-color: var(--navy-line); background: var(--navy-bg); }
+  .report-item small { margin-left: auto; color: var(--stage-ink-soft); font-weight: 400; font-size: 11px; }
+  .sub-tabs { display: flex; gap: 4px; margin: 8px 0 4px; border-bottom: 1px solid var(--panel-line); overflow-x: auto; scrollbar-width: none; }
+  .sub-tabs::-webkit-scrollbar { display: none; }
+  .sub-tab { padding: 9px 15px; font-size: 12.5px; color: var(--stage-ink-soft); cursor: pointer; border: none; background: none; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; font-family: inherit; }
+  .sub-tab.active { color: var(--navy); font-weight: 800; border-bottom-color: var(--navy); }
+  .same-note { font-size: 11.5px; color: var(--stage-ink-soft); margin: 12px 0 4px; }
+
+  /* ---------------- 管理者 ---------------- */
+  .adm-row { display: flex; align-items: center; gap: 12px; padding: 13px 0; border-bottom: 1px solid var(--panel-line); flex-wrap: wrap; }
+  .adm-row:last-child { border-bottom: none; }
+  .adm-row .k { font-size: 12.5px; font-weight: 700; width: 168px; flex: none; }
+  .adm-row .v { font-size: 12.5px; color: var(--stage-ink-soft); flex: 1; min-width: 180px; line-height: 1.8; }
+  .status-dot { display: inline-flex; align-items: center; gap: 7px; font-weight: 700; color: var(--stage-ink); font-size: 12.5px; }
+  .status-dot::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #33915F; }
+  .status-dot.warn::before { background: #F5C63C; }
+  .ch-list { display: flex; flex-wrap: wrap; gap: 6px; }
+  .ch { background: var(--panel-soft); border: 1px solid var(--panel-line); border-radius: 6px; padding: 3px 9px; font-size: 11.5px; color: var(--stage-ink); }
+  .stat-row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .stat { background: var(--panel-soft); border-radius: 12px; padding: 13px 16px; font-size: 11.5px; color: var(--stage-ink-soft); flex: 1; min-width: 140px; }
+  .stat b { display: block; font-size: 22px; color: var(--stage-ink); font-variant-numeric: tabular-nums; margin-bottom: 2px; }
+  .dist { display: flex; height: 14px; border-radius: 999px; overflow: hidden; margin: 12px 0 8px; }
+  .dist span { display: block; }
+  .dist-legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 11px; color: var(--stage-ink-soft); }
+  .dist-legend i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; }
+  .lock-note { display: flex; gap: 8px; align-items: flex-start; background: #fffaf0; border: 1px solid #f0e2c4; border-radius: 10px; padding: 11px 13px; font-size: 11.5px; line-height: 1.8; color: var(--ink-soft); margin-top: 14px; }
+  .adm-select { background: #fff; border: 1px solid var(--panel-line); border-radius: 8px; padding: 5px 8px; font-size: 12px; font-family: inherit; color: var(--stage-ink); }
+
+  /* ---------------- モーダル（拡大詳細・ダイアログ） ---------------- */
+  .overlay { position: fixed; inset: 0; background: rgba(20,26,40,.52); display: grid; place-items: center; z-index: 60; padding: 20px; perspective: 1600px; }
+  .sheet {
+    background: #fff; color: var(--navy); border-radius: 22px; width: min(560px, 100%);
+    max-height: calc(100vh - 60px); overflow-y: auto; box-shadow: 0 30px 70px rgba(20,26,40,.38);
+    will-change: transform, opacity; backface-visibility: hidden;
+  }
+  .sheet.wide { width: min(760px, 100%); }
+  .sheet.narrow { width: min(430px, 100%); }
+  .fly-card { position: fixed; margin: 0; z-index: 70; pointer-events: none; opacity: 1 !important; will-change: transform; }
+  .sheet-head { display: flex; align-items: center; gap: 10px; padding: 20px 22px 12px; }
+  .sheet-head b { font-size: 13.5px; }
+  .sheet-head small { display: block; font-size: 11px; color: var(--navy-soft); font-weight: 400; }
+  .sheet-head .ava { width: 34px; height: 34px; font-size: 13px; box-shadow: none; transform: none; }
+  .sheet-time { margin-left: auto; font-size: 10.5px; color: var(--navy-soft); font-family: "Courier New", monospace; white-space: nowrap; }
+  .sheet-close { margin-left: 10px; border: none; background: var(--navy-bg); width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 13px; color: var(--navy-soft); flex: none; }
+  .sheet-close:hover { background: var(--navy-line); }
+  .sheet-body { padding: 4px 22px 24px; }
+  .sheet-sec { font-size: 9.5px; letter-spacing: .2em; color: var(--navy); opacity: .75; font-weight: 800; margin: 18px 0 8px; }
+  .sheet-sec:first-child { margin-top: 6px; }
+  .sheet-summary { font-size: 12.5px; line-height: 1.9; color: var(--navy-soft); }
+  .bub-row { display: flex; gap: 10px; margin-bottom: 12px; }
+  .bub-row .ava { width: 30px; height: 30px; font-size: 12px; box-shadow: none; transform: none; }
+  .bub { flex: 1; }
+  .bub-name { font-size: 11.5px; font-weight: 700; }
+  .bub-name span { font-weight: 400; font-size: 10px; color: var(--navy-soft); margin-left: 6px; }
+  .bub-text { margin-top: 4px; font-size: 13px; line-height: 1.8; background: var(--navy-bg); border-radius: 4px 14px 14px 14px; padding: 10px 14px; }
+  .mine .bub-text { background: #eaeef6; }
+  .is-thanks .bub-text { background: color-mix(in srgb, var(--cc) 16%, #fff); border: 1px solid color-mix(in srgb, var(--cc) 45%, transparent); color: var(--navy); font-weight: 700; }
+  .thanks-flag { font-size: 10px; font-weight: 800; color: var(--navy-soft); margin-top: 6px; letter-spacing: .06em; }
+  .thanks-flag::before { content: "✦ "; }
+  .file-chip { margin-top: 8px; display: inline-flex; align-items: center; gap: 8px; background: #fff; border: 1px solid var(--navy-line); border-radius: 10px; padding: 7px 12px; font-size: 11.5px; font-weight: 700; }
+  .file-icon { width: 24px; height: 24px; border-radius: 6px; background: var(--navy); color: #fff; display: grid; place-items: center; font-size: 11px; font-weight: 800; }
+  .sheet-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+  .mini-btn {
+    font-family: inherit; font-size: 11px; font-weight: 700; cursor: pointer;
+    border: 1px solid var(--navy-line); background: #fff; color: var(--navy);
+    border-radius: 999px; padding: 6px 14px; display: inline-flex; align-items: center; gap: 6px;
+  }
+  .mini-btn:hover { border-color: var(--navy-soft); background: var(--navy-bg); }
+  .ext-icon { width: 12px; height: 12px; flex: none; opacity: .8; }
+  .fav-btn[aria-pressed="true"] { border-color: #e0a62f; background: #fdf4dc; color: #8a6410; }
+  .memo-ta {
+    width: 100%; min-height: 72px; resize: vertical; font-family: inherit; font-size: 12.5px; line-height: 1.8;
+    background: var(--navy-bg); border: 1px solid var(--navy-line); border-radius: 3px 12px 12px 12px; padding: 10px 12px;
+    color: var(--navy); outline: none;
+  }
+  .memo-ta::placeholder { color: var(--navy-soft); opacity: .75; }
+  .memo-ta:focus { border-color: var(--navy-soft); }
+  .memo-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+  .memo-row small { font-size: 10.5px; color: var(--navy-soft); }
+  .memo-row .mini-btn { margin-left: auto; }
+  .sheet-danger { margin-top: 22px; padding-top: 14px; border-top: 1px dashed var(--navy-line); display: flex; gap: 10px; flex-wrap: wrap; }
+  .danger-btn { font-family: inherit; font-size: 11px; font-weight: 700; cursor: pointer; border: 1px solid #e3b9b3; background: #fff; color: #b0432f; border-radius: 999px; padding: 6px 14px; }
+  .danger-btn:hover { background: #fbeeec; border-color: #cf7f72; }
+  .privacy-note { font-size: 11px; color: var(--navy-soft); line-height: 1.8; background: var(--navy-bg); border-radius: 10px; padding: 10px 12px; }
+
+  /* ダイアログ（プレビュー・確認） */
+  .dlg-body { padding: 4px 22px 22px; }
+  .dlg-text { font-size: 12.5px; line-height: 1.9; color: var(--navy-soft); }
+  .prev { background: var(--navy-bg); border: 1px solid var(--navy-line); border-radius: 12px; padding: 12px 14px; margin-top: 10px; overflow-x: auto; }
+  .prev pre { font-family: "Courier New", monospace; font-size: 11px; line-height: 1.9; color: var(--navy); white-space: pre; }
+  .dlg-actions { display: flex; gap: 10px; justify-content: flex-end; padding: 0 22px 22px; flex-wrap: wrap; }
+  .book { background: var(--paper); border: 1px solid rgba(61,50,41,.12); border-radius: 10px; padding: 20px 22px; }
+  .book-cover { text-align: center; padding: 16px 0 20px; border-bottom: 1px dashed rgba(61,50,41,.2); }
+  .book-cover h4 { font-size: 19px; letter-spacing: .16em; color: var(--ink); font-weight: 400; }
+  .book-cover p { font-size: 11px; color: var(--ink-soft); margin-top: 8px; letter-spacing: .1em; }
+  .book-months { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 16px; }
+  @media (max-width: 520px) { .book-months { grid-template-columns: repeat(2, 1fr); } }
+  .bm { background: #fff; border: 1px solid rgba(61,50,41,.09); border-radius: 8px; padding: 9px 10px; font-size: 11px; color: var(--ink-soft); }
+  .bm b { display: block; font-size: 15px; color: var(--ink); font-variant-numeric: tabular-nums; }
+
+  /* 1on1準備メモ */
+  .r-sec { margin-bottom: 20px; }
+  .r-sec > h3 { font-size: 11.5px; color: var(--navy); letter-spacing: .08em; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; font-weight: 800; }
+  .r-sec > h3::after { content: ""; height: 1px; background: var(--navy-line); flex: 1; }
+  .digest-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .digest-item { background: var(--navy-bg); border-radius: 12px; padding: 10px 16px; font-size: 11.5px; color: var(--navy-soft); }
+  .digest-item b { display: block; font-size: 15px; color: var(--navy); font-variant-numeric: tabular-nums; }
+  .digest-note { font-size: 12.5px; line-height: 1.9; margin-top: 10px; color: var(--navy-soft); }
+  .praise { background: var(--navy-bg); border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; }
+  .praise-quote { font-size: 13.5px; line-height: 1.8; color: var(--navy); }
+  .praise-from { font-size: 11px; color: var(--navy-soft); margin: 5px 0 8px; line-height: 1.7; }
+  .praise-say { font-size: 12.5px; line-height: 1.8; background: #fff; border-left: 3px solid var(--navy); border-radius: 0 8px 8px 0; padding: 8px 12px; color: var(--navy); }
+  .praise-say b { font-size: 10px; color: var(--navy-soft); letter-spacing: .08em; display: block; margin-bottom: 2px; }
+  .alert-box { background: #fdeceb; border: 1px solid #eccfca; border-radius: 12px; padding: 12px 14px; font-size: 12.5px; line-height: 1.8; color: #8c3a2c; }
+  .alert-box b { display: block; font-size: 10.5px; letter-spacing: .08em; margin-bottom: 4px; }
+  .ok-box { background: #eef5f0; border: 1px solid #cfe2d5; border-radius: 12px; padding: 12px 14px; font-size: 12.5px; color: #3f6a4c; line-height: 1.8; }
+  .q-item { display: flex; gap: 10px; margin-bottom: 8px; font-size: 12.5px; line-height: 1.8; background: var(--navy-bg); border-radius: 10px; padding: 10px 14px; color: var(--navy); }
+  .q-item::before { content: "Q"; font-weight: 800; color: var(--navy-soft); }
+  .carry-box { background: #fff; border: 1.5px dashed var(--navy-line); border-radius: 12px; padding: 12px 14px; font-size: 12.5px; color: var(--navy-soft); line-height: 1.8; }
+
+  .toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); background: var(--navy); color: #fff; border-radius: 999px; padding: 10px 22px; font-size: 12.5px; z-index: 80; box-shadow: 0 10px 24px rgba(0,0,0,.3); pointer-events: none; max-width: calc(100vw - 40px); text-align: center; }
+  .demo-btn { position: fixed; right: 18px; bottom: 18px; background: var(--navy); color: #fff; border: none; border-radius: 999px; padding: 9px 17px; font-size: 11.5px; cursor: pointer; opacity: .25; transition: opacity .2s; z-index: 20; font-family: inherit; }
+  .demo-btn:hover { opacity: 1; }
+  button:focus-visible, .tab:focus-visible, tr:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; }
+
+  @media (max-width: 640px) {
+    .bar { padding: 10px 13px; gap: 8px 10px; }
+    .brand { font-size: 14px; }
+    .tabs { order: 3; width: 100%; margin-left: 0; }
+    .me span { display: none; }
+    main { padding: 20px 13px 70px; }
+    .count { font-size: 40px; }
+    .search-input { width: 100%; }
+    .sheet-body, .dlg-body { padding-left: 16px; padding-right: 16px; }
+    .bar-label { width: 84px; font-size: 12px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .card3d { transition: none; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="bar">
+    <div class="brand"><div class="brand-mark">O</div><div>オブリエ<small>OBRIER</small></div></div>
+    <nav class="tabs" id="personTabs">
+      <div class="tab active" data-v="album">アルバム</div>
+      <div class="tab" data-v="shape">あなたのカタチ</div>
+      <div class="tab" data-v="sent">おくった ありがとう</div>
+    </nav>
+    <div class="spacer"></div>
+    <div class="seg" id="roleSeg">
+      <button data-role="person" aria-pressed="true">本人</button>
+      <button data-role="boss" aria-pressed="false">上司</button>
+      <button data-role="admin" aria-pressed="false">管理者</button>
+    </div>
+    <div class="me" id="meBox"><span>YUKIYAMAさん</span><div class="ava-s">Y</div></div>
+  </div>
+</header>
+
+<main>
+
+<!-- ============ S01 本人：アルバム ============ -->
+<section id="viewAlbum">
+  <div class="hero">
+    <h1>あなたに届いたありがとう</h1>
+    <div class="count-wrap"><div class="count" id="count">264</div><div class="count-unit">通</div></div>
+  </div>
+  <div class="hero-note">Slack・Teams のやり取りから、あなた宛ての感謝を自動で見つけて集めています。カードを押すと、その言葉が生まれた経緯が見られます。</div>
+  <div class="ms-wrap" id="msWrap"></div>
+  <div class="toolbar">
+    <select class="select" id="tagFilter"><option value="">場面：すべて</option></select>
+    <label class="check"><input type="checkbox" id="favFilter"> お気に入りのみ</label>
+    <button class="btn" id="btnCsv">CSVで書き出す</button>
+    <button class="btn" id="btnYear">年間アルバム</button>
+    <span id="activeFilter"></span>
+    <div class="view-note">新しい順</div>
+  </div>
+  <div class="grid" id="grid"></div>
+</section>
+
+<!-- ============ S02 本人：あなたのカタチ ============ -->
+<section id="viewShape" class="hidden">
+  <div class="hero">
+    <h1>あなたのカタチ</h1>
+    <div class="lead-line">もらったありがとうから見えてきた、あなたの得意</div>
+  </div>
+  <div class="hero-note">これまでに届いた265通の言葉を、オブリエが読み解いて分類しています。場面タグは感謝の内容から自動で生まれ、増えていきます。</div>
+  <div id="myShape"></div>
+</section>
+
+<!-- ============ S03 本人：おくったありがとう ============ -->
+<section id="viewSent" class="hidden">
+  <div class="hero">
+    <h1>あなたがおくったありがとう</h1>
+    <div class="count-wrap"><div class="count">31</div><div class="count-unit">通</div></div>
+  </div>
+  <div class="hero-note">あなたが伝えた感謝も、ここに残しています。</div>
+  <div class="grid" id="sentGrid"></div>
+</section>
+
+<!-- ============ S06 上司：メンバー一覧 ============ -->
+<section id="viewTeam" class="hidden">
+  <div class="hero">
+    <h1>チームのありがとう ― 企画部 第2チーム</h1>
+    <div class="lead-line">メンバーのようす</div>
+  </div>
+  <div class="hero-note">行を押すと、メンバーの詳細と1on1の準備メモを見られます。順位はつけていません。</div>
+  <div class="toolbar">
+    <select class="select" id="teamPeriod">
+      <option value="1">期間：1か月</option>
+      <option value="3">期間：3か月</option>
+      <option value="12">期間：1年</option>
+    </select>
+    <input class="search-input" id="teamSearch" placeholder="名前でしぼり込み">
+    <label class="check"><input type="checkbox" id="alertOnly"> 要確認のみ</label>
+  </div>
+  <div class="chart-legend"><span class="lg-recv">もらった</span><span class="lg-sent">おくった</span></div>
+  <div class="table-scroll">
+    <table class="tbl wide">
+      <thead><tr>
+        <th>メンバー</th>
+        <th class="sortable" data-sort="recv">もらった <span id="sortRecv"></span></th>
+        <th class="sortable" data-sort="sent">おくった <span id="sortSent"></span></th>
+        <th>推移（直近6か月）</th>
+      </tr></thead>
+      <tbody id="memberRows"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============ S07 上司：メンバー詳細 ============ -->
+<section id="viewMember" class="hidden">
+  <button class="back-link" id="backToTeam">← メンバー一覧にもどる</button>
+  <div class="detail-head" id="detailHead"></div>
+
+  <div class="panel boss-panel">
+    <div class="boss-label">上司メニュー ― このパネルは本人には表示されません</div>
+    <div class="boss-grid">
+      <div>
+        <h2 style="font-size:13px; margin-bottom:10px;">1on1の準備メモ（月次）</h2>
+        <div class="report-list" id="reportList"></div>
+      </div>
+      <div id="detailAlert"></div>
+    </div>
+  </div>
+
+  <div class="same-note">ここから下は、本人が見ている画面と同じものです。ただし、じぶんのメモは本人だけのもので、ここには表示されません。</div>
+  <div class="sub-tabs" id="memberSubTabs">
+    <button class="sub-tab active" data-s="album">アルバム</button>
+    <button class="sub-tab" data-s="shape">カタチ</button>
+    <button class="sub-tab" data-s="sent">おくった</button>
+  </div>
+  <div id="memberSub"></div>
+</section>
+
+<!-- ============ 管理者 ============ -->
+<section id="viewAdmin" class="hidden">
+  <div class="hero">
+    <h1>管理者メニュー ― 株式会社アクメ</h1>
+    <div class="lead-line">オブリエの設定と記録</div>
+  </div>
+  <div class="hero-note">連携設定・チーム管理・監査ログ・検出品質を管理します。個人の「じぶんのメモ」は、管理者からも参照できません。</div>
+  <div class="sub-tabs" id="adminTabs">
+    <button class="sub-tab active" data-a="conn">連携設定</button>
+    <button class="sub-tab" data-a="team">チーム／メンバー管理</button>
+    <button class="sub-tab" data-a="audit">監査ログ</button>
+    <button class="sub-tab" data-a="quality">検出品質</button>
+  </div>
+  <div id="adminBody" style="margin-top:16px;"></div>
+</section>
+
+</main>
+
+<button class="demo-btn" id="demoBtn">▶ 新着デモを再生</button>
+
+<script>
+/* =========================================================================
+   0. ユーティリティ
+   ========================================================================= */
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* 場面タグ→色。タグは可変（自動で増える）ため、未知のタグは7色に決定的に割り当てる */
+const TAG_COLOR = {
+  "スピード対応": "--c-speed", "資料品質": "--c-doc", "調整力": "--c-coord",
+  "気配り": "--c-care", "後輩サポート": "--c-jr", "アイデア": "--c-idea", "情報共有": "--c-share",
+  /* 派生タグ（LLMが生成した近い場面は、近い色に寄せる） */
+  "企画構成": "--c-idea", "正確さ": "--c-doc", "リスク管理": "--c-doc",
+  "ファシリテーション": "--c-coord", "折衝": "--c-coord", "育成": "--c-jr", "顧客対応": "--c-care",
+};
+const PALETTE = ["--c-speed","--c-doc","--c-coord","--c-care","--c-jr","--c-idea","--c-share"];
+function tagVar(tag) {
+  if (TAG_COLOR[tag]) return TAG_COLOR[tag];
+  let h = 0; for (const ch of String(tag)) h = (h * 31 + ch.codePointAt(0)) % 9973;
+  return PALETTE[h % PALETTE.length];
+}
+const tagColor = tag => `var(${tagVar(tag)})`;
+/* ベタ塗りの面に乗せる文字色（インク）。--c-xxx と対の --i-xxx を引く */
+const tagInk = tag => `var(${tagVar(tag).replace("--c-", "--i-")})`;
+
+/* 疑似乱数（決定的）／推移データ生成：v4 と同一 */
+function seeded(seed) { let s = seed; return () => { s = (s * 9301 + 49297) % 233280; return s / 233280; }; }
+function genMonthly(seed, base, slope, amp, sentBase, sentSlope) {
+  const r = seeded(seed); const labels = [], recv = [], sent = [];
+  const names = ["1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"];
+  let y = 2021, mIdx = 7;
+  for (let i = 0; i < 60; i++) {
+    labels.push((mIdx === 0 ? `${y}年` : '') + names[mIdx]);
+    recv.push(Math.max(0, Math.round(base + i * slope + Math.sin(i * .8 + seed) * amp + r() * 3)));
+    sent.push(Math.max(0, Math.round(sentBase + i * sentSlope + Math.sin(i * .6 + seed) * 1.2 + r() * 2)));
+    mIdx++; if (mIdx > 11) { mIdx = 0; y++; }
+  }
+  recv[59] = Math.round(recv[58] * .25); sent[59] = Math.round(sent[58] * .3); // 当月は集計中
+  return { labels, recv, sent };
+}
+function genDaily(seed, level) {
+  const r = seeded(seed); const labels = [], recv = [], sent = [];
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(2026, 6, 4); d.setDate(d.getDate() - i);
+    labels.push(`${d.getMonth() + 1}/${d.getDate()}`);
+    recv.push(Math.round(r() * level));
+    sent.push(Math.round(r() * level * .4));
+  }
+  return { labels, recv, sent };
+}
+const slice = (h, n) => ({ labels: h.labels.slice(-n), recv: h.recv.slice(-n), sent: h.sent.slice(-n) });
+
+/* トースト */
+let toastTimer = null;
+function toast(msg) {
+  document.querySelectorAll(".toast").forEach(t => t.remove());
+  const t = document.createElement("div");
+  t.className = "toast"; t.textContent = msg;
+  document.body.appendChild(t);
+  if (!REDUCED) t.animate([{ opacity: 0, transform: "translate(-50%, 10px)" }, { opacity: 1, transform: "translate(-50%, 0)" }], { duration: 240, easing: "ease-out" });
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    if (REDUCED) return t.remove();
+    t.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200 }).onfinish = () => t.remove();
+  }, 2200);
+}
+
+/* =========================================================================
+   1. データ（文言・数値は v4 から流用。カード表現の検証用に2件追加）
+   ========================================================================= */
+const DATA = [
+  { isNew: true, who: "上司さん", ini: "上", ch: "#資料作成", src: "Slack", month: "2026年 7月",
+    msg: "ありがとうございます。素早い対応助かります。確認しますね。", tag: "スピード対応", time: "たった今 15:58",
+    summary: "上司さんからの資料作成の依頼に、約1分で完成版を共有。対応の速さに感謝が届きました。今月の「スピード対応」はこれで8回目です。",
+    story: [
+      { who: "上司さん", ini: "上", time: "15:57", text: "@YUKIYAMA おつかれ、いい感じの資料つくっておいて" },
+      { who: "YUKIYAMA", ini: "Y", time: "15:58", mine: true, text: "@上司 おつかれさまです。ご確認をお願いします。", file: "すごい資料.xlsx" },
+      { who: "上司さん", ini: "上", time: "15:58", thanks: true, text: "@YUKIYAMA ありがとうございます。素早い対応助かります。確認しますね。" },
+    ]},
+  { who: "上司さん", ini: "上", ch: "#資料作成", src: "Slack", month: "2026年 7月",
+    msg: "ありがとう、助かります。", tag: "スピード対応", time: "昨日 18:12",
+    summary: "会議の前倒しで急遽必要になったアジェンダを当日中に作成。締切前倒しへの対応力に感謝が届きました。",
+    story: [
+      { who: "上司さん", ini: "上", time: "16:40", text: "明日の定例、先方の都合で1日早まった…アジェンダ今日中いける？" },
+      { who: "YUKIYAMA", ini: "Y", time: "17:26", mine: true, text: "アジェンダできました。論点は前回の持ち越し2件＋新規1件です。", file: "定例アジェンダ_0703.docx" },
+      { who: "上司さん", ini: "上", time: "18:12", thanks: true, text: "ありがとう、助かります。" },
+    ]},
+  { who: "佐藤さん", ini: "佐", ch: "#企画チーム", src: "Slack", month: "2026年 6月",
+    msg: "すごい、いいね。この切り口なかったわ。", tag: "アイデア", time: "6/30 11:04",
+    summary: "行き詰まっていた若年層向け企画に、逆転の発想（親世代から贈る導線）と参考事例2件を提案。着眼点に感謝が届きました。",
+    story: [
+      { who: "佐藤さん", ini: "佐", time: "10:31", text: "若年層向けの訴求、正直ネタ切れ気味…なんかいい案ないかな" },
+      { who: "YUKIYAMA", ini: "Y", time: "10:55", mine: true, text: "逆に「親世代から子どもへ贈る」導線はどうでしょう？本人向けに売らない、という切り口です。" },
+      { who: "佐藤さん", ini: "佐", time: "11:04", thanks: true, text: "すごい、いいね。この切り口なかったわ。" },
+    ]},
+  /* リアクションだけの「小さなありがとう」（F04） */
+  { who: "中村さん", ini: "中", ch: "#プロジェクトA", src: "Slack", month: "2026年 6月",
+    reaction: "🙏", tag: "スピード対応", time: "6/29 18:40",
+    summary: "共有した障害対応の手順に、その場で拝む絵文字が返ってきました。言葉になる前の感謝として、控えめに数えています。",
+    story: [
+      { who: "YUKIYAMA", ini: "Y", time: "18:36", mine: true, text: "暫定対応の手順をまとめました。まずはこれで止血できます。" },
+      { who: "中村さん", ini: "中", time: "18:40", thanks: true, text: "🙏（リアクション）" },
+    ]},
+  { who: "田中さん", ini: "田", ch: "#プロジェクトA", src: "Slack", month: "2026年 6月",
+    msg: "さすがしごでき。今回もお願いしていい？", tag: "資料品質", time: "6/28 09:41",
+    summary: "前回作成した報告書がクライアントから「わかりやすい」と好評で、次回も指名で依頼されました。",
+    story: [
+      { who: "田中さん", ini: "田", time: "09:38", text: "先週の報告書、クライアントから「今までで一番わかりやすい」って言われたよ" },
+      { who: "田中さん", ini: "田", time: "09:41", thanks: true, text: "さすがしごでき。今回もお願いしていい？" },
+      { who: "YUKIYAMA", ini: "Y", time: "09:45", mine: true, text: "よかったです…！もちろんです。" },
+    ]},
+  { who: "鈴木さん", ini: "鈴", ch: "新人サポート", src: "Teams", month: "2026年 6月",
+    msg: "教えていただいたおかげで無事解決できました！本当にありがとうございます。", tag: "後輩サポート", time: "6/27 16:20",
+    summary: "経費精算に迷っていた新人の鈴木さんに、手順メモ＋10分の画面共有でフォロー。寄り添う対応に感謝が届きました。",
+    story: [
+      { who: "鈴木さん", ini: "鈴", time: "14:02", text: "すみません、経費精算のやり方がどうしてもわからなくて…" },
+      { who: "YUKIYAMA", ini: "Y", time: "14:10", mine: true, text: "あれ最初わかりにくいですよね。手順メモを送ります。15時から10分だけ画面共有でやりましょうか。" },
+      { who: "鈴木さん", ini: "鈴", time: "16:20", thanks: true, text: "教えていただいたおかげで無事解決できました！本当にありがとうございます。" },
+    ]},
+  /* 長文の感謝 */
+  { who: "岡田さん", ini: "岡", ch: "#カスタマーサクセス", src: "Teams", month: "2026年 6月",
+    msg: "先日は本当にありがとうございました。急なお願いだったにもかかわらず、こちらの状況を丁寧に聞き取ってくださって、そのうえで実現できる案と難しい案をはっきり分けて示していただけたので、社内の合意もすぐに取れました。お客様にも自信を持って説明でき、無事に今週の納品まで進められています。次の案件でもぜひご一緒させてください。",
+    tag: "調整力", time: "6/26 20:12",
+    summary: "急な依頼に対し、実現できる案と難しい案を切り分けて提示。社内合意と納品まで一気に進み、長文の感謝が届きました。",
+    story: [
+      { who: "岡田さん", ini: "岡", time: "6/24 09:12", text: "急ぎで相談です。来週の納品、仕様を一部変えられませんか…？" },
+      { who: "YUKIYAMA", ini: "Y", time: "6/24 11:40", mine: true, text: "できる案が2つ、難しい案が1つあります。影響範囲を添えて整理しました。" },
+      { who: "岡田さん", ini: "岡", time: "6/26 20:12", thanks: true, text: "先日は本当にありがとうございました。急なお願いだったにもかかわらず、こちらの状況を丁寧に聞き取ってくださって、そのうえで実現できる案と難しい案をはっきり分けて示していただけたので、社内の合意もすぐに取れました。次の案件でもぜひご一緒させてください。" },
+    ]},
+  { who: "高橋さん", ini: "高", ch: "#営業連携", src: "Slack", month: "2026年 6月",
+    msg: "ありがとうございます。まとめ方きれいで助かる〜", tag: "資料品質", time: "6/25 13:55",
+    summary: "散らばっていた商談メモを論点別に再構成して共有。整理のわかりやすさに感謝が届きました。",
+    story: [
+      { who: "高橋さん", ini: "高", time: "13:30", text: "先週の商談メモってどこかにまとまってる？" },
+      { who: "YUKIYAMA", ini: "Y", time: "13:48", mine: true, text: "論点別にまとめ直したものがあります。決定事項・保留・宿題の3分類です。" },
+      { who: "高橋さん", ini: "高", time: "13:55", thanks: true, text: "ありがとうございます。確認します。まとめ方きれいで助かる〜" },
+    ]},
+  { who: "伊藤さん", ini: "伊", ch: "#プロジェクトA", src: "Slack", month: "2026年 6月",
+    msg: "調整ありがとう！全員参加できることになったよ", tag: "調整力", time: "6/24 10:15",
+    summary: "8人の関係者で決まらなかったレビュー会の日程を、候補3枠の調整表で1日で確定。段取り力に感謝が届きました。",
+    story: [
+      { who: "伊藤さん", ini: "伊", time: "6/23 15:02", text: "来週のレビュー会、関係者多すぎて日程が全然決まらない…" },
+      { who: "YUKIYAMA", ini: "Y", time: "6/24 09:58", mine: true, text: "木曜14時で全員◯になりました。招集かけますね。" },
+      { who: "伊藤さん", ini: "伊", time: "10:15", thanks: true, text: "調整ありがとう！全員参加できることになったよ" },
+    ]},
+  { who: "渡辺さん", ini: "渡", ch: "問い合わせ対応", src: "Teams", month: "2026年 6月",
+    msg: "レス早くて助かります！", tag: "スピード対応", time: "6/20 11:33",
+    summary: "他部署からの仕様に関する問い合わせに5分で回答。判断に必要な制約条件まで添えた即レスに感謝が届きました。",
+    story: [
+      { who: "渡辺さん", ini: "渡", time: "11:28", text: "この仕様って今からでも変更可能でしたっけ？" },
+      { who: "YUKIYAMA", ini: "Y", time: "11:33", mine: true, text: "可能です。ただし制約が2点：①来週火曜までに確定 ②画面Bに影響が出ます。" },
+      { who: "渡辺さん", ini: "渡", time: "11:33", thanks: true, text: "レス早くて助かります！" },
+    ]},
+  { who: "山本さん", ini: "山", ch: "#企画チーム", src: "Slack", month: "2026年 6月",
+    msg: "例のテンプレ、チームみんな使ってるよ。ありがとう", tag: "情報共有", time: "6/18 09:20",
+    summary: "自作した議事録テンプレートがチーム標準として定着。仕組みで貢献する働きに感謝が届きました。",
+    story: [
+      { who: "YUKIYAMA", ini: "Y", time: "6/10 17:15", mine: true, text: "議事録のテンプレ作ってみました。よければどうぞ。", file: "議事録テンプレ_v1.docx" },
+      { who: "山本さん", ini: "山", time: "6/18 09:20", thanks: true, text: "例のテンプレ、チームみんな使ってるよ。ありがとう" },
+    ]},
+  { who: "小林さん", ini: "小", ch: "プロジェクトA", src: "Teams", month: "2026年 6月",
+    msg: "資料の図解、そのまま役員説明に使わせてもらった。ありがとう！", tag: "資料品質", time: "6/13 15:40",
+    summary: "複雑な構成案を1枚の図解に変換。役員説明にそのまま使われるクオリティに感謝が届きました。",
+    story: [
+      { who: "小林さん", ini: "小", time: "6/12 13:05", text: "この構成、文章だと伝わらなくて…図にできたりする？" },
+      { who: "YUKIYAMA", ini: "Y", time: "6/12 16:30", mine: true, text: "図解版を作りました。3層構造にしています。", file: "構成図解_v2.pptx" },
+      { who: "小林さん", ini: "小", time: "6/13 15:40", thanks: true, text: "資料の図解、そのまま役員説明に使わせてもらった。ありがとう！" },
+    ]},
+  { who: "森さん", ini: "森", ch: "新人サポート", src: "Teams", month: "2026年 6月",
+    msg: "先日はレビューありがとうございました。めちゃくちゃ勉強になりました", tag: "後輩サポート", time: "6/11 10:08",
+    summary: "後輩の初めての企画書を、良い点を先に伝えるスタイルでレビュー。育てる姿勢に感謝が届きました。",
+    story: [
+      { who: "森さん", ini: "森", time: "6/9 11:20", text: "初めて企画書を書いたんですが、提出前に見てもらえますか…？" },
+      { who: "YUKIYAMA", ini: "Y", time: "6/9 14:05", mine: true, text: "骨子とても良いです。提案コメントを3点だけ入れました。" },
+      { who: "森さん", ini: "森", time: "6/11 10:08", thanks: true, text: "先日はレビューありがとうございました。めちゃくちゃ勉強になりました" },
+    ]},
+];
+DATA.forEach((d, i) => { d.id = i; d.fav = false; d.myMemo = ""; });
+DATA[8].fav = true;                       // デモ：伊藤さんの調整カードをお気に入り済みに
+DATA[11].myMemo = "役員まで届いたのは素直にうれしい。図解パターンをテンプレ化しておく。";
+
+const SENT = [
+  { who: "佐藤さんへ", ini: "佐", ch: "#企画チーム", src: "Slack", month: "2026年 7月",
+    msg: "昨日のレビュー会の仕切り、すごく助かりました。おかげで論点が絞れました。", tag: "調整力", time: "7/2 09:15" },
+  { who: "鈴木さんへ", ini: "鈴", ch: "新人サポート", src: "Teams", month: "2026年 6月",
+    msg: "先週のデータ集計、正確で早くて助かりました。ありがとう！", tag: "スピード対応", time: "6/26 17:40" },
+  { who: "高橋さんへ", ini: "高", ch: "#営業連携", src: "Slack", month: "2026年 6月",
+    msg: "お客様の温度感の共有ありがとうございました。企画の方向修正ができました。", tag: "気配り", time: "6/19 10:02" },
+];
+SENT.forEach((d, i) => { d.id = 900 + i; });
+
+/* 節目の演出（F09）。派手にせず、アルバム上部に控えめな帯で置く */
+const MILESTONES = [
+  { mark: "100", text: "この1年で、<b>100通目のありがとう</b>が届きました。" },
+  { mark: "はじめて", text: "<b>森さん</b>から、はじめてのありがとうが届きました。" },
+  { mark: "1年", text: "オブリエと過ごして、<b>1年</b>になりました。" },
+];
+
+/* 本人のカタチ */
+const MY_SHAPE = {
+  tags: [["スピード対応",82],["資料品質",68],["調整力",55],["気配り",42],["後輩サポート",28],["情報共有",22],["アイデア",18],["正確さ",12]],
+  /* カタチの経年比較（decision-log No.15）。比べるのは過去のじぶんだけ */
+  past: {
+    "6m": { label: "半年前", tags: { "スピード対応":58,"資料品質":49,"調整力":40,"気配り":31,"後輩サポート":12,"情報共有":14,"アイデア":13,"正確さ":9 } },
+    "1y": { label: "1年前",  tags: { "スピード対応":34,"資料品質":28,"調整力":25,"気配り":20,"後輩サポート":3,"情報共有":8,"アイデア":7,"正確さ":5 } },
+  },
+  reactions: { count: 124, emoji: ["🙏", "✨", "👏"] },
+  memo: "「対応の速さ」への感謝が最多です。最近は「後輩サポート」が増えていて、頼られる範囲が広がっています。",
+  /* 月次カタチレポート（decision-log No.13） */
+  report: {
+    months: {
+      "2026年6月": {
+        change: "先月までは「スピード対応」と「資料品質」が中心でしたが、6月は<b>後輩サポート</b>が前月の2倍に増えました。頼まれごとに応える働きから、人が育つのを手伝う働きへ、重心が少し移りはじめています。",
+        episode: "「教えていただいたおかげで無事解決できました」（鈴木さん・6/27）— 手順メモを送ったうえで、10分だけ画面共有の時間をつくった一件です。答えを渡すのではなく、隣で一度やってみせたことが効いています。",
+        word: "得意が増えたというより、得意の使いどころが広がった月でした。",
+      },
+      "2026年5月": {
+        change: "「調整力」への感謝が増えた月でした。関係者が多い場面で名前が挙がるようになっています。",
+        episode: "「整理うまくて助かった」（中村さん・5/16）— ヒアリングに同席し、その場で論点を整理した一件です。",
+        word: "人と人の間に立つ仕事が、少しずつ板についてきています。",
+      },
+    },
+  },
+  tops: [
+    { title: "急ぎの依頼に、すぐ動く", quote: "「素早い対応助かります」「レス早くて助かります！」", count: 82, tag: "スピード対応" },
+    { title: "複雑な情報を、わかりやすく整える", quote: "「まとめ方きれいで助かる」「役員説明に使わせてもらった」", count: 68, tag: "資料品質" },
+    { title: "人と人の間の、段取りをつくる", quote: "「全員参加できることになったよ」「整理うまくて助かった」", count: 55, tag: "調整力" },
+    { title: "気づいて、先回りする", quote: "「フォローありがとう。気づいてなかった」", count: 42, tag: "気配り" },
+    { title: "後輩のつまずきに、寄り添う", quote: "「おかげで解決できました」「勉強になりました」", count: 28, tag: "後輩サポート" },
+    { title: "チームに、仕組みを残す", quote: "「例のテンプレ、みんな使ってるよ」", count: 22, tag: "情報共有" },
+    { title: "違う角度から、案を出す", quote: "「この切り口なかったわ」", count: 18, tag: "アイデア" },
+    { title: "細部まで、正確に仕上げる", quote: "「数字が合ってて安心する」", count: 12, tag: "正確さ" },
+  ],
+  groups: [
+    { dept: "企画チーム", people: [["上","上司さん",46],["佐","佐藤さん",31],["山","山本さん",12]] },
+    { dept: "営業部", people: [["高","高橋さん",24],["中","中村さん",18]] },
+    { dept: "プロジェクトA・その他", people: [["田","田中さん",38],["鈴","鈴木さん",22],["森","森さん",15]] },
+  ],
+  monthly: genMonthly(3, 4, .8, 3, 6, -.05),
+  daily30: genDaily(3, 3),
+};
+
+/* 年間アルバム（decision-log No.11）のプレビュー用 */
+const ANNUAL = {
+  title: "2025 – 2026　ありがとうの1年",
+  sub: "YUKIYAMA ／ 2025年8月 – 2026年7月",
+  months: [["2025年8月",14],["9月",17],["10月",19],["11月",22],["12月",18],["2026年1月",21],["2月",24],["3月",26],["4月",29],["5月",31],["6月",34],["7月",9]],
+};
+
+function mkShape(tags, memo, tops, groups, monthly, daily) {
+  return { tags, memo, tops, groups, monthly, daily30: daily };
+}
+const MEMBERS = [
+  { key:"yuki", name:"YUKIYAMAさん", role:"企画・3年目", ini:"Y", alert:false, shape: MY_SHAPE,
+    reports:{
+      "2026年6月": {
+        digest:{ recv:52, sent:3, trendNote:"もらったありがとうは4か月連続で増えています。一方、おくった数は少しずつ減っています。", newSenders:["森さん"], upTag:"後輩サポート" },
+        praises:[
+          { quote:"調整ありがとう！全員参加できることになったよ", from:"伊藤さん ・ 6/24", fact:"8人で決まらなかったレビュー会の日程を、調整表を作って1日で確定させました。", say:"伊藤さんがすごく助かったって言ってたよ。あの調整、どう段取りしたの？" },
+          { quote:"資料の図解、そのまま役員説明に使わせてもらった", from:"小林さん ・ 6/13", fact:"複雑な構成案を1枚の図解にし、役員説明でそのまま採用されました。", say:"小林さんの件、作った図解が役員まで届いてたね。" },
+        ],
+        sign:null,
+        signNote:"受け取りは好調です。ただ、おくった感謝が減少傾向にあります。仕事を抱え込みはじめているサインの可能性もあるため、負荷の話題には軽く触れてみてください。",
+        questions:[
+          "最近いちばん手応えがあった仕事は？（図解の件が話しやすいきっかけになります）",
+          "急ぎの依頼が増えているようだけど、負荷は大丈夫？",
+          "後輩サポートの感謝が増えています。教える側の役割、本人はどう感じているか聞いてみてください",
+        ],
+        carry:"（前回の1on1の持ち越しメモがここに表示されます。例：資格取得の相談 → 会社補助の確認は完了）" },
+      "2026年5月": {
+        digest:{ recv:48, sent:3, trendNote:"受け取りは増加。おくった数は横ばいでした。", newSenders:[], upTag:"調整力" },
+        praises:[{ quote:"整理うまくて助かった", from:"中村さん ・ 5/16", fact:"クライアントヒアリングに同席し、その場で論点を整理しました。", say:"中村さんとのヒアリング同席、評判よかったよ。" }],
+        sign:null, signNote:"特記すべきサインはありません。",
+        questions:["ヒアリング同席のような社外対応、もっとやってみたい？","5月に始まった新体制はどう？"],
+        carry:"（前回の持ち越しメモ）" },
+    }},
+  { key:"sato", name:"佐藤さん", role:"企画・5年目", ini:"佐", alert:false,
+    shape: mkShape(
+      [["アイデア",56],["企画構成",41],["資料品質",33],["ファシリテーション",21],["気配り",14]],
+      "アイデア起点の感謝が中心です。会議を前に進める役割（ファシリテーション）への感謝が増えはじめています。",
+      [
+        { title: "行き詰まりに、新しい切り口を出す", quote: "「その発想なかった」「方向性ばっちり」", count: 56, tag: "アイデア" },
+        { title: "企画を、骨太に組み立てる", quote: "「コンペの構成、筋がいいね」", count: 41, tag: "企画構成" },
+        { title: "会議を、前に進める", quote: "「今日の会議、進めやすかった」", count: 21, tag: "ファシリテーション" },
+      ],
+      [{ dept: "企画チーム", people: [["山","山本さん",22],["上","上司さん",18],["Y","YUKIYAMAさん",11]] }],
+      genMonthly(7, 12, .3, 4, 12, .1), genDaily(7, 2)),
+    reports:{
+      "2026年6月": {
+        digest:{ recv:26, sent:17, trendNote:"受け取り・おくった数ともに安定して多く、チームの感謝の循環の起点になっています。", newSenders:["渡辺さん"], upTag:"ファシリテーション" },
+        praises:[{ quote:"コンペの構成、筋がいいね", from:"上司さん ・ 6/21", fact:"新規コンペの提案骨子を主導しました。", say:"コンペの骨子、あの筋の良さはどこから来たのか聞かせて。" }],
+        sign:null, signNote:"良い状態が続いています。次の挑戦の話題が合いそうです。",
+        questions:["いまの仕事で物足りなさはない？","ファシリの感謝が増えています。会議設計の役割を広げることに興味は？"],
+        carry:"（前回の持ち越しメモ）" },
+    }},
+  { key:"suzuki", name:"鈴木さん", role:"企画・1年目", ini:"鈴", alert:false,
+    shape: mkShape(
+      [["スピード対応",18],["正確さ",15],["気配り",9]],
+      "入社1年目ながら、集計・準備まわりの確実な仕事に感謝が集まっています。",
+      [
+        { title: "頼まれたことを、正確に早く返す", quote: "「集計、正確で早い！」", count: 18, tag: "スピード対応" },
+        { title: "細かいところに、気を配る", quote: "「朝会の準備いつも助かる」", count: 9, tag: "気配り" },
+      ],
+      [{ dept: "企画チーム", people: [["Y","YUKIYAMAさん",14],["佐","佐藤さん",9]] }],
+      genMonthly(11, 1, .35, 1.5, 3, .15), genDaily(11, 1.5)),
+    reports:{
+      "2026年6月": {
+        digest:{ recv:9, sent:8, trendNote:"受け取りが毎月着実に増えています。入社1年目として良い立ち上がりです。", newSenders:["田中さん"], upTag:"正確さ" },
+        praises:[{ quote:"データ集計、正確で早い", from:"YUKIYAMAさん ・ 6/26", fact:"依頼されたデータ集計をミスなく前倒しで納品しました。", say:"集計の正確さ、先輩たちが頼りにしはじめてるよ。" }],
+        sign:null, signNote:"成長の実感につながる声かけが有効なタイミングです。",
+        questions:["入社3か月、いちばん自信がついたことは？","次に挑戦してみたい仕事はある？"],
+        carry:"（前回の持ち越しメモ）" },
+    }},
+  { key:"takahashi", name:"高橋さん", role:"営業連携・4年目", ini:"高", alert:true,
+    shape: mkShape(
+      [["気配り",31],["顧客対応",24],["スピード対応",12],["正確さ",8]],
+      "お客様や同僚への丁寧な目配りに感謝が集まっています。直近2か月は受け取り・おくりともに減少しています。",
+      [
+        { title: "相手の不安に、先に気づく", quote: "「引き継ぎ丁寧で安心した」", count: 31, tag: "気配り" },
+        { title: "お客様との間に、信頼をつくる", quote: "「先方が名指しで褒めてたよ」", count: 24, tag: "顧客対応" },
+      ],
+      [{ dept: "営業部", people: [["中","中村さん",16],["伊","伊藤さん",8]] }],
+      (() => { const h = genMonthly(23, 10, .1, 2, 6, 0); h.recv.splice(57,3,13,6,2); h.sent.splice(57,3,6,1,0); return h; })(),
+      genDaily(23, .8)),
+    reports:{
+      "2026年6月": {
+        digest:{ recv:6, sent:1, trendNote:"もらった数・おくった数がともに2か月連続で大きく減っています。5月のチーム編成替え以降の変化です。", newSenders:[], upTag:null },
+        praises:[{ quote:"引き継ぎ資料、丁寧で安心しました", from:"中村さん ・ 6/28", fact:"顧客フォローの引き継ぎ資料を頼まれる前に自主的に作成しました。", say:"中村さんが、引き継ぎの丁寧さに安心したって言ってたよ。" }],
+        sign:"受け取りとおくりがともに2か月連続で50%以上減っています。業務の孤立や負荷、役割の見えにくさのサインかもしれません。詰問にならないよう、まず最近の仕事の手応えから聞いてみてください。",
+        signNote:"",
+        questions:["編成替えから1か月、新しい体制はどんな感じ？","いま一番時間を取られている仕事は？","困ったとき、チームで聞ける相手はいる？"],
+        carry:"（前回の持ち越しメモ。例：新体制の役割分担を確認する → 未対応）" },
+      "2026年5月": {
+        digest:{ recv:13, sent:6, trendNote:"前月からやや減少。編成替え直後のため様子見の月でした。", newSenders:[], upTag:null },
+        praises:[{ quote:"フォロー助かりました", from:"営業部 ・ 5月", fact:"顧客対応の引き継ぎ期間中もフォローを継続しました。", say:"引き継ぎ中のフォロー、ちゃんと見えてたよ。" }],
+        sign:null, signNote:"編成替え直後のため、翌月の推移に注意してください。",
+        questions:["新チームで気になっていることは？"],
+        carry:"（前回の持ち越しメモ）" },
+    }},
+  { key:"tanaka", name:"田中さん", role:"PM・7年目", ini:"田", alert:false,
+    shape: mkShape(
+      [["調整力",61],["折衝",48],["資料品質",30],["リスク管理",22],["気配り",15],["育成",9]],
+      "調整・折衝への感謝が安定して届いています。送る側としてもチームの循環の要です。",
+      [
+        { title: "決まらない話を、まとめる", quote: "「部署間の折衝、さすがでした」", count: 61, tag: "調整力" },
+        { title: "先のリスクに、手を打つ", quote: "「リスク整理、助かりました」", count: 22, tag: "リスク管理" },
+      ],
+      [{ dept: "プロジェクトA", people: [["小","小林さん",20],["上","上司さん",15],["伊","伊藤さん",12]] }],
+      genMonthly(31, 13, .05, 2, 11, .05), genDaily(31, 1.2)),
+    reports:{
+      "2026年6月": {
+        digest:{ recv:15, sent:14, trendNote:"受け取り・おくった数ともに長期間安定しています。チームの感謝循環の要です。", newSenders:[], upTag:"リスク管理" },
+        praises:[{ quote:"部署間の折衝、さすがでした", from:"上司さん ・ 6/20", fact:"難航していた部署間調整をまとめました。", say:"あの折衝の進め方、若手に共有してもらえないか相談したい。" }],
+        sign:null, signNote:"安定稼働ですが、感謝の場面が調整系に集中しています。本人のやりたい方向と合っているかは確認の価値があります。",
+        questions:["調整・折衝の仕事が中心になっているが、本人としてはどう？","育成の感謝が出はじめています。メンター役への興味は？"],
+        carry:"（前回の持ち越しメモ）" },
+    }},
+  { key:"mori", name:"森さん", role:"企画・1年目", ini:"森", alert:false,
+    shape: mkShape(
+      [["資料品質",19],["気配り",12],["スピード対応",7]],
+      "資料まわりの感謝が伸びています。新しい送り主が増えていて、関係の広がりが見えます。",
+      [
+        { title: "調べたことを、わかりやすくまとめる", quote: "「参考資料、わかりやすかった！」", count: 19, tag: "資料品質" },
+        { title: "まわりを、そっと支える", quote: "「気づいてくれてありがとう」", count: 12, tag: "気配り" },
+      ],
+      [{ dept: "企画チーム", people: [["Y","YUKIYAMAさん",8],["渡","渡辺さん",6]] }],
+      genMonthly(41, 0, .3, 1, 2, .15), genDaily(41, 1)),
+    reports:{
+      "2026年6月": {
+        digest:{ recv:11, sent:9, trendNote:"受け取りが大きく伸びた月でした。資料まわりの得意が早くも形になりつつあります。", newSenders:["渡辺さん","小林さん"], upTag:"資料品質" },
+        praises:[{ quote:"骨子とても良いです", from:"YUKIYAMAさん ・ 6/9", fact:"初めての企画書を書き上げ、先輩レビューで骨子を高く評価されました。", say:"初めての企画書、良かったって聞いてるよ。書いてみてどうだった？" }],
+        sign:null, signNote:"新しい送り主が2人増えており、関係の広がりが見えます。",
+        questions:["初めての企画書、やってみて何が一番大変だった？","資料づくりの感謝が増えてるけど、本人の手応えは？"],
+        carry:"（前回の持ち越しメモ）" },
+    }},
+];
+/* メンバーのアルバム・おくった（デモ簡易データ） */
+const MEMBER_CARDS = {
+  sato: [{ who:"山本さん", ini:"山", ch:"#企画チーム", src:"Slack", month:"2026年 7月", msg:"企画書のたたき、方向性ばっちりでした！", tag:"企画構成", time:"7/3 14:20" },
+         { who:"上司さん", ini:"上", ch:"#企画チーム", src:"Slack", month:"2026年 6月", msg:"コンペの構成、筋がいいね。ありがとう。", tag:"アイデア", time:"6/21 10:02" }],
+  suzuki: [{ who:"YUKIYAMAさん", ini:"Y", ch:"#企画チーム", src:"Slack", month:"2026年 6月", msg:"先週のデータ集計、正確で早くて助かりました。ありがとう！", tag:"正確さ", time:"6/26 17:40" }],
+  takahashi: [{ who:"中村さん", ini:"中", ch:"#営業連携", src:"Slack", month:"2026年 6月", msg:"引き継ぎ資料、丁寧で安心しました。ありがとうございます。", tag:"気配り", time:"6/28 15:30" }],
+  tanaka: [{ who:"小林さん", ini:"小", ch:"プロジェクトA", src:"Teams", month:"2026年 7月", msg:"リスク整理、助かりました。", tag:"リスク管理", time:"7/1 16:45" }],
+  mori: [{ who:"渡辺さん", ini:"渡", ch:"問い合わせ対応", src:"Teams", month:"2026年 7月", msg:"参考資料のまとめ、わかりやすかったです！", tag:"資料品質", time:"7/2 11:30" }],
+};
+Object.values(MEMBER_CARDS).forEach(list => list.forEach((d, i) => { d.id = 800 + i; }));
+
+/* 管理者データ */
+const ADMIN = {
+  conns: [
+    { name: "Slack", ok: true, org: "acme-inc.slack.com", since: "2025-08-01", scope: "パブリックチャンネル 12件",
+      channels: ["#企画チーム","#プロジェクトA","#営業連携","#資料作成","#問い合わせ対応","#カスタマーサクセス","#全社アナウンス","#開発","#情報システム","#新人サポート","#雑談","#日報"],
+      token: "有効（次回更新 2026-08-01）" },
+    { name: "Microsoft Teams", ok: true, org: "acme.onmicrosoft.com", since: "2025-08-01", scope: "3チーム 7チャネル",
+      channels: ["新人サポート","問い合わせ対応","プロジェクトA"],
+      token: "有効（次回更新 2026-09-12）" },
+  ],
+  people: [
+    { name: "YUKIYAMAさん", ini: "Y", team: "企画部 第2チーム", boss: "上司さん", role: "本人" },
+    { name: "佐藤さん", ini: "佐", team: "企画部 第2チーム", boss: "上司さん", role: "本人" },
+    { name: "鈴木さん", ini: "鈴", team: "企画部 第2チーム", boss: "上司さん", role: "本人" },
+    { name: "高橋さん", ini: "高", team: "営業部 連携チーム", boss: "上司さん", role: "本人" },
+    { name: "田中さん", ini: "田", team: "プロジェクトA", boss: "上司さん", role: "本人" },
+    { name: "森さん", ini: "森", team: "企画部 第2チーム", boss: "上司さん", role: "本人" },
+    { name: "上司さん", ini: "上", team: "企画部 第2チーム", boss: "部長", role: "上司" },
+    { name: "管理者さん", ini: "管", team: "情報システム部", boss: "―", role: "管理者" },
+  ],
+  teams: ["企画部 第2チーム", "営業部 連携チーム", "プロジェクトA", "情報システム部"],
+  bosses: ["上司さん", "部長", "―"],
+  roles: ["本人", "上司", "管理者"],
+  audit: [
+    { t: "2026-07-04 10:02", who: "上司さん（上司）", op: "アルバム閲覧", target: "高橋さん" },
+    { t: "2026-07-04 09:58", who: "上司さん（上司）", op: "1on1準備メモ閲覧", target: "高橋さん・2026年6月" },
+    { t: "2026-07-03 18:20", who: "上司さん（上司）", op: "レポートPDF書き出し", target: "YUKIYAMAさん・2026年6月" },
+    { t: "2026-07-03 11:44", who: "管理者さん（管理者）", op: "連携設定の変更", target: "Slack 解析対象チャンネル" },
+    { t: "2026-07-01 09:12", who: "上司さん（上司）", op: "カタチ閲覧", target: "森さん" },
+  ],
+  quality: { judged: 3482, carded: 412, threshold: 0.80, reports: 7, dist: [62, 27, 11] },
+};
+
+/* =========================================================================
+   2. カードのモーション（card-simple-v1 の実装をそのまま移植）
+   ========================================================================= */
+class Spring {
+  constructor(value, { stiffness = 260, damping = 26, mass = 1 } = {}) {
+    this.v = value; this.target = value; this.vel = 0;
+    this.k = stiffness; this.c = damping; this.m = mass;
+  }
+  set(target) { this.target = target; if (REDUCED) { this.v = target; this.vel = 0; } }
+  jump(value) { this.v = this.target = value; this.vel = 0; }
+  step(dt) {
+    if (this.v === this.target && this.vel === 0) return false;
+    const steps = Math.min(4, Math.max(1, Math.ceil(dt / (1 / 90))));
+    const h = dt / steps;
+    for (let i = 0; i < steps; i++) {
+      const force = -this.k * (this.v - this.target) - this.c * this.vel;
+      this.vel += (force / this.m) * h;
+      this.v += this.vel * h;
+    }
+    if (Math.abs(this.vel) < 0.02 && Math.abs(this.v - this.target) < 0.02) {
+      this.v = this.target; this.vel = 0; return false;
+    }
+    return true;
+  }
+}
+const engine = { items: new Set(), running: false, last: 0 };
+function kick() {
+  if (engine.running) return;
+  engine.running = true; engine.last = performance.now();
+  requestAnimationFrame(tick);
+}
+function tick(now) {
+  const dt = Math.min(0.05, (now - engine.last) / 1000) || 0.016;
+  engine.last = now;
+  let alive = false;
+  engine.items.forEach(it => { if (it.update(dt)) alive = true; });
+  if (alive) requestAnimationFrame(tick); else engine.running = false;
+}
+
+/* 紙としての自然な動きだけ。3Dチルト・光沢なし。
+   静的な傾きがまっすぐに直る＋3px浮く＋影が伸びる */
+const CONF = { liftY: -3, shadY: 6, shadBlur: 14, shadA: .10 };
+const BASE_ROT   = [-0.8, 0.55, -0.35, 0.9, -0.5, 0.3, 0.7, -0.6];
+const TAPE_ROT   = [-3.6, 2.4, -1.8, 3.2, -2.6, 1.6, -4.2, 2.8];
+const TAPE_SHIFT = [-14, 10, -6, 16, 4, -18, 8, -10];
+const STAMP_ROT  = [-2.4, -1.2, -3.1, -0.8, -2.8, -1.7, -3.4, -1.1];
+
+class CardMotion {
+  constructor(root) {
+    this.root = root;
+    this.el = root.querySelector(".card3d");
+    this.op = new Spring(0, { stiffness: 150, damping: 22 });
+    this.ty = new Spring(28, { stiffness: 150, damping: 22 });
+    this.s  = new Spring(1, { stiffness: 420, damping: 28 });
+    this.lift = new Spring(0, { stiffness: 260, damping: 24 });
+    this.rz = new Spring(0, { stiffness: 170, damping: 19 });
+    this.baseRot = 0;
+    engine.items.add(this);
+    this.bind();
+  }
+  bind() {
+    const r = this.root;
+    r.addEventListener("pointerenter", () => { this.lift.set(CONF.liftY); this.rz.set(0); kick(); });
+    r.addEventListener("pointerleave", () => { this.lift.set(0); this.s.set(1); this.rz.set(this.baseRot); kick(); });
+    r.addEventListener("pointerdown", () => { this.s.set(.97); kick(); });
+    ["pointerup", "pointercancel"].forEach(t => r.addEventListener(t, () => { this.s.set(1); kick(); }));
+  }
+  enter(delay = 0) { setTimeout(() => { this.op.set(1); this.ty.set(0); kick(); }, delay); }
+  update(dt) {
+    let a = false;
+    [this.op, this.ty, this.s, this.lift, this.rz].forEach(sp => { if (sp.step(dt)) a = true; });
+    this.el.style.transform =
+      `translate3d(0, ${(this.ty.v + this.lift.v).toFixed(2)}px, 0) ` +
+      `rotateZ(${this.rz.v.toFixed(2)}deg) scale(${this.s.v.toFixed(3)})`;
+    this.root.style.opacity = this.op.v.toFixed(3);
+    const sy = CONF.shadY - this.lift.v * 1.4;
+    const blur = CONF.shadBlur - this.lift.v * 2.4;
+    this.el.style.boxShadow = `0px ${sy.toFixed(1)}px ${blur.toFixed(1)}px rgba(0,0,0,${(CONF.shadA - this.lift.v * .008).toFixed(3)})`;
+    return a;
+  }
+}
+
+/* =========================================================================
+   3. カード生成・アルバム描画
+   ========================================================================= */
+/** 中身の量からカードの見せ方を決める */
+function cardKind(d) {
+  if (d.reaction) return "kind-stamp";
+  const len = String(d.msg || "").replace(/<br>/g, "").length;
+  if (len <= 14) return "kind-short";
+  if (len >= 54) return "kind-long";
+  return "kind-mid";
+}
+
+function cardHTML(d, opts) {
+  return `
+  <div class="card3d">
+    <div class="face front">
+      ${d.isNew ? '<div class="corner-new">NEW</div>' : ""}
+      ${(opts.fav && d.fav) ? '<div class="fav-seal" title="お気に入り">★</div>' : ""}
+      <div class="ava">${d.ini}</div>
+      <div class="stamp-face">${d.reaction || ""}</div>
+      <div class="stamp-note">リアクションの、小さなありがとう</div>
+      <div class="say">${d.msg || ""}</div>
+      <div class="more-hint">…続きは詳細で</div>
+      <div class="who-line">${d.who}</div>
+      <div class="c-foot"><span class="tagpill">${d.tag}</span><span class="c-time">${d.time}</span></div>
+      ${(opts.memo && d.myMemo) ? '<div class="memo-dot" title="じぶんのメモあり"></div>' : ""}
+    </div>
+  </div>`;
+}
+
+function buildCard(d, opts, idx) {
+  const root = document.createElement("div");
+  root.className = "card " + cardKind(d) + (opts.clickable ? "" : " static");
+  root.dataset.id = d.id;
+  if (opts.clickable) {
+    root.tabIndex = 0;
+    root.setAttribute("role", "button");
+    root.setAttribute("aria-label", d.reaction
+      ? `${d.who}からのリアクション ${d.reaction} の詳細を開く`
+      : `${d.who}からの「${String(d.msg).replace(/<br>/g, "")}」の詳細を開く`);
+  }
+  root.style.setProperty("--cc", tagColor(d.tag));
+  root.style.setProperty("--ci", tagInk(d.tag));
+  root.style.setProperty("--tape-rot", TAPE_ROT[d.id % TAPE_ROT.length] + "deg");
+  root.style.setProperty("--tape-shift", TAPE_SHIFT[d.id % TAPE_SHIFT.length] + "px");
+  /* 日付スタンプの傾きと、かすれ具合（マスクのずらし）をカードごとに散らす */
+  root.style.setProperty("--stamp-rot", STAMP_ROT[d.id % STAMP_ROT.length] + "deg");
+  root.style.setProperty("--stamp-shift", (d.id * 37 % 120) + "px");
+  root.style.opacity = "0";
+  root.innerHTML = cardHTML(d, opts);
+
+  const m = new CardMotion(root);
+  root._m = m; root._d = d;
+  m.baseRot = BASE_ROT[idx % BASE_ROT.length];
+  m.rz.jump(m.baseRot);
+
+  if (opts.clickable) {
+    root.addEventListener("click", () => openThread(d, root, opts));
+    root.addEventListener("keydown", e => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); root.click(); }
+    });
+  }
+  return root;
+}
+
+/** el（.grid）にカードを月ごとに並べる */
+function renderAlbumInto(el, list, opts) {
+  el.querySelectorAll(".card").forEach(c => engine.items.delete(c._m));
+  el.innerHTML = "";
+  if (!list.length) {
+    el.innerHTML = '<div class="empty-note">条件に合うカードがありません。</div>';
+    return;
+  }
+  let last = null, n = 0;
+  list.forEach(d => {
+    if (d.month !== last) {
+      const h = document.createElement("div");
+      h.className = "month"; h.textContent = d.month;
+      el.appendChild(h); last = d.month;
+    }
+    const card = buildCard(d, opts, n);
+    el.appendChild(card);
+    card._m.enter(60 + n * 40);
+    n++;
+  });
+}
+
+/* 本人のアルバム（S01） */
+const SELF_OPTS = { clickable: true, memo: true, del: true, report: true, fav: true, list: DATA };
+const filter = { tag: "", fav: false };
+function applyFilters() {
+  filter.tag = $("tagFilter").value;
+  filter.fav = $("favFilter").checked;
+  const list = DATA.filter(d => (!filter.tag || d.tag === filter.tag) && (!filter.fav || d.fav));
+  renderAlbumInto($("grid"), list, SELF_OPTS);
+  $("activeFilter").innerHTML = filter.tag
+    ? `<span class="filter-chip">${filter.tag} <button id="clearTag" aria-label="絞り込みを解除">✕</button></span>` : "";
+  const ct = $("clearTag");
+  if (ct) ct.onclick = () => { $("tagFilter").value = ""; applyFilters(); };
+}
+function initTagFilter() {
+  const tags = [...new Set(DATA.map(d => d.tag))];
+  $("tagFilter").innerHTML = '<option value="">場面：すべて</option>' + tags.map(t => `<option value="${t}">${t}</option>`).join("");
+}
+function gotoAlbumWithTag(tag) {
+  showPersonView("album");
+  $("tagFilter").value = tag;
+  applyFilters();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+/* 節目演出（F09） */
+function renderMilestones() {
+  $("msWrap").innerHTML = MILESTONES.map((m, i) => `
+    <div class="ms" data-ms="${i}">
+      <span class="ms-mark">${m.mark}</span>
+      <span>${m.text}</span>
+      <button class="ms-x" aria-label="この知らせを閉じる">✕</button>
+    </div>`).join("");
+  $("msWrap").querySelectorAll(".ms-x").forEach(b =>
+    b.addEventListener("click", e => e.target.closest(".ms").remove()));
+}
+
+/* =========================================================================
+   4. 拡大詳細（S05）とダイアログ
+   ========================================================================= */
+const EXT_ICON = `<svg class="ext-icon" viewBox="0 0 16 16" aria-hidden="true">
+  <path d="M6.5 3H3.8C3.3 3 3 3.3 3 3.8v8.4c0 .5.3.8.8.8h8.4c.5 0 .8-.3.8-.8V9.5"
+        fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M9.5 2.8H13v3.5M12.8 3 7.6 8.2"
+        fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`;
+
+/** カード以外から開く一般ダイアログ（プレビュー・確認・レポート） */
+function openDialog({ title, sub, body, actions = [], cls = "" }) {
+  const ov = document.createElement("div");
+  ov.className = "overlay";
+  ov.innerHTML = `
+    <div class="sheet ${cls}" role="dialog" aria-modal="true" aria-label="${title}">
+      <div class="sheet-head">
+        <div><b>${title}</b><small>${sub || ""}</small></div>
+        <button class="sheet-close" aria-label="閉じる">✕</button>
+      </div>
+      <div class="dlg-body">${body}</div>
+      ${actions.length ? `<div class="dlg-actions">${actions.map((a, i) =>
+        `<button class="${a.danger ? "danger-btn" : (a.primary ? "btn btn-primary" : "btn")}" data-act="${i}">${a.label}</button>`).join("")}</div>` : ""}
+    </div>`;
+  document.body.appendChild(ov);
+  const sheet = ov.querySelector(".sheet");
+  if (!REDUCED) sheet.animate([{ opacity: 0, transform: "translateY(14px) scale(.98)" }, { opacity: 1, transform: "none" }],
+    { duration: 220, easing: "cubic-bezier(.2,.9,.3,1.1)" });
+  const close = () => { document.removeEventListener("keydown", onEsc); ov.remove(); };
+  const onEsc = e => { if (e.key === "Escape") close(); };
+  document.addEventListener("keydown", onEsc);
+  ov.addEventListener("click", e => { if (e.target === ov || e.target.closest(".sheet-close")) close(); });
+  actions.forEach((a, i) => {
+    const b = ov.querySelector(`[data-act="${i}"]`);
+    if (b) b.addEventListener("click", () => { if (a.run) a.run(); if (a.keep !== true) close(); });
+  });
+  return { ov, close };
+}
+
+/** 確認ダイアログ（削除は復元不可のため必須） */
+function confirmDialog(title, message, okLabel, onOk) {
+  openDialog({
+    title, sub: "",
+    cls: "narrow",
+    body: `<p class="dlg-text">${message}</p>`,
+    actions: [
+      { label: "やめる" },
+      { label: okLabel, danger: true, run: onOk },
+    ],
+  });
+}
+
+function openThread(d, fromCard, opts) {
+  const ov = document.createElement("div");
+  ov.className = "overlay";
+  ov.style.setProperty("--cc", tagColor(d.tag));
+  ov.style.setProperty("--ci", tagInk(d.tag));
+  const story = d.story ? d.story.map(s => `
+    <div class="bub-row ${s.mine ? "mine" : ""} ${s.thanks ? "is-thanks" : ""}">
+      <div class="ava">${s.ini}</div>
+      <div class="bub">
+        <div class="bub-name">${s.who}<span>${s.time}</span></div>
+        <div class="bub-text">${s.text}${s.file ? `<div class="file-chip"><div class="file-icon">F</div>${s.file}</div>` : ""}</div>
+        ${s.thanks ? '<div class="thanks-flag">この言葉を保存しました</div>' : ""}
+      </div>
+    </div>`).join("") : `<div class="bub-row"><div class="ava">${d.ini}</div>
+      <div class="bub"><div class="bub-name">${d.who}<span>${d.time}</span></div>
+      <div class="bub-text">${d.msg}</div></div></div>`;
+
+  ov.innerHTML = `
+    <div class="sheet" role="dialog" aria-modal="true" aria-label="${d.who}からの「ありがとう」の詳細">
+      <div class="sheet-head">
+        <div class="ava">${d.ini}</div>
+        <div><b>${d.who}</b><small>${d.ch}</small></div>
+        <span class="sheet-time">${d.time}</span>
+        <button class="sheet-close" aria-label="閉じる">✕</button>
+      </div>
+      <div class="sheet-body">
+        ${d.summary ? `<div class="sheet-sec">オブリエのメモ</div><p class="sheet-summary">${d.summary}</p>` : ""}
+        <div class="sheet-sec">やり取りの流れ</div>
+        ${story}
+        <div class="sheet-actions">
+          <button class="mini-btn" data-open-src>${d.src}で開く${EXT_ICON}</button>
+          ${opts.fav ? `<button class="mini-btn fav-btn" data-fav aria-pressed="${!!d.fav}">★ お気に入り</button>` : ""}
+        </div>
+        ${opts.memo ? `
+        <div class="sheet-sec">じぶんのメモ</div>
+        <textarea class="memo-ta" data-memo placeholder="気づいたことを、じぶんのために残しておけます">${esc(d.myMemo || "")}</textarea>
+        <div class="memo-row">
+          <small>このメモはあなただけに表示されます</small>
+          <button class="mini-btn" data-save-memo>保存</button>
+        </div>` : `
+        <div class="sheet-sec">じぶんのメモ</div>
+        <div class="privacy-note">じぶんのメモは本人だけのものです。上司・管理者には表示されません。</div>`}
+        ${(opts.report || opts.del) ? `<div class="sheet-danger">
+          ${opts.report ? '<button class="mini-btn" data-not-thanks>これは感謝ではないと報告する</button>' : ""}
+          ${opts.del ? '<button class="danger-btn" data-del>このカードを削除する</button>' : ""}
+        </div>` : ""}
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+
+  ov.querySelector("[data-open-src]").addEventListener("click", () => toast("元のメッセージを開きます（モック）"));
+
+  const favBtn = ov.querySelector("[data-fav]");
+  if (favBtn) favBtn.addEventListener("click", () => {
+    d.fav = !d.fav;
+    favBtn.setAttribute("aria-pressed", String(d.fav));
+    toast(d.fav ? "お気に入りに登録しました" : "お気に入りを外しました");
+  });
+
+  const saveBtn = ov.querySelector("[data-save-memo]");
+  if (saveBtn) saveBtn.addEventListener("click", () => {
+    d.myMemo = ov.querySelector("[data-memo]").value.trim();
+    toast("じぶんのメモを保存しました");
+  });
+
+  const delBtn = ov.querySelector("[data-del]");
+  if (delBtn) delBtn.addEventListener("click", () => {
+    confirmDialog("このカードを削除しますか？",
+      "削除すると、あとから元に戻すことはできません。",
+      "削除する",
+      () => {
+        const i = DATA.indexOf(d);
+        if (i >= 0) DATA.splice(i, 1);
+        close();
+        initTagFilter(); applyFilters();
+        toast("カードを削除しました");
+      });
+  });
+
+  const ntBtn = ov.querySelector("[data-not-thanks]");
+  if (ntBtn) ntBtn.addEventListener("click", () => {
+    confirmDialog("これは感謝ではない、と報告しますか？",
+      "確認のうえ、このカードをアルバムから外します。報告の内容は、感謝の見分け方を良くするための学習にだけ使われます。",
+      "報告する",
+      () => {
+        const i = DATA.indexOf(d);
+        if (i >= 0) DATA.splice(i, 1);
+        close();
+        initTagFilter(); applyFilters();
+        toast("報告を受け取りました。このカードを外しました");
+      });
+  });
+
+  /* カードがめくれながら中央へ飛び、拡大して詳細になる */
+  const flight = openFlight(ov, fromCard);
+  const onEsc = e => { if (e.key === "Escape") close(); };
+  const close = () => { document.removeEventListener("keydown", onEsc); flight.close(); };
+  ov.addEventListener("click", e => { if (e.target === ov || e.target.closest(".sheet-close")) close(); });
+  document.addEventListener("keydown", onEsc);
+  if (ROLE === "boss") logAudit("カード詳細閲覧", `${currentMember ? currentMember.name : ""}・${d.who}からのカード`);
+}
+
+/* =========================================================================
+   5. カード → 詳細のフライトアニメーション（card-simple-v1 から移植）
+
+   前半：カードの複製が、その場から中央へ飛びながら rotateY 0→90° まで回る
+   後半：90°で面が入れ替わり、詳細シートが -90°→0° に開きながら
+         カードの大きさから本来の大きさへ拡大する
+   閉じるときは、この逆をたどる
+   ========================================================================= */
+const FLY_OUT = 170;   // 前半：カードが中間地点まで飛び、真横を向くまで
+const FLY_IN  = 180;   // 後半：詳細が残り半分を進みながら開き切るまで
+const PERSP   = "perspective(1600px)";
+const HANDOFF = 24;    // 表と裏の入れ替わりを重ねる時間
+const EASE_1  = "linear";
+const EASE_2  = "cubic-bezier(.33,.33,.5,1)";
+
+function openFlight(ov, card) {
+  const sheet = ov.querySelector(".sheet");
+  if (REDUCED || !card) return { close: () => ov.remove() };
+
+  // カードの複製を作って飛ばす。オーバーレイの外（body直下）に置くことで、
+  // オーバーレイのフェードインに巻き込まれて一瞬消えるのを防ぐ
+  const clone = card.cloneNode(true);
+  const c3 = clone.querySelector(".card3d");
+  clone.classList.add("fly-card");
+  document.body.appendChild(clone);
+  card.style.visibility = "hidden";
+
+  // 複製はホバー中の傾き・浮きをそのまま引き継いでから、水平に戻す
+  c3.animate([{ transform: c3.style.transform || "none" }, { transform: "none" }],
+    { duration: FLY_OUT, easing: "ease-out", fill: "forwards" });
+  c3.style.boxShadow = "0 18px 40px rgba(20,26,40,.28)";
+
+  const place = () => {
+    const r = card.getBoundingClientRect();
+    Object.assign(clone.style, {
+      left: r.left + "px", top: r.top + "px",
+      width: r.width + "px", height: r.height + "px",
+    });
+    return r;
+  };
+  /** カード中心 → シート中心の道のりを測る。半分ずつ前半・後半で進む */
+  const measure = () => {
+    const r = place();
+    const s = sheet.getBoundingClientRect();
+    const dx = (s.left + s.width / 2) - (r.left + r.width / 2);
+    const dy = (s.top + s.height / 2) - (r.top + r.height / 2);
+    return {
+      halfX: dx / 2, halfY: dy / 2,
+      grow: Math.min(1.3, (s.width / r.width) * .55),
+      shrink: r.width / s.width,
+    };
+  };
+
+  const m = measure();
+  const cardOut = [
+    { transform: `${PERSP} translate(0, 0) rotateY(0deg) scale(1)` },
+    { transform: `${PERSP} translate(${m.halfX}px, ${m.halfY}px) rotateY(90deg) scale(${m.grow})` },
+  ];
+  const sheetIn = [
+    { transform: `translate(${-m.halfX}px, ${-m.halfY}px) rotateY(-90deg) scale(${m.shrink})`, opacity: 1 },
+    { transform: "none", opacity: 1 },
+  ];
+
+  ov.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 180, easing: "ease-out" });
+  const a1 = clone.animate(cardOut, { duration: FLY_OUT, easing: EASE_1, fill: "forwards" });
+  a1.onfinish = () => { clone.style.visibility = "hidden"; };
+  // 入れ替わりを少しだけ重ねる。ちょうど90°では厚みが消えて何も映らない一瞬ができるため
+  sheet.animate(sheetIn, { duration: FLY_IN, delay: FLY_OUT - HANDOFF, easing: EASE_2, fill: "backwards" });
+
+  let closing = false;
+  const close = () => {
+    if (closing) return;
+    closing = true;
+    const m2 = measure();   // スクロールしている場合があるので測り直す
+    // 畳み終わった詳細は消す。真横向きでも薄い板として残り、
+    // 戻ってくるカードと二枚に見えてしまうため
+    sheet.animate([
+      { transform: "none", opacity: 1 },
+      { transform: `translate(${-m2.halfX}px, ${-m2.halfY}px) rotateY(-90deg) scale(${m2.shrink})`, opacity: 1 },
+    ], { duration: FLY_IN, easing: EASE_1, fill: "forwards" })
+      .onfinish = () => { sheet.style.visibility = "hidden"; };
+
+    // 複製は、詳細が畳み終わる直前まで隠しておく。
+    // 先に出すと、畳まれていく詳細と真横向きの複製が同時に見えて二枚に見える
+    setTimeout(() => { clone.style.visibility = ""; }, Math.max(0, FLY_IN - HANDOFF));
+    clone.animate([
+      { transform: `${PERSP} translate(${m2.halfX}px, ${m2.halfY}px) rotateY(90deg) scale(${m2.grow})` },
+      { transform: `${PERSP} translate(0, 0) rotateY(0deg) scale(1)` },
+    ], { duration: FLY_OUT, delay: FLY_IN, easing: EASE_2, fill: "both" })
+      // カードを戻すのと複製を消すのを同じ瞬間にやり、入れ替わりのちらつきを防ぐ
+      .onfinish = () => { card.style.visibility = ""; clone.remove(); ov.remove(); };
+
+    ov.animate([{ opacity: 1 }, { opacity: 0 }], { duration: FLY_IN + FLY_OUT, easing: "ease-in", fill: "forwards" });
+  };
+  return { close };
+}
+
+/* =========================================================================
+   6. 書き出し（F13・年間アルバム）
+   ========================================================================= */
+function openCsvDialog() {
+  const rows = DATA.slice(0, 4).map(d =>
+    `${d.time.replace(/\s/g, "_")},${d.who},${d.tag},${d.src},"${(d.msg || d.reaction || "").slice(0, 18)}…"`).join("\n");
+  openDialog({
+    title: "CSVで書き出す", sub: `アルバム ${DATA.length}件 ／ じぶんのメモは含めません`,
+    body: `<p class="dlg-text">受け取った日・送り主・場面タグ・出典・本文を書き出します。じぶんのメモは、あなただけのものなので含めません。</p>
+      <div class="prev"><pre>受取日,送り主,場面タグ,出典,本文
+${esc(rows)}
+…（ほか ${Math.max(0, DATA.length - 4)}件）</pre></div>`,
+    actions: [{ label: "閉じる" }, { label: "書き出す", primary: true, run: () => toast("CSVを書き出しました（モック）") }],
+  });
+}
+
+function openStarDialog(S) {
+  const t = S.tops[0], t2 = S.tops[1];
+  openDialog({
+    title: "実績として書き出す（STAR形式）", sub: "職務経歴書・面談用",
+    body: `<p class="dlg-text">よく感謝される場面を、状況・課題・行動・結果の順に整理して書き出します。</p>
+      <div class="prev"><pre>■ ${esc(t.title)}
+Situation  急ぎの依頼が重なる時期に、
+Task       ${esc(t.tag)}を求められる場面が${t.count}回ありました。
+Action     依頼の背景を確認し、判断に必要な条件を添えて即日で返しました。
+Result     ${esc(t.quote)}
+
+■ ${esc(t2.title)}
+Situation  情報が散らばり、判断がつかない状態で、
+Task       ${esc(t2.tag)}を求められる場面が${t2.count}回ありました。
+Action     論点別に整理し直し、1枚で伝わる形にまとめました。
+Result     ${esc(t2.quote)}</pre></div>`,
+    actions: [{ label: "閉じる" }, { label: "書き出す", primary: true, run: () => toast("実績シートを書き出しました（モック）") }],
+  });
+}
+
+function openAnnualDialog() {
+  const total = ANNUAL.months.reduce((a, b) => a + b[1], 0);
+  openDialog({
+    title: "年間アルバム", sub: "1年分を1冊にまとめて、PDFで持ち出せます",
+    cls: "wide",
+    body: `<div class="book">
+        <div class="book-cover">
+          <h4>${ANNUAL.title}</h4>
+          <p>${ANNUAL.sub}　／　全 ${total} 通</p>
+        </div>
+        <div class="book-months">
+          ${ANNUAL.months.map(([m, c]) => `<div class="bm">${m}<b>${c}</b>通</div>`).join("")}
+        </div>
+      </div>
+      <p class="dlg-text" style="margin-top:12px;">月ごとのページに、その月に届いた言葉と送り主が並びます。じぶんのメモは含めません。</p>`,
+    actions: [{ label: "閉じる" }, { label: "PDFで書き出す", primary: true, run: () => toast("年間アルバムを書き出しました（モック）") }],
+  });
+}
+
+/* =========================================================================
+   7. 推移チャート（期間タブ・横スクロール・ホバーでクロスヘア＋数値）
+   ========================================================================= */
+const PERIODS = [["1w","1週間"],["1m","1か月"],["1y","1年"],["3y","3年"],["5y","5年"]];
+function chartWidget(mount, shape, defaultPeriod = "1y") {
+  const el = typeof mount === "string" ? $(mount) : mount;
+  let period = defaultPeriod;
+  el.innerHTML = `
+    <div class="chart-tabs">${PERIODS.map(([k, l]) =>
+      `<button class="chart-tab ${k === period ? "active" : ""}" data-p="${k}">${l}</button>`).join("")}</div>
+    <div class="chart-legend"><span class="lg-recv">もらった</span><span class="lg-sent">おくった</span></div>
+    <div class="chart-scroll"><div class="chart-inner">
+      <div class="cross-line"></div><div class="chart-tip"></div>
+      <div class="chart-svg"></div>
+    </div></div>`;
+  const tabs = el.querySelectorAll(".chart-tab");
+  tabs.forEach(t => t.onclick = () => {
+    period = t.dataset.p;
+    tabs.forEach(x => x.classList.toggle("active", x === t));
+    draw();
+  });
+
+  function dataFor() {
+    if (period === "1w") return { d: slice(shape.daily30, 7) };
+    if (period === "1m") return { d: shape.daily30 };
+    if (period === "1y") return { d: slice(shape.monthly, 12) };
+    if (period === "3y") return { d: slice(shape.monthly, 36) };
+    return { d: shape.monthly };
+  }
+  let geo = null;
+  function draw() {
+    const { d } = dataFor();
+    const n = d.labels.length;
+    const px = n <= 12 ? 0 : (n <= 36 ? 30 : 26);   // 3年以上は横スクロール
+    const contW = el.querySelector(".chart-scroll").clientWidth || 500;
+    const w = px === 0 ? contW : Math.max(contW, n * px);
+    const h = 210, padL = 8, padR = 8, padT = 8, padB = 24;
+    const max = Math.max(...d.recv, ...d.sent) * 1.15 || 1;
+    const x = i => padL + i * (w - padL - padR) / (n - 1);
+    const y = v => h - padB - v / max * (h - padT - padB);
+    const pts = arr => arr.map((v, i) => `${x(i)},${y(v)}`).join(" ");
+    const step = Math.ceil(n / 12);
+    const labels = d.labels.map((l, i) => i % step === 0
+      ? `<text class="axis-label" x="${x(i)}" y="${h - 6}" text-anchor="middle">${l}</text>` : "").join("");
+    const gridY = [0.25, 0.5, 0.75, 1].map(f =>
+      `<line class="line-grid" x1="${padL}" y1="${y(max * f / 1.15)}" x2="${w - padR}" y2="${y(max * f / 1.15)}"/>`).join("");
+    /* 通常時は数値ラベルを出さない。数値はホバーしたときだけ */
+    el.querySelector(".chart-svg").innerHTML =
+      `<svg width="${w}" height="${h}" role="img" aria-label="もらった・おくったの推移">${gridY}
+        <polyline class="line-recv" points="${pts(d.recv)}"/>
+        <polyline class="line-sent" points="${pts(d.sent)}"/>
+        ${labels}</svg>`;
+    geo = { d, n, w, x };
+    el.querySelector(".chart-inner").style.width = w + "px";
+    el.querySelector(".chart-scroll").scrollLeft = w;   // 最新側へ
+  }
+  const inner = el.querySelector(".chart-inner");
+  const cross = el.querySelector(".cross-line");
+  const tip = el.querySelector(".chart-tip");
+  inner.addEventListener("mousemove", e => {
+    if (!geo) return;
+    const rect = inner.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    let best = 0, bd = 1e9;
+    for (let i = 0; i < geo.n; i++) { const dd = Math.abs(geo.x(i) - mx); if (dd < bd) { bd = dd; best = i; } }
+    const cx = geo.x(best);
+    cross.style.display = "block"; cross.style.left = cx + "px";
+    tip.style.display = "block";
+    tip.innerHTML = `${geo.d.labels[best]}<br><span class="tip-recv">もらった <b>${geo.d.recv[best]}</b></span>　<span class="tip-sent">おくった <b>${geo.d.sent[best]}</b></span>`;
+    const tw = tip.offsetWidth;
+    tip.style.left = Math.min(Math.max(cx - tw / 2, 4), geo.w - tw - 4) + "px";
+    tip.style.top = "14px";
+  });
+  inner.addEventListener("mouseleave", () => { cross.style.display = "none"; tip.style.display = "none"; });
+  draw();
+  /* 非表示のタブ内で描くと幅が測れないため、表示された時点で描き直す */
+  let lastW = el.querySelector(".chart-scroll").clientWidth;
+  const ro = new ResizeObserver(entries => {
+    const w = Math.round(entries[0].contentRect.width);
+    if (w > 0 && w !== lastW) { lastW = w; draw(); }
+  });
+  ro.observe(el.querySelector(".chart-scroll"));
+  window.addEventListener("resize", () => { if (document.body.contains(el)) draw(); });
+}
+
+/* =========================================================================
+   8. カタチ（本人・メンバー共通のコンポーネント）
+   ========================================================================= */
+function tagBars(S, cmp) {
+  const max = Math.max(...S.tags.map(t => t[1]));
+  const past = cmp && S.past && S.past[cmp] ? S.past[cmp].tags : null;
+  return S.tags.map(([n, c]) => {
+    const p = past ? (past[n] || 0) : null;
+    return `
+    <div class="bar-row" style="--cc:${tagColor(n)}">
+      <div class="bar-label">${n}</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:${Math.round(c / max * 100)}%"></div>
+        ${p !== null ? `<div class="bar-mark" style="left:${Math.round(p / max * 100)}%" title="${S.past[cmp].label}：${p}"></div>` : ""}
+      </div>
+      <div class="bar-count">${c}${p !== null ? `<small>+${c - p}</small>` : ""}</div>
+    </div>`;
+  }).join("");
+}
+
+function renderShapeInto(el, S, allowJump) {
+  const uid = "chart_" + Math.random().toString(36).slice(2, 8);
+  let cmp = "";
+
+  const topsHTML = list => list.map((t, i) => `
+    <${allowJump ? "button" : "div"} class="top-card ${allowJump ? "jump" : ""}" style="--cc:${tagColor(t.tag)}" ${allowJump ? `data-jump="${t.tag}"` : ""}>
+      <div class="top-rank">${i + 1}</div>
+      <div class="top-title">${t.title}</div>
+      <div class="top-quote">${t.quote}</div>
+      <div class="top-count">${t.count}回のありがとう${allowJump ? "<span>　→ アルバムで見る</span>" : ""}</div>
+    </${allowJump ? "button" : "div"}>`).join("");
+
+  const rep = S.report ? Object.keys(S.report.months) : [];
+
+  el.innerHTML = `
+    <div class="two-col">
+      <div class="panel">
+        <h2>感謝された場面</h2>
+        <div class="panel-sub">タグは現在 ${S.tags.length}つ。感謝の内容から自動で生まれ、増えていきます</div>
+        ${S.past ? `<div class="cmp-row">
+          <span>過去のじぶんと重ねる</span>
+          <div class="seg" data-cmp-seg>
+            <button data-cmp="" aria-pressed="true">なし</button>
+            <button data-cmp="6m" aria-pressed="false">半年前</button>
+            <button data-cmp="1y" aria-pressed="false">1年前</button>
+          </div>
+          <span id="${uid}_cmpnote"></span>
+        </div>` : ""}
+        <div id="${uid}_bars">${tagBars(S, cmp)}</div>
+        <div class="note-box" style="margin-top:14px;"><b>オブリエのメモ</b>${S.memo}</div>
+        <button class="btn" style="margin-top:14px;" data-star>実績として書き出す（STAR形式）</button>
+      </div>
+      <div class="panel">
+        <h2>ありがとうの推移</h2>
+        <div class="panel-sub">チャートにマウスをのせると、その時点の数が見られます</div>
+        <div id="${uid}"></div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-bottom:16px;">
+      <h2>よく感謝される場面</h2>
+      <div class="panel-sub">${allowJump ? "押すと、その場面のありがとうをアルバムで見られます" : "順位ではなく、届いた回数の多い場面です"}</div>
+      <div class="top-grid" id="${uid}_tops">${topsHTML(S.tops.slice(0, 3))}</div>
+      ${S.tops.length > 3 ? `<div style="text-align:center; margin-top:14px;"><button class="btn" data-more>もっと見る（TOP${Math.min(S.tops.length, 10)}まで）</button></div>` : ""}
+    </div>
+
+    ${S.reactions ? `<div class="panel" style="margin-bottom:16px;">
+      <h2>小さなありがとう</h2>
+      <div class="panel-sub">感謝の絵文字リアクションは、カードにはせず控えめに数えています</div>
+      <div class="react-row">
+        <div class="react-num">${S.reactions.count}<span style="font-size:12px; font-weight:400; color:var(--stage-ink-soft);"> 回</span></div>
+        <div class="react-emo">${S.reactions.emoji.map(e => `<span>${e}</span>`).join("")}</div>
+        <div class="mini-note" style="flex:1; min-width:200px;">言葉になる前の感謝として、カタチと推移の集計にだけ含めています。</div>
+      </div>
+    </div>` : ""}
+
+    ${rep.length ? `<div class="panel" style="margin-bottom:16px;">
+      <h2>今月のカタチレポート</h2>
+      <div class="panel-sub">カタチの変化と、その月を代表するエピソードをオブリエが言葉にしています</div>
+      <div class="toolbar" style="margin-bottom:12px;">
+        <select class="select" id="${uid}_repsel">${rep.map(m => `<option value="${m}">${m}</option>`).join("")}</select>
+      </div>
+      <div id="${uid}_rep"></div>
+    </div>` : ""}
+
+    <div class="panel">
+      <h2>ありがとうの広がり</h2>
+      <div class="panel-sub">どこから届いているか</div>
+      <div class="map-groups">${S.groups.map(g => `
+        <div class="map-group"><h3>${g.dept}</h3><div class="map-people">
+          ${g.people.map(([ini, name, c]) => `<span class="chip"><span class="ava-x">${ini}</span>${name}<small>（${c}）</small></span>`).join("")}
+        </div></div>`).join("")}
+      </div>
+    </div>`;
+
+  chartWidget(uid, S);
+
+  /* もっと見る（TOP10まで） */
+  const more = el.querySelector("[data-more]");
+  if (more) more.addEventListener("click", () => {
+    $(uid + "_tops").innerHTML = topsHTML(S.tops.slice(0, 10));
+    wireJumps();
+    more.remove();
+  });
+  function wireJumps() {
+    el.querySelectorAll("[data-jump]").forEach(b =>
+      b.addEventListener("click", () => gotoAlbumWithTag(b.dataset.jump)));
+  }
+  if (allowJump) wireJumps();
+
+  /* STAR書き出し */
+  el.querySelector("[data-star]").addEventListener("click", () => openStarDialog(S));
+
+  /* カタチの経年比較（他人とは比べない） */
+  const seg = el.querySelector("[data-cmp-seg]");
+  if (seg) seg.addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    cmp = b.dataset.cmp;
+    seg.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+    $(uid + "_bars").innerHTML = tagBars(S, cmp);
+    $(uid + "_cmpnote").textContent = cmp ? `${S.past[cmp].label}のじぶんを縦線で重ねています。比べるのは、過去のじぶんだけです。` : "";
+  });
+
+  /* 月次カタチレポート */
+  const sel = $(uid + "_repsel");
+  if (sel) {
+    const drawRep = () => {
+      const r = S.report.months[sel.value];
+      $(uid + "_rep").innerHTML = `
+        <div class="note-box" style="margin-bottom:10px;"><b>カタチの変化</b>${r.change}</div>
+        <div class="note-box" style="margin-bottom:10px;"><b>代表エピソード</b>${r.episode}</div>
+        <div class="note-box"><b>ひとこと</b>${r.word}</div>`;
+    };
+    sel.addEventListener("change", drawRep);
+    drawRep();
+  }
+}
+
+/* =========================================================================
+   9. ロール・画面切替
+   ========================================================================= */
+let ROLE = "person";
+const PERSON_VIEWS = { album: "viewAlbum", shape: "viewShape", sent: "viewSent" };
+const ALL_VIEWS = ["viewAlbum", "viewShape", "viewSent", "viewTeam", "viewMember", "viewAdmin"];
+const hideAllViews = () => ALL_VIEWS.forEach(v => $(v).classList.add("hidden"));
+
+function showPersonView(name) {
+  if (ROLE !== "person") setRole("person", true);
+  hideAllViews();
+  $(PERSON_VIEWS[name]).classList.remove("hidden");
+  document.querySelectorAll("#personTabs .tab").forEach(t => t.classList.toggle("active", t.dataset.v === name));
+}
+
+function setRole(role, quiet) {
+  ROLE = role;
+  document.querySelectorAll("#roleSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.role === role)));
+  $("personTabs").classList.toggle("hidden", role !== "person");
+  $("demoBtn").classList.toggle("hidden", role !== "person");
+  $("meBox").innerHTML = role === "person" ? '<span>YUKIYAMAさん</span><div class="ava-s">Y</div>'
+    : role === "boss" ? '<span>上司さん（マネージャー）</span><div class="ava-s">上</div>'
+    : '<span>管理者さん（情報システム部）</span><div class="ava-s">管</div>';
+  hideAllViews();
+  if (role === "person") {
+    if (!quiet) showPersonView("album"); else $("viewAlbum").classList.remove("hidden");
+  } else if (role === "boss") {
+    renderMembers();
+    $("viewTeam").classList.remove("hidden");
+  } else {
+    showAdmin(currentAdminTab);
+    $("viewAdmin").classList.remove("hidden");
+  }
+  window.scrollTo({ top: 0 });
+}
+
+/* =========================================================================
+   10. 上司：メンバー一覧（S06）
+   ========================================================================= */
+let sortKey = null, sortDir = -1;
+function setSort(key) {
+  if (sortKey === key) sortDir *= -1; else { sortKey = key; sortDir = -1; }
+  renderMembers();
+}
+function periodSum(shape, months) {
+  return {
+    r: shape.monthly.recv.slice(-months).reduce((a, b) => a + b, 0),
+    s: shape.monthly.sent.slice(-months).reduce((a, b) => a + b, 0),
+  };
+}
+function sparkline(shape, w = 130, h = 34) {
+  const hist = slice(shape.monthly, 6);
+  const max = Math.max(...hist.recv, ...hist.sent) || 1;
+  const n = hist.recv.length;
+  const x = i => 3 + i * (w - 6) / (n - 1);
+  const y = v => h - 4 - v / max * (h - 10);
+  const pts = arr => arr.map((v, i) => `${x(i)},${y(v)}`).join(" ");
+  return `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true">
+    <polyline class="line-recv" style="stroke-width:2" points="${pts(hist.recv)}"/>
+    <polyline class="line-sent" style="stroke-width:2" points="${pts(hist.sent)}"/></svg>`;
+}
+function renderMembers() {
+  const months = parseInt($("teamPeriod").value, 10);
+  const q = $("teamSearch").value.trim();
+  const alertOnly = $("alertOnly").checked;
+  let rows = MEMBERS.map((m, i) => ({ m, i, ...periodSum(m.shape, months) }))
+    .filter(x => (!q || x.m.name.includes(q)) && (!alertOnly || x.m.alert));
+  if (sortKey === "recv") rows.sort((a, b) => (a.r - b.r) * sortDir);
+  if (sortKey === "sent") rows.sort((a, b) => (a.s - b.s) * sortDir);
+  $("sortRecv").textContent = sortKey === "recv" ? (sortDir < 0 ? "▼" : "▲") : "";
+  $("sortSent").textContent = sortKey === "sent" ? (sortDir < 0 ? "▼" : "▲") : "";
+  $("memberRows").innerHTML = rows.map(x => `
+    <tr class="clickable" tabindex="0" data-mi="${x.i}">
+      <td><div class="mt-name"><div class="ava-s">${x.m.ini}</div><div>${x.m.name}${x.m.alert ? ' <span class="alert-chip">要確認</span>' : ""}<small>${x.m.role}</small></div></div></td>
+      <td><span class="mt-num">${x.r}<small>通</small></span></td>
+      <td><span class="mt-num" style="color:var(--line-sent)">${x.s}<small>通</small></span></td>
+      <td>${sparkline(x.m.shape)}</td>
+    </tr>`).join("") || '<tr><td colspan="4" style="text-align:center;color:var(--stage-ink-soft);">該当するメンバーがいません</td></tr>';
+  $("memberRows").querySelectorAll("tr[data-mi]").forEach(tr => {
+    const open = () => openMember(+tr.dataset.mi);
+    tr.addEventListener("click", open);
+    tr.addEventListener("keydown", e => { if (e.key === "Enter") open(); });
+  });
+}
+
+/* =========================================================================
+   11. 上司：メンバー詳細（S07）／1on1準備メモ（S08）
+   ========================================================================= */
+let currentMember = null;
+const BOSS_OPTS = { clickable: true, memo: false, del: false, report: false, fav: false };
+const STATIC_OPTS = { clickable: false, memo: false, del: false, report: false, fav: false };
+
+function openMember(i) {
+  const m = MEMBERS[i];
+  currentMember = m;
+  const p = periodSum(m.shape, 1);
+  $("detailHead").innerHTML = `
+    <div class="ava-l">${m.ini}</div>
+    <div><div class="detail-name">${m.name}</div>
+    <div class="detail-sub">${m.role} ・ 今月：もらった ${p.r}通 ／ おくった ${p.s}通</div></div>`;
+  const months = Object.keys(m.reports);
+  $("reportList").innerHTML = months.map((mo, j) =>
+    `<button class="report-item" data-rep="${mo}">${mo} のレポート<small>${j === 0 ? "最新" : ""}</small></button>`).join("")
+    + (months.length === 1 ? '<div style="font-size:11px;color:var(--stage-ink-soft);margin-top:6px;">それ以前のレポートは蓄積中です</div>' : "");
+  $("reportList").querySelectorAll("[data-rep]").forEach(b =>
+    b.addEventListener("click", () => openReport(m, b.dataset.rep)));
+  $("detailAlert").innerHTML = m.alert
+    ? '<span class="alert-chip">最新レポートに、気にかけたいサインがあります</span><div class="mini-note" style="margin-top:8px;">受け取りまたはおくりが前月比50%以上減った月が2か月続いています。本人には通知していません。</div>'
+    : '<div class="mini-note">気にかけたいサインは出ていません。</div>';
+  showMemberSub("album");
+  hideAllViews();
+  $("viewMember").classList.remove("hidden");
+  window.scrollTo({ top: 0 });
+  logAudit("アルバム閲覧", m.name);
+}
+
+function showMemberSub(name) {
+  document.querySelectorAll("#memberSubTabs .sub-tab").forEach(t => t.classList.toggle("active", t.dataset.s === name));
+  const m = currentMember, el = $("memberSub");
+  if (name === "album") {
+    el.innerHTML = '<div class="grid"></div>';
+    if (m.key === "yuki") renderAlbumInto(el.firstChild, DATA.filter(d => !d.isNew), BOSS_OPTS);
+    else renderAlbumInto(el.firstChild, MEMBER_CARDS[m.key] || [], STATIC_OPTS);
+  } else if (name === "shape") {
+    el.innerHTML = "<div></div>";
+    renderShapeInto(el.firstChild, m.shape, false);
+  } else {
+    el.innerHTML = '<div class="grid"></div>';
+    if (m.key === "yuki") renderAlbumInto(el.firstChild, SENT, BOSS_OPTS);
+    else el.innerHTML = '<div class="hero-note">まだ記録がありません。</div>';
+  }
+}
+
+function openReport(m, month) {
+  const r = m.reports[month];
+  openDialog({
+    title: `1on1の準備メモ ― ${m.name}`, sub: `${month} ・ 5分で読めるようにまとめています`,
+    cls: "wide",
+    body: `
+      <div class="r-sec"><h3>① 今月のようす</h3>
+        <div class="digest-row">
+          <div class="digest-item"><b>${r.digest.recv}通</b>もらった</div>
+          <div class="digest-item"><b>${r.digest.sent}通</b>おくった</div>
+          ${r.digest.newSenders.length ? `<div class="digest-item"><b>${r.digest.newSenders.join("・")}</b>新しい送り主</div>` : ""}
+          ${r.digest.upTag ? `<div class="digest-item"><b>${r.digest.upTag}</b>増えている場面</div>` : ""}
+        </div>
+        <div class="digest-note">${r.digest.trendNote}</div>
+      </div>
+      <div class="r-sec"><h3>② そのまま伝えられる称賛</h3>
+        ${r.praises.map(p => `
+          <div class="praise">
+            <div class="praise-quote">「${p.quote}」</div>
+            <div class="praise-from">${p.from} ― ${p.fact}</div>
+            <div class="praise-say"><b>伝え方の例</b>${p.say}</div>
+          </div>`).join("")}
+      </div>
+      <div class="r-sec"><h3>③ 気にかけたいサイン</h3>
+        ${r.sign ? `<div class="alert-box"><b>気にかけたいサイン</b>${r.sign}<br>本人には通知していません。</div>`
+                 : `<div class="ok-box">${r.signNote || "特記すべきサインはありません。"}</div>`}
+      </div>
+      <div class="r-sec"><h3>④ 聞いてみたい問い</h3>
+        ${r.questions.map(q => `<div class="q-item">${q}</div>`).join("")}
+      </div>
+      <div class="r-sec" style="margin-bottom:0;"><h3>⑤ 前回からの持ち越し</h3>
+        <div class="carry-box">${r.carry}</div>
+      </div>`,
+    actions: [
+      { label: "1on1メモを書く", run: () => toast("1on1メモを保存しました（モック）") },
+      { label: "PDFで書き出す", primary: true, run: () => { logAudit("レポートPDF書き出し", `${m.name}・${month}`); toast("レポートを書き出しました（モック）"); } },
+    ],
+  });
+  logAudit("1on1準備メモ閲覧", `${m.name}・${month}`);
+}
+
+/* =========================================================================
+   12. 管理者
+   ========================================================================= */
+let currentAdminTab = "conn";
+function nowStamp() {
+  const d = new Date(), p = n => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+/** 上司・管理者の閲覧は監査ログに記録する（基本設計 7章） */
+function logAudit(op, target) {
+  if (ROLE === "person") return;
+  const who = ROLE === "boss" ? "上司さん（上司）" : "管理者さん（管理者）";
+  ADMIN.audit.unshift({ t: nowStamp(), who, op, target, live: true });
+  if (ROLE === "admin" && currentAdminTab === "audit") showAdmin("audit");
+}
+
+function showAdmin(tab) {
+  currentAdminTab = tab;
+  document.querySelectorAll("#adminTabs .sub-tab").forEach(t => t.classList.toggle("active", t.dataset.a === tab));
+  const el = $("adminBody");
+  if (tab === "conn") {
+    el.innerHTML = `
+      <div class="panel-stack">
+        ${ADMIN.conns.map((c, i) => `
+        <div class="panel">
+          <h2>${c.name}</h2>
+          <div class="panel-sub">メッセージの取り込み元</div>
+          <div class="adm-row"><div class="k">接続状態</div><div class="v"><span class="status-dot">接続中</span></div>
+            <button class="btn" data-reconn="${i}">再連携する</button></div>
+          <div class="adm-row"><div class="k">接続先</div><div class="v">${c.org}　（接続日 ${c.since}）</div></div>
+          <div class="adm-row"><div class="k">トークン</div><div class="v">${c.token}</div></div>
+          <div class="adm-row"><div class="k">解析対象</div><div class="v">
+            ${c.scope}
+            <div class="ch-list" style="margin-top:8px;">${c.channels.map(ch => `<span class="ch">${ch}</span>`).join("")}</div>
+          </div><button class="btn" data-editch="${i}">対象を編集</button></div>
+        </div>`).join("")}
+        <div class="panel">
+          <h2>過去ログの取り込み</h2>
+          <div class="panel-sub">初回連携時にさかのぼって解析します</div>
+          <div class="adm-row"><div class="k">状態</div><div class="v"><span class="status-dot">完了（過去1年分・2025-08-01）</span></div>
+            <button class="btn" data-refetch>もう一度取り込む</button></div>
+          <div class="lock-note"><span>■</span><div>感謝と判定されなかったメッセージの本文は保存していません。じぶんのメモは、管理者からも参照できません。</div></div>
+        </div>
+      </div>`;
+    el.querySelectorAll("[data-reconn]").forEach(b => b.addEventListener("click", () =>
+      toast(`${ADMIN.conns[b.dataset.reconn].name} の再連携画面を開きます（モック）`)));
+    el.querySelectorAll("[data-editch]").forEach(b => b.addEventListener("click", () =>
+      toast("解析対象チャンネルの編集（モック）")));
+    el.querySelector("[data-refetch]").addEventListener("click", () => toast("過去ログの取り込みを開始しました（モック）"));
+
+  } else if (tab === "team") {
+    el.innerHTML = `
+      <div class="panel">
+        <h2>チーム／メンバー管理</h2>
+        <div class="panel-sub">所属と上司の割当を変更できます。個人のアルバムの中身は、この画面からは見られません</div>
+        <div class="table-scroll">
+          <table class="tbl wide">
+            <thead><tr><th>メンバー</th><th>所属チーム</th><th>直属の上司</th><th>権限</th></tr></thead>
+            <tbody>
+              ${ADMIN.people.map((p, i) => `
+              <tr>
+                <td><div class="mt-name"><div class="ava-s">${p.ini}</div>${p.name}</div></td>
+                <td><select class="adm-select" data-p="${i}" data-f="team">${ADMIN.teams.map(t => `<option ${t === p.team ? "selected" : ""}>${t}</option>`).join("")}</select></td>
+                <td><select class="adm-select" data-p="${i}" data-f="boss">${ADMIN.bosses.map(t => `<option ${t === p.boss ? "selected" : ""}>${t}</option>`).join("")}</select></td>
+                <td><select class="adm-select" data-p="${i}" data-f="role">${ADMIN.roles.map(t => `<option ${t === p.role ? "selected" : ""}>${t}</option>`).join("")}</select></td>
+              </tr>`).join("")}
+            </tbody>
+          </table>
+        </div>
+        <div class="toolbar" style="margin-top:14px;">
+          <button class="btn" data-addm>メンバーを追加</button>
+          <button class="btn" data-addt>チームを追加</button>
+        </div>
+        <div class="lock-note"><span>■</span><div>上司を割り当てると、その上司はチームメンバーのアルバムと月次レポートを閲覧できるようになります。閲覧は監査ログに記録されます。</div></div>
+      </div>`;
+    el.querySelectorAll(".adm-select").forEach(s => s.addEventListener("change", () => {
+      const p = ADMIN.people[s.dataset.p]; p[s.dataset.f] = s.value;
+      logAudit("メンバー設定の変更", `${p.name}・${s.dataset.f}`);
+      toast("保存しました");
+    }));
+    el.querySelector("[data-addm]").addEventListener("click", () => toast("メンバーの追加（モック）"));
+    el.querySelector("[data-addt]").addEventListener("click", () => toast("チームの追加（モック）"));
+
+  } else if (tab === "audit") {
+    el.innerHTML = `
+      <div class="panel">
+        <h2>監査ログ</h2>
+        <div class="panel-sub">上司・管理者によるアルバム閲覧、レポート閲覧、書き出し、設定変更の記録です（保持期間1年）</div>
+        <div class="table-scroll">
+          <table class="tbl wide">
+            <thead><tr><th>日時</th><th>操作した人</th><th>操作</th><th>対象</th></tr></thead>
+            <tbody>${ADMIN.audit.map(a => `
+              <tr><td style="white-space:nowrap;font-family:'Courier New',monospace;">${a.t}</td>
+                  <td>${a.who}</td><td>${a.op}</td><td>${a.target}</td></tr>`).join("")}
+            </tbody>
+          </table>
+        </div>
+        <div class="toolbar" style="margin-top:14px;"><button class="btn" data-auditcsv>CSVで書き出す</button></div>
+        <div class="lock-note"><span>■</span><div>記録するのは「誰が・いつ・誰のアルバムを見たか」までです。本人のじぶんのメモは、上司・管理者のいずれからも参照できず、ログにも残りません。<br>このプロトタイプでは、上司ビューでの閲覧操作がこの一覧に追記されます。</div></div>
+      </div>`;
+    el.querySelector("[data-auditcsv]").addEventListener("click", () => openDialog({
+      title: "監査ログをCSVで書き出す", sub: `${ADMIN.audit.length}件`,
+      body: `<div class="prev"><pre>日時,操作した人,操作,対象
+${esc(ADMIN.audit.slice(0, 4).map(a => `${a.t},${a.who},${a.op},${a.target}`).join("\n"))}
+…</pre></div>`,
+      actions: [{ label: "閉じる" }, { label: "書き出す", primary: true, run: () => toast("監査ログを書き出しました（モック）") }],
+    }));
+
+  } else {
+    const q = ADMIN.quality;
+    el.innerHTML = `
+      <div class="panel">
+        <h2>検出品質のモニタ</h2>
+        <div class="panel-sub">今月（2026年7月）の検出のようす</div>
+        <div class="stat-row">
+          <div class="stat"><b>${q.judged.toLocaleString()}</b>LLMで判定した件数</div>
+          <div class="stat"><b>${q.carded}</b>カードとして保存</div>
+          <div class="stat"><b>${q.threshold.toFixed(2)}</b>信頼度のしきい値</div>
+          <div class="stat"><b>${q.reports}</b>「感謝ではない」の報告</div>
+        </div>
+        <div class="panel-sub" style="margin-top:20px;">信頼度の分布</div>
+        <div class="dist">
+          <span style="width:${q.dist[0]}%; background:var(--c-jr);"></span>
+          <span style="width:${q.dist[1]}%; background:var(--c-idea);"></span>
+          <span style="width:${q.dist[2]}%; background:var(--navy-line);"></span>
+        </div>
+        <div class="dist-legend">
+          <span><i style="background:var(--c-jr)"></i>0.90以上　${q.dist[0]}%</span>
+          <span><i style="background:var(--c-idea)"></i>0.80〜0.90　${q.dist[1]}%</span>
+          <span><i style="background:var(--navy-line)"></i>0.80未満（保存しない）　${q.dist[2]}%</span>
+        </div>
+        <div class="lock-note"><span>■</span><div>信頼度 0.80 以上と判定されたものだけをカードにしています。0.80未満と、感謝ではないと判定されたメッセージは、本文を保存せず件数だけを記録します。<br>「感謝ではない」の報告は、判定の学習（負例の追加としきい値の調整）に使います。</div></div>
+      </div>`;
+  }
+}
+
+/* =========================================================================
+   13. 新着デモ（F06 新着演出）
+   ========================================================================= */
+function playDemo() {
+  const first = $("grid").querySelector('.card[data-id="0"]');
+  $("count").textContent = "264";
+  $("count").classList.remove("pop");
+  if (!first || !first._m) return;
+  first._m.op.jump(0); first._m.ty.jump(28); kick();
+  setTimeout(() => {
+    first._m.enter(0);
+    setTimeout(() => {
+      $("count").textContent = "265";
+      $("count").classList.add("pop");
+      setTimeout(() => $("count").classList.remove("pop"), 400);
+    }, 320);
+  }, 500);
+}
+
+/* =========================================================================
+   14. 起動
+   ========================================================================= */
+initTagFilter();
+applyFilters();
+renderMilestones();
+renderAlbumInto($("sentGrid"), SENT, { clickable: true, memo: false, del: false, report: false, fav: false });
+renderShapeInto($("myShape"), MY_SHAPE, true);
+
+document.querySelectorAll("#personTabs .tab").forEach(t =>
+  t.addEventListener("click", () => showPersonView(t.dataset.v)));
+$("roleSeg").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  setRole(b.dataset.role);
+});
+$("tagFilter").addEventListener("change", applyFilters);
+$("favFilter").addEventListener("change", applyFilters);
+$("btnCsv").addEventListener("click", openCsvDialog);
+$("btnYear").addEventListener("click", openAnnualDialog);
+$("teamPeriod").addEventListener("change", renderMembers);
+$("teamSearch").addEventListener("input", renderMembers);
+$("alertOnly").addEventListener("change", renderMembers);
+document.querySelectorAll(".tbl th.sortable").forEach(th =>
+  th.addEventListener("click", () => setSort(th.dataset.sort)));
+$("backToTeam").addEventListener("click", () => {
+  hideAllViews(); $("viewTeam").classList.remove("hidden");
+});
+document.querySelectorAll("#memberSubTabs .sub-tab").forEach(t =>
+  t.addEventListener("click", () => showMemberSub(t.dataset.s)));
+document.querySelectorAll("#adminTabs .sub-tab").forEach(t =>
+  t.addEventListener("click", () => showAdmin(t.dataset.a)));
+$("demoBtn").addEventListener("click", playDemo);
+</script>
+</body>
+</html>

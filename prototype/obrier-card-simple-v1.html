@@ -313,9 +313,25 @@
   /* --- パターンごとの要素の出し分け --- */
   .c-head { display: none; }                       /* 左寄せの送り主行：Cのみ */
   .pat-c .c-head { display: flex; }
-  .c-foot { display: none; }                       /* タグピル＋日時の行：B/D/C */
-  .pat-b .c-foot, .pat-d .c-foot, .pat-c .c-foot {
+  .c-foot { display: none; }                       /* タグピル＋日時の行：全案で出す */
+  .pat-a .c-foot, .pat-b .c-foot, .pat-d .c-foot, .pat-c .c-foot {
     display: flex; align-items: center; gap: 8px; width: 100%; margin-top: auto; padding-top: 4px;
+  }
+  .pat-a .wl-tag { display: none; }                /* タグはピルで出すので名前だけにする */
+  /* ベタ塗りの面に乗るので、タグピルは白抜きの枠だけにして色を足さない */
+  .pat-a .tagpill {
+    background: rgba(255,255,255,.22); color: var(--ci);
+    border-color: color-mix(in srgb, var(--ci) 42%, transparent);
+  }
+  /* 日付＝かすれたゴム印。インクはカード面の文字色に合わせる */
+  .pat-a .c-time {
+    font-size: 10px; letter-spacing: .05em; padding: 2px 8px; border-radius: 2px;
+    border: 1.5px solid var(--ci); color: var(--ci);
+    transform: rotate(var(--stamp-rot, -2deg));
+    -webkit-mask-image: var(--ink-mask); mask-image: var(--ink-mask);
+    -webkit-mask-size: 150px 44px; mask-size: 150px 44px;
+    -webkit-mask-position: var(--stamp-shift, 0) 0; mask-position: var(--stamp-shift, 0) 0;
+    opacity: .78;
   }
   .c-time { margin-left: auto; font-size: 10.5px; color: var(--ink-soft); font-family: "Courier New", monospace; }
   .pat-c .c-time { transform: rotate(-1deg); }
@@ -447,9 +463,9 @@
     <div class="ctrl">
       <span>デザイン</span>
       <div class="seg" id="segPattern">
-        <button data-pat="pat-a" aria-pressed="false">A ベタ塗り</button>
+        <button data-pat="pat-a" aria-pressed="true">A ベタ塗り（正）</button>
         <button data-pat="pat-b" aria-pressed="false">B 紙＋タグ色</button>
-        <button data-pat="pat-d" aria-pressed="true">D 紙＋マステ（正）</button>
+        <button data-pat="pat-d" aria-pressed="false">D 紙＋マステ</button>
         <button data-pat="pat-c" aria-pressed="false">C 現行v4</button>
       </div>
     </div>
@@ -504,14 +520,14 @@
       </ul>
     </div>
     <div class="memo-card">
-      <h3>採用：D（紙＋マステ）</h3>
+      <h3>採用：A（ベタ塗り）</h3>
       <ul>
-        <li>Bの整い（白い紙・タグピル）にCの手ざわり（マステ・紙質・静かな傾き）を足したもの</li>
-        <li>本文はゴシック。手ざわりはマステと紙の質感で出す</li>
+        <li>場面タグの色でカード全面を塗る。一覧にしたとき色の面が効いて、これが一番リッチに見える</li>
+        <li>本文はゴシックの白抜き（淡い黄・ピンクだけ濃色インク）</li>
         <li>浮かせるのはアイコンだけ。文字も日時もカードと同じ高さに置く</li>
-        <li>詳細は濃紺で、アイコンの色に揃える</li>
+        <li>日付はかすれたゴム印。詳細は濃紺で、アイコンの色に揃える</li>
         <li>クリックでカードが移動しながら裏返り、拡大して詳細になる</li>
-        <li>A・B・Cは比較用に残してある</li>
+        <li>B・D・Cは比較用に残してある</li>
       </ul>
     </div>
   </div>
@@ -684,7 +700,7 @@ const PAT_CONF = {
   "pat-d": { tilt: 0,   glare: 0,   liftZ: 0,  liftY: -3, straighten: true,  shadY: 6,  shadBlur: 14, shadA: .10 },
   "pat-c": { tilt: 0,   glare: 0,   liftZ: 0,  liftY: -3, straighten: true,  shadY: 6,  shadBlur: 14, shadA: .10 },
 };
-let CUR_PAT = "pat-d";
+let CUR_PAT = "pat-a";
 
 /* D/C：カードごとのわずかな静的傾き（deg）。Dは±1°未満に抑える */
 const BASE_ROT = {
@@ -1139,7 +1155,7 @@ function wireSeg(id, fn, attr) {
    起動
    ========================================================================= */
 buildGrid();
-setPattern("pat-d");
+setPattern("pat-a");
 wireSeg("segPattern", setPattern, "pat");
 wireSeg("segTheme", setTheme, "theme");
 document.getElementById("optTilt").addEventListener("change", e => {
