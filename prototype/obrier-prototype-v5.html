@@ -72,6 +72,8 @@
   .seg button:hover { background: color-mix(in srgb, var(--stage-ink) 9%, transparent); opacity: 1; }
   .seg button[aria-pressed="true"] { background: var(--stage-ink); color: #fff; opacity: 1; font-weight: 700; }
   .me { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--stage-ink-soft); flex: none; }
+  .build { font-size: 10px; letter-spacing: .06em; color: var(--stage-ink-soft); opacity: .5; flex: none; font-variant-numeric: tabular-nums; }
+  @media (max-width: 640px) { .build { display: none; } }
   .ava-s { width: 28px; height: 28px; border-radius: 50%; background: var(--ava); color: #fff; display: grid; place-items: center; font-size: 11.5px; font-weight: 800; flex: none; }
 
   /* ---------------- 本体 ---------------- */
@@ -501,6 +503,8 @@
       <button data-role="admin" aria-pressed="false">管理者</button>
     </div>
     <div class="me" id="meBox"><span>YUKIYAMAさん</span><div class="ava-s">Y</div></div>
+    <!-- どの版を見ているかを確かめるための表示。更新されていないと思ったときはここを見る -->
+    <span class="build" title="この版の識別子">rev.9 戻り座標を測り直す版</span>
   </div>
 </header>
 
