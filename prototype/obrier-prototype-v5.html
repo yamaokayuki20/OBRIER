@@ -381,7 +381,7 @@
   .f-back {
     position: relative; transform: rotateY(180deg);
     backface-visibility: hidden; -webkit-backface-visibility: hidden;
-    max-height: calc(100vh - 60px); overflow-y: auto;
+    max-height: calc(100vh - 60px); overflow-y: auto; overscroll-behavior: contain;
   }
   .sheet-head { display: flex; align-items: center; gap: 10px; padding: 20px 22px 12px; }
   .sheet-head b { font-size: 13.5px; }
@@ -1459,25 +1459,33 @@ function openFlight(ov, card) {
     return { close: () => ov.remove() };
   }
 
-  const r = card.getBoundingClientRect();
-  const s = wrap.getBoundingClientRect();
-
   // 表はカードの実寸、裏は詳細の実寸。どちらも大きさを変えないので、
   // 一度ラスタライズすれば以降は描き直しが起きない。
   // 拡大は scale ではなく「表と裏の寸法差」で表す。
   // 大きさが変わるのはちょうど90度の瞬間で、そこは両面とも真横を向いていて見えない
-  Object.assign(front.style, { width: r.width + "px", height: r.height + "px" });
+  const r0 = card.getBoundingClientRect();
+  Object.assign(front.style, { width: r0.width + "px", height: r0.height + "px" });
 
-  const dx = (r.left + r.width / 2) - (s.left + s.width / 2);
-  const dy = (r.top + r.height / 2) - (s.top + s.height / 2);
-
-  const frames = [
-    { transform: `perspective(1800px) translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) rotateY(0deg)` },
-    { transform: `perspective(1800px) translate(0px, 0px) rotateY(180deg)` },
-  ];
-  const play = (reverse) =>
-    wrap.animate(reverse ? [...frames].reverse() : frames,
+  /* カードと詳細の位置の差は、開くときと閉じるときで**そのつど測り直す**。
+     開いたときの値を使い回すと、その間にページが動いていた場合、
+     カードは古い位置に戻ろうとして最後に飛ぶ。
+     詳細の静止位置は、オーバーレイが中央寄せなのでその中心と一致する */
+  const delta = () => {
+    const r = card.getBoundingClientRect(), o = ov.getBoundingClientRect();
+    return {
+      dx: (r.left + r.width / 2) - (o.left + o.width / 2),
+      dy: (r.top + r.height / 2) - (o.top + o.height / 2),
+    };
+  };
+  const play = (reverse) => {
+    const { dx, dy } = delta();
+    const f = [
+      { transform: `perspective(1800px) translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) rotateY(0deg)` },
+      { transform: `perspective(1800px) translate(0px, 0px) rotateY(180deg)` },
+    ];
+    return wrap.animate(reverse ? [...f].reverse() : f,
       { duration: FLIP_MS, easing: FLIP_EASE, fill: "forwards" });
+  };
 
   const bg = ov.querySelector(".overlay-bg");
   card.style.visibility = "hidden";
