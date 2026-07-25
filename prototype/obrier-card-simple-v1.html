@@ -10,24 +10,31 @@
     --paper: #fffdf7; --ink: #3d3229; --ink-soft: #6f6355;
     --accent: #c98a3d; --accent-deep: #8a5a1c; --accent-soft: #f3e3cb; --line: #e3d8c3;
 
-    /* 場面タグ＝カード色（ベタ塗り用のパステル） */
-    --c-speed: #dde9a0; --i-speed: #4a6316;
-    --c-doc:   #bcd6f7; --i-doc:   #274d80;
-    --c-coord: #d8cbf4; --i-coord: #4b3689;
-    --c-care:  #f9bfd8; --i-care:  #8e2f57;
-    --c-jr:    #fbc887; --i-jr:    #8a4c0d;
-    --c-idea:  #fbe58b; --i-idea:  #8a6208;
-    --c-share: #a9e6cf; --i-share: #14634a;
+    /* 場面タグ＝カード色（参考イメージ準拠の7色）。
+       各色に「その面の上で使うインク色」を対で定義する。
+       黄・ピンクは濃色インク、それ以外は白インクを基本にする */
+    --c-speed: #F08A24; --i-speed: #ffffff;   /* orange     … スピード対応 */
+    --c-doc:   #3D85C8; --i-doc:   #ffffff;   /* blue       … 資料品質 */
+    --c-coord: #55B7BF; --i-coord: #ffffff;   /* teal       … 調整力 */
+    --c-care:  #F2A0BC; --i-care:  #7c2b45;   /* pink       … 気配り（濃色インク） */
+    --c-jr:    #33915F; --i-jr:    #ffffff;   /* green      … 後輩サポート */
+    --c-idea:  #F5C63C; --i-idea:  #6b4a05;   /* yellow     … アイデア（濃色インク） */
+    --c-share: #E8502F; --i-share: #ffffff;   /* vermilion  … 情報共有 */
 
-    /* 背景テーマ（切替） */
-    --bg: #1c3ac9;
-    --stage-ink: #ffffff;
-    --stage-ink-soft: rgba(255,255,255,.62);
+    /* アバターは全員この1色（白抜きイニシャル＋白リング） */
+    --ava: #3A4A66;
+
+    /* 背景テーマ（切替）：デフォルトは白地×薄い青の方眼 */
+    --bg: #ffffff;
+    --grid-line: rgba(90,143,216,.13);
+    --stage-ink: #2c3345;
+    --stage-ink-soft: rgba(44,51,69,.62);
     --grain: 0;
   }
-  /* 背景：紙テーマ */
+  /* 背景：オブリエクリームの紙テーマ */
   body.theme-paper {
     --bg: #f0e8d6;
+    --grid-line: transparent;
     --stage-ink: #3d3229;
     --stage-ink-soft: #6f6355;
     --grain: .5;
@@ -36,11 +43,15 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html { -webkit-text-size-adjust: 100%; }
   body {
-    background: var(--bg);
+    background-color: var(--bg);
+    /* 白地×薄い青の方眼（グラフ用紙）。紙テーマでは --grid-line が透明になり消える */
+    background-image:
+      repeating-linear-gradient(0deg,  var(--grid-line) 0, var(--grid-line) 1px, transparent 1px, transparent 24px),
+      repeating-linear-gradient(90deg, var(--grid-line) 0, var(--grid-line) 1px, transparent 1px, transparent 24px);
     color: var(--stage-ink);
     font-family: "Hiragino Maru Gothic ProN", "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
     min-height: 100vh;
-    transition: background .5s ease, color .5s ease;
+    transition: background-color .5s ease, color .5s ease;
     overflow-x: hidden;
   }
   /* 紙テーマのときだけグレインを出す（オブリエらしさの最小単位） */
@@ -93,21 +104,20 @@
   .card3d {
     position: relative; transform-style: preserve-3d; will-change: transform;
     transition: box-shadow .25s ease;
+    /* 動的影は .card3d に載るため、face と同じ角丸を持たせて四隅を丸く保つ */
+    border-radius: 18px;
   }
+  .pat-b .card3d { border-radius: 12px; }
+  .pat-c .card3d { border-radius: 6px; }
   /* overflow は指定しない（overflow:hidden は transform-style を flat に落とし、
      子要素の translateZ による奥行きパララックスが効かなくなるため） */
   .face {
     border-radius: 18px;
-    backface-visibility: hidden; -webkit-backface-visibility: hidden;
     transform-style: preserve-3d;
-  }
-  .face.back {
-    position: absolute; inset: 0; transform: rotateY(180deg);
-    display: flex; flex-direction: column;
   }
   .glare {
     position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 3;
-    background: radial-gradient(220px circle at var(--gx, 50%) var(--gy, 50%), rgba(255,255,255,.75), rgba(255,255,255,0) 62%);
+    background: radial-gradient(330px circle at var(--gx, 50%) var(--gy, 50%), rgba(255,255,255,.75), rgba(255,255,255,0) 62%);
     opacity: var(--glare, 0);
   }
 
@@ -121,13 +131,11 @@
   }
   .ava {
     width: 56px; height: 56px; border-radius: 50%; flex: none;
+    background: var(--ava);   /* アバターは全員1色に統一 */
     display: grid; place-items: center; color: #fff; font-size: 20px; font-weight: 800;
     box-shadow: 0 0 0 5px rgba(255,255,255,.9), 0 6px 14px rgba(0,0,0,.14);
     transform: translateZ(38px);
   }
-  .av-boss{background:#4e9b6f}.av-a{background:#5a79b8}.av-b{background:#b85a86}.av-c{background:#8a67b8}
-  .av-d{background:#c2913a}.av-e{background:#4f9aa8}.av-f{background:#7d8f4a}.av-g{background:#a86060}
-  .av-i{background:#607da8}.av-me{background:#d96f32}
   .say {
     font-size: 15px; line-height: 2.05; letter-spacing: .1em; text-align: center; font-weight: 700;
     transform: translateZ(24px);
@@ -136,19 +144,12 @@
     margin-top: auto; font-size: 11px; letter-spacing: .12em; opacity: .72; font-weight: 700;
     transform: translateZ(14px);
   }
-  .corner-fav {
-    position: absolute; top: 12px; right: 13px; z-index: 4;
-    width: 30px; height: 30px; border-radius: 50%; border: none; cursor: pointer;
-    background: rgba(255,255,255,.5); color: rgba(0,0,0,.24); font-size: 14px; line-height: 1;
-    display: grid; place-items: center; transform: translateZ(40px);
-    transition: background .2s, color .2s;
-  }
-  .corner-fav:hover { background: #fff; }
-  .faved .corner-fav { background: #fff; color: #e0a62f; text-shadow: 0 1px 4px rgba(224,166,47,.6); }
   .corner-new {
     position: absolute; top: 14px; left: 14px; z-index: 4; transform: translateZ(40px);
     font-size: 9.5px; font-weight: 800; letter-spacing: .14em;
-    background: rgba(255,255,255,.92); color: var(--ci); border-radius: 999px; padding: 4px 10px;
+    background: rgba(255,255,255,.92); border-radius: 999px; padding: 4px 10px;
+    /* 白地ピルの文字はカード色を深くしたインクで（白インクの色でも読めるように） */
+    color: color-mix(in srgb, var(--cc) 62%, #1d2430);
   }
   .memo-dot {
     position: absolute; bottom: 14px; right: 16px; z-index: 4; transform: translateZ(30px);
@@ -168,7 +169,6 @@
     font-weight: 400; letter-spacing: .04em; line-height: 2.1; font-size: 15px;
   }
   .pat-b .who-line { color: var(--ink-soft); opacity: 1; }
-  .pat-b .corner-fav { background: rgba(0,0,0,.04); }
   .pat-b .corner-new { background: var(--accent); color: #fff; }
   .pat-b .memo-dot { background: #f0dc63; box-shadow: 0 0 0 3px rgba(240,220,99,.3); }
   .pat-b .face { border-radius: 12px; }
@@ -203,7 +203,6 @@
     transform: none;
   }
   .pat-c .who-line { display: none; }
-  .pat-c .corner-fav { background: none; box-shadow: none; transform: none; top: 4px; right: 6px; }
 
   /* --- パターンごとの要素の出し分け --- */
   .c-head { display: none; }                       /* 左寄せの送り主行：Cのみ */
@@ -215,31 +214,16 @@
   .c-time { margin-left: auto; font-size: 10.5px; color: var(--ink-soft); font-family: "Courier New", monospace; }
   .pat-c .c-time { transform: rotate(-1deg); }
 
-  /* ---------------- カード裏面 ---------------- */
-  .back {
-    background: #fffdf7; color: var(--ink);
-    padding: 22px 22px 18px; gap: 12px;
-  }
-  body:not(.theme-paper) .back { background: #fffdf7; }
-  .back-label { font-size: 9.5px; letter-spacing: .2em; color: var(--accent-deep); font-weight: 800; }
-  .back-row { display: flex; align-items: center; gap: 10px; font-size: 12px; }
-  .back-row .ava { width: 34px; height: 34px; font-size: 13px; box-shadow: none; transform: none; }
-  .back-row b { font-size: 13px; }
-  .back-row small { display: block; color: var(--ink-soft); font-size: 10.5px; font-weight: 400; }
-  .src-pill { margin-left: auto; font-size: 9.5px; color: var(--ink-soft); border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; display: flex; align-items: center; gap: 5px; }
+  /* ---------------- 出典ピル・小ボタン（拡大詳細で使用） ---------------- */
+  .src-pill { font-size: 9.5px; color: var(--ink-soft); border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; display: flex; align-items: center; gap: 5px; }
   .src-pill::before { content: ""; width: 7px; height: 7px; border-radius: 2px; background: #611f69; }
   .src-pill.teams::before { background: #4b53bc; }
-  .back-note { font-size: 11.5px; line-height: 1.9; color: var(--ink-soft); }
-  .back-memo { background: #fdf7d8; border-radius: 3px 12px 12px 12px; padding: 10px 12px; font-size: 11.5px; line-height: 1.8; }
-  .back-memo b { display: block; font-size: 9.5px; letter-spacing: .12em; color: #8a7a2a; margin-bottom: 4px; }
-  .back-foot { margin-top: auto; display: flex; align-items: center; gap: 8px; padding-top: 6px; }
   .mini-btn {
     font-family: inherit; font-size: 11px; font-weight: 700; cursor: pointer;
     border: 1px solid var(--line); background: #fff; color: var(--accent-deep);
     border-radius: 999px; padding: 6px 14px;
   }
   .mini-btn:hover { border-color: var(--accent); background: var(--accent-soft); }
-  .back-time { margin-left: auto; font-size: 10px; color: var(--ink-soft); font-family: "Courier New", monospace; }
 
   /* ---------------- ヒーロー：カードの束 ---------------- */
   .stage {
@@ -288,7 +272,7 @@
   .memo-card ul { padding-left: 1.1em; }
   .memo-card li { margin-bottom: 4px; }
 
-  /* ---------------- モーダル（経緯） ---------------- */
+  /* ---------------- モーダル（拡大詳細） ---------------- */
   .overlay { position: fixed; inset: 0; background: rgba(28,22,16,.5); display: grid; place-items: center; z-index: 60; padding: 20px; }
   .sheet {
     background: var(--paper); color: var(--ink); border-radius: 22px; width: min(560px, 100%);
@@ -310,6 +294,35 @@
   .is-thanks .bub-text { background: var(--cc); color: var(--ci); font-weight: 700; }
   .thanks-flag { font-size: 10px; font-weight: 800; color: var(--accent); margin-top: 6px; letter-spacing: .06em; }
   .thanks-flag::before { content: "✦ "; }
+
+  /* 拡大詳細のパーツ */
+  .sheet-head .src-pill { margin-left: 2px; }
+  .sheet-time { margin-left: auto; font-size: 10.5px; color: var(--ink-soft); font-family: "Courier New", monospace; white-space: nowrap; }
+  .sheet-head .sheet-close { margin-left: 10px; flex: none; }
+  .sheet-sec {
+    font-size: 9.5px; letter-spacing: .2em; color: var(--accent-deep); font-weight: 800;
+    margin: 18px 0 8px;
+  }
+  .sheet-sec:first-child { margin-top: 6px; }
+  .sheet-summary { font-size: 12.5px; line-height: 1.9; color: var(--ink-soft); }
+  .sheet-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+  .fav-btn[aria-pressed="true"] { border-color: #e0a62f; background: #fdf4dc; color: #a8770f; }
+  .memo-ta {
+    width: 100%; min-height: 72px; resize: vertical; font-family: inherit; font-size: 12.5px; line-height: 1.8;
+    background: #fdf7d8; border: 1px solid #eadf9e; border-radius: 3px 12px 12px 12px; padding: 10px 12px;
+    color: var(--ink); outline: none;
+  }
+  .memo-ta:focus { border-color: var(--accent); }
+  .memo-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+  .memo-row small { font-size: 10.5px; color: var(--ink-soft); }
+  .memo-row .mini-btn { margin-left: auto; }
+  .sheet-danger { margin-top: 22px; padding-top: 14px; border-top: 1px dashed var(--line); display: flex; }
+  .danger-btn {
+    font-family: inherit; font-size: 11px; font-weight: 700; cursor: pointer;
+    border: 1px solid #e3b9b3; background: #fff; color: #b0432f;
+    border-radius: 999px; padding: 6px 14px;
+  }
+  .danger-btn:hover { background: #fbeeec; border-color: #cf7f72; }
 
   .toast {
     position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%);
@@ -338,7 +351,7 @@
     <div class="ctrl">
       <span>背景</span>
       <div class="seg" id="segTheme">
-        <button data-theme="theme-vivid" aria-pressed="true">ビビッド</button>
+        <button data-theme="theme-grid" aria-pressed="true">方眼</button>
         <button data-theme="theme-paper" aria-pressed="false">紙</button>
       </div>
     </div>
@@ -354,7 +367,7 @@
     <h1>カードを、これ以上ないくらい削ってみる。<br>そのぶん、動きに全部かける。</h1>
     <p>
       情報を「言葉・送り主・場面の色」の3つだけに絞ったカードです。出典やチャネル、日時、メモといった脇の情報は、
-      裏面とモーションのなかに逃がしています。上のスイッチで、削りすぎた案（A）／折衷案（B）／現行v4（C）を切り替えて見比べられます。
+      カードをクリックして開く拡大詳細に逃がしています。上のスイッチで、削りすぎた案（A）／折衷案（B）／現行v4（C）を切り替えて見比べられます。
     </p>
   </section>
 
@@ -362,7 +375,7 @@
   <div class="stage"><div class="deck" id="deck"></div></div>
   <div class="hint">
     <span><kbd>hover</kbd>傾ける</span>
-    <span><kbd>click</kbd>裏返す</span>
+    <span><kbd>click</kbd>詳細</span>
     <span><kbd>束の外側</kbd>をクリックで次のカードへ</span>
   </div>
 
@@ -384,7 +397,7 @@
       <h3>削ると失うもの</h3>
       <ul>
         <li>紙・マステ・明朝という「アルバムの世界観」（設計原則1）が薄まり、SaaSのカードUIに寄る</li>
-        <li>出典・チャネル・日時が表から消えるため、裏面かホバーに必ず逃がす設計が要る</li>
+        <li>出典・チャネル・日時が表から消えるため、クリックで開く拡大詳細に必ず逃がす設計が要る</li>
         <li>色の意味を覚えるまでは、タグ名の併記が必要</li>
       </ul>
     </div>
@@ -394,7 +407,7 @@
         <li>ベタ塗りの潔さは上帯とタグピルに残す</li>
         <li>感謝の本文だけは明朝のまま守る</li>
         <li>紙の地・グレイン・月ごとの綴じは維持</li>
-        <li>チルト／めくり／束のモーションはAと共通で使える</li>
+        <li>チルト／拡大詳細／束のモーションはAと共通で使える</li>
       </ul>
     </div>
   </div>
@@ -535,11 +548,12 @@ function tick(now) {
 }
 
 /* =========================================================================
-   カードコントローラ（チルト・めくり・浮き・光沢・登場）
+   カードコントローラ（チルト・浮き・光沢・登場）
    ========================================================================= */
 const OPT = { tilt: true, glare: true };
-const MAX_TILT = 13;   // deg
-const LIFT_Z   = 34;   // px
+const MAX_TILT = 6.5;  // deg
+const LIFT_Z   = 17;   // px
+const GLARE_MAX = .28;
 
 class CardMotion {
   constructor(root) {
@@ -549,7 +563,6 @@ class CardMotion {
     this.ry = new Spring(0, { stiffness: 220, damping: 22 });
     this.z  = new Spring(0, { stiffness: 260, damping: 26 });
     this.s  = new Spring(1, { stiffness: 420, damping: 28 });
-    this.flip = new Spring(0, { stiffness: 130, damping: 17 });   // 0 → 180
     this.op = new Spring(0, { stiffness: 150, damping: 22 });
     this.ty = new Spring(28, { stiffness: 150, damping: 22 });
     this.gx = 50; this.gy = 50;
@@ -559,7 +572,6 @@ class CardMotion {
     this.slotR = new Spring(0, { stiffness: 180, damping: 20 });
     this.slotS = new Spring(1, { stiffness: 180, damping: 20 });
     this.baseRot = 0;
-    this.flipped = false;
     engine.items.add(this);
     this.bind();
   }
@@ -578,22 +590,16 @@ class CardMotion {
     });
     r.addEventListener("pointerenter", () => {
       this.z.set(LIFT_Z);
-      if (OPT.glare) this.glare.set(.55);
+      if (OPT.glare) this.glare.set(GLARE_MAX);
       kick();
     });
     r.addEventListener("pointerleave", () => {
       this.rx.set(0); this.ry.set(0); this.z.set(0); this.glare.set(0); this.s.set(1);
       kick();
     });
-    r.addEventListener("pointerdown", () => { this.s.set(.96); kick(); });
+    r.addEventListener("pointerdown", () => { this.s.set(.97); kick(); });
     ["pointerup", "pointercancel"].forEach(t =>
       r.addEventListener(t, () => { this.s.set(1); kick(); }));
-  }
-
-  toggleFlip() {
-    this.flipped = !this.flipped;
-    this.flip.set(this.flipped ? 180 : 0);
-    kick();
   }
 
   enter(delay = 0) {
@@ -608,14 +614,13 @@ class CardMotion {
 
   update(dt) {
     let a = false;
-    [this.rx, this.ry, this.z, this.s, this.flip, this.op, this.ty,
+    [this.rx, this.ry, this.z, this.s, this.op, this.ty,
      this.glare, this.slotX, this.slotY, this.slotR, this.slotS]
       .forEach(sp => { if (sp.step(dt)) a = true; });
 
-    const ry = this.ry.v + this.flip.v;
     this.el.style.transform =
       `translate3d(${this.slotX.v.toFixed(2)}px, ${(this.slotY.v + this.ty.v).toFixed(2)}px, 0) ` +
-      `rotateX(${this.rx.v.toFixed(2)}deg) rotateY(${ry.toFixed(2)}deg) ` +
+      `rotateX(${this.rx.v.toFixed(2)}deg) rotateY(${this.ry.v.toFixed(2)}deg) ` +
       `rotateZ(${(this.slotR.v + this.baseRot).toFixed(2)}deg) ` +
       `translateZ(${this.z.v.toFixed(2)}px) scale(${(this.s.v * this.slotS.v).toFixed(3)})`;
     this.root.style.opacity = this.op.v.toFixed(3);
@@ -642,31 +647,15 @@ function cardHTML(d) {
     <div class="face front">
       <div class="glare"></div>
       ${d.isNew ? '<div class="corner-new">NEW</div>' : ""}
-      <button class="corner-fav" data-fav aria-label="お気に入り">★</button>
       <div class="c-head">
-        <div class="ava ${d.av}">${d.ini}</div>
+        <div class="ava">${d.ini}</div>
         <div><b>${d.who}</b><small>${d.ch}</small></div>
       </div>
-      <div class="ava ${d.av}" data-hero-ava>${d.ini}</div>
+      <div class="ava" data-hero-ava>${d.ini}</div>
       <div class="say">${d.msg}</div>
       <div class="who-line">${d.who}<span class="wl-tag">　/　${d.tag}</span></div>
       <div class="c-foot"><span class="tagpill">${d.tag}</span><span class="c-time">${d.time}</span></div>
       ${d.myMemo ? '<div class="memo-dot" title="じぶんのメモあり"></div>' : ""}
-    </div>
-    <div class="face back">
-      <div class="glare"></div>
-      <div class="back-label">この言葉について</div>
-      <div class="back-row">
-        <div class="ava ${d.av}">${d.ini}</div>
-        <div><b>${d.who}</b><small>${d.ch}</small></div>
-        <div class="src-pill ${d.src === "Teams" ? "teams" : ""}">${d.src}</div>
-      </div>
-      <div class="back-note">${d.summary}</div>
-      ${d.myMemo ? `<div class="back-memo"><b>じぶんのメモ（本人のみ）</b>${d.myMemo}</div>` : ""}
-      <div class="back-foot">
-        <button class="mini-btn" data-thread>やり取りを見る</button>
-        <span class="back-time">${d.time}</span>
-      </div>
     </div>
   </div>`;
 }
@@ -674,10 +663,10 @@ function cardHTML(d) {
 function buildCard(d, { hero = false } = {}) {
   const [cc, ci] = TAGS[d.tag] || ["--c-speed", "--i-speed"];
   const root = document.createElement("div");
-  root.className = "card" + (d.fav ? " faved" : "");
+  root.className = "card";
   root.tabIndex = 0;
   root.setAttribute("role", "button");
-  root.setAttribute("aria-label", `${d.who}からの「${d.msg.replace(/<br>/g, "")}」`);
+  root.setAttribute("aria-label", `${d.who}からの「${d.msg.replace(/<br>/g, "")}」の詳細を開く`);
   root.style.setProperty("--cc", `var(${cc})`);
   root.style.setProperty("--ci", `var(${ci})`);
   root.style.opacity = "0";          // 登場アニメの初期値（1フレーム目のちらつき防止）
@@ -688,24 +677,14 @@ function buildCard(d, { hero = false } = {}) {
   root._m = m;
   root._d = d;
 
-  root.addEventListener("click", e => {
-    if (e.target.closest("[data-fav]")) { toggleFav(root, d); return; }
-    if (e.target.closest("[data-thread]")) { openThread(d, root); return; }
+  root.addEventListener("click", () => {
     if (hero && root !== deckOrder[0]) { cycleDeck(root); return; }
-    m.toggleFlip();
+    openThread(d, root);
   });
   root.addEventListener("keydown", e => {
     if (e.key === "Enter" || e.key === " ") { e.preventDefault(); root.click(); }
   });
   return root;
-}
-
-function toggleFav(root, d) {
-  d.fav = !d.fav;
-  root.classList.toggle("faved", d.fav);
-  const m = root._m;
-  m.s.jump(1.14); m.s.set(1); kick();          // ぷるっと跳ねる
-  toast(d.fav ? "お気に入りに登録しました" : "お気に入りを外しました");
 }
 
 /* =========================================================================
@@ -720,6 +699,8 @@ let deckOrder = [];
 
 function buildDeck() {
   const deck = document.getElementById("deck");
+  deck.querySelectorAll(".card").forEach(el => engine.items.delete(el._m));
+  deck.innerHTML = "";
   deckOrder = DATA.slice(0, 3).map(d => {
     const el = buildCard(d, { hero: true });
     deck.appendChild(el);
@@ -734,7 +715,6 @@ function layoutDeck() {
 /** 束の後ろのカードをクリック → 前のカードを放り投げて入れ替える */
 function cycleDeck() {
   const front = deckOrder[0];
-  if (front._m.flipped) front._m.toggleFlip();
   // いったん外へ放る → 最後尾に戻す
   front._m.slot({ x: -150, y: -70, rot: -16, scale: 1.02, z: 4 });
   deckOrder.push(deckOrder.shift());
@@ -746,6 +726,7 @@ function cycleDeck() {
    ========================================================================= */
 function buildGrid() {
   const grid = document.getElementById("grid");
+  grid.querySelectorAll(".card").forEach(el => engine.items.delete(el._m));
   grid.innerHTML = "";
   let last = null, n = 0;
   DATA.forEach(d => {
@@ -760,9 +741,19 @@ function buildGrid() {
   });
 }
 
+/** 削除後などに束とグリッドを作り直す（現在のパターン設定を維持） */
+function rebuildAll() {
+  buildDeck();
+  buildGrid();
+  const pat = ["pat-a", "pat-b", "pat-c"].find(p => document.body.classList.contains(p)) || "pat-a";
+  setPattern(pat);
+}
+
 /* =========================================================================
-   経緯モーダル（カードから立ち上がるように出す）
+   拡大詳細モーダル（カードから立ち上がるように出す。チルト・光沢は適用しない）
    ========================================================================= */
+const escHTML = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+
 function openThread(d, fromCard) {
   const [cc, ci] = TAGS[d.tag] || ["--c-speed", "--i-speed"];
   const ov = document.createElement("div");
@@ -770,25 +761,78 @@ function openThread(d, fromCard) {
   ov.style.setProperty("--cc", `var(${cc})`);
   ov.style.setProperty("--ci", `var(${ci})`);
   ov.innerHTML = `
-    <div class="sheet" role="dialog" aria-modal="true">
+    <div class="sheet" role="dialog" aria-modal="true" aria-label="${d.who}からの「ありがとう」の詳細">
       <div class="sheet-head">
-        <div class="ava ${d.av}" style="width:34px;height:34px;font-size:13px;box-shadow:none;transform:none;">${d.ini}</div>
-        <div><b>この「ありがとう」の経緯</b><small>${d.src} ${d.ch} ・ ${d.time}</small></div>
+        <div class="ava" style="width:34px;height:34px;font-size:13px;box-shadow:none;transform:none;">${d.ini}</div>
+        <div><b>${d.who}</b><small>${d.ch}</small></div>
+        <div class="src-pill ${d.src === "Teams" ? "teams" : ""}">${d.src}</div>
+        <span class="sheet-time">${d.time}</span>
         <button class="sheet-close" aria-label="閉じる">✕</button>
       </div>
       <div class="sheet-body">
+        <div class="sheet-sec">オブリエのメモ</div>
+        <p class="sheet-summary">${d.summary}</p>
+        <div class="sheet-sec">やり取りの流れ</div>
         ${d.story.map(s => `
           <div class="bub-row ${s.mine ? "mine" : ""} ${s.thanks ? "is-thanks" : ""}">
-            <div class="ava ${s.av}" style="box-shadow:none;transform:none;">${s.ini}</div>
+            <div class="ava" style="box-shadow:none;transform:none;">${s.ini}</div>
             <div class="bub">
               <div class="bub-name">${s.who}<span>${s.time}</span></div>
               <div class="bub-text">${s.text}</div>
-              ${s.thanks ? '<div class="thanks-flag">この言葉をアルバムに綴じました</div>' : ""}
+              ${s.thanks ? '<div class="thanks-flag">この言葉を保存しました</div>' : ""}
             </div>
           </div>`).join("")}
+        <div class="sheet-actions">
+          <button class="mini-btn" data-open-src>${d.src}で開く</button>
+          <button class="mini-btn fav-btn" data-mfav aria-pressed="${d.fav}">★ お気に入り</button>
+        </div>
+        <div class="sheet-sec">じぶんのメモ</div>
+        <textarea class="memo-ta" data-memo placeholder="気づいたことを、じぶんのために残しておけます">${escHTML(d.myMemo || "")}</textarea>
+        <div class="memo-row">
+          <small>このメモはあなただけに表示されます</small>
+          <button class="mini-btn" data-save-memo>保存</button>
+        </div>
+        <div class="sheet-danger">
+          <button class="danger-btn" data-del>このカードを削除する</button>
+        </div>
       </div>
     </div>`;
   document.body.appendChild(ov);
+
+  // 詳細内の操作
+  ov.querySelector("[data-open-src]").addEventListener("click", () =>
+    toast("元のメッセージを開きます（モック）"));
+
+  const favBtn = ov.querySelector("[data-mfav]");
+  favBtn.addEventListener("click", () => {
+    d.fav = !d.fav;
+    favBtn.setAttribute("aria-pressed", String(d.fav));
+    toast(d.fav ? "お気に入りに登録しました" : "お気に入りを外しました");
+  });
+
+  ov.querySelector("[data-save-memo]").addEventListener("click", () => {
+    d.myMemo = ov.querySelector("[data-memo]").value.trim();
+    // カード表面のメモドットへ反映（束・グリッドの両方）
+    document.querySelectorAll(`.card[data-id="${d.id}"]`).forEach(card => {
+      let dot = card.querySelector(".memo-dot");
+      if (d.myMemo && !dot) {
+        dot = document.createElement("div");
+        dot.className = "memo-dot"; dot.title = "じぶんのメモあり";
+        card.querySelector(".front").appendChild(dot);
+      }
+      if (!d.myMemo && dot) dot.remove();
+    });
+    toast("じぶんのメモを保存しました");
+  });
+
+  ov.querySelector("[data-del]").addEventListener("click", () => {
+    if (!confirm("削除すると、あとから元に戻すことはできません。このカードを削除しますか？")) return;
+    const i = DATA.indexOf(d);
+    if (i >= 0) DATA.splice(i, 1);
+    close();
+    rebuildAll();
+    toast("カードを削除しました");
+  });
 
   // 元カードの位置からせり上がる（簡易 shared element）
   const sheet = ov.querySelector(".sheet");
