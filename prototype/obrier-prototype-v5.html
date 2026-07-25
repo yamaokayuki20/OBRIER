@@ -30,7 +30,7 @@
     --stage-ink-soft: rgba(44,51,69,.62);
 
     /* パネル */
-    --panel-line: #e4e8f0; --panel-bg: #ffffff; --panel-soft: #f6f8fb;
+    --panel-line: #d7e0ee; --panel-bg: #f4f7fc; --panel-soft: #ffffff;
 
     /* チャート2系列 */
     --line-recv: #3A4A66; --line-sent: #55B7BF;
@@ -228,9 +228,27 @@
   /* よく感謝される場面 */
   .top-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
   @media (max-width: 780px) { .top-grid { grid-template-columns: 1fr; } }
-  .top-card { background: var(--panel-soft); border-radius: 12px; padding: 15px 16px; display: flex; flex-direction: column; gap: 7px; border: 1px solid transparent; transition: transform .15s, box-shadow .15s, border-color .15s; text-align: left; font-family: inherit; }
+  .top-card {
+    background: #fff; border-radius: 12px; padding: 15px 16px 14px;
+    display: flex; flex-direction: column; gap: 7px;
+    border: 1px solid var(--panel-line); border-left: 4px solid var(--cc);
+    transition: transform .15s, box-shadow .15s, border-color .15s, background .15s;
+    text-align: left; font-family: inherit;
+  }
+  /* 押せることが見た目で分かるように、枠・矢印・ホバーの反応を付ける */
   .top-card.jump { cursor: pointer; }
-  .top-card.jump:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(44,51,69,.10); border-color: var(--panel-line); }
+  .top-card.jump:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(44,51,69,.12); border-color: var(--cc); }
+  .top-card.jump:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; }
+  .top-card.jump:hover .top-go { background: var(--cc); color: #fff; border-color: transparent; }
+  .top-go {
+    align-self: flex-start; margin-top: 2px;
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11px; font-weight: 700; border-radius: 999px; padding: 4px 11px;
+    border: 1px solid var(--panel-line); background: var(--panel-bg);
+    color: color-mix(in srgb, var(--cc) 55%, #1d2430);
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  .top-go::after { content: "→"; font-weight: 800; }
   .top-rank { font-size: 11px; font-weight: 800; letter-spacing: .12em; color: color-mix(in srgb, var(--cc) 55%, #1d2430); }
   .top-title { font-size: 13.5px; font-weight: 800; line-height: 1.6; color: var(--stage-ink); }
   .top-quote { font-size: 11.5px; color: var(--stage-ink-soft); line-height: 1.7; }
@@ -353,7 +371,7 @@
   }
   .f-front {
     position: absolute; left: 50%; top: 50%; translate: -50% -50%;
-    transform-origin: center; pointer-events: none; z-index: 2; will-change: transform;
+    transform-origin: center; pointer-events: none; z-index: 2;
     backface-visibility: hidden; -webkit-backface-visibility: hidden;
   }
   .f-front .card3d, .f-front .face { width: 100%; height: 100%; }
@@ -1428,49 +1446,36 @@ function openThread(d, fromCard, opts) {
    （逆数はコマごとに焼き込むので、途中で伸び縮みしない）。
    ========================================================================= */
 const FLIP_MS = 380;
-const FLIP_STEPS = 24;
+const FLIP_EASE = "cubic-bezier(.4,0,.25,1)";
 
 function openFlight(ov, card) {
   const wrap = ov.querySelector(".flipwrap");
   const front = ov.querySelector(".f-front");
   const back  = ov.querySelector(".f-back");
   if (REDUCED || !card) {
-    if (wrap) { wrap.style.transform = "none"; front.style.display = "none"; }
+    if (wrap) { wrap.style.transform = "none"; if (front) front.style.display = "none"; }
     return { close: () => ov.remove() };
   }
 
   const r = card.getBoundingClientRect();
-  const s = wrap.getBoundingClientRect();          // 詳細の最終的な位置と大きさ
+  const s = wrap.getBoundingClientRect();
 
-  // 表面はカードの実寸で置く（引き伸ばさない）
+  // 表はカードの実寸、裏は詳細の実寸。どちらも大きさを変えないので、
+  // 一度ラスタライズすれば以降は描き直しが起きない。
+  // 拡大は scale ではなく「表と裏の寸法差」で表す。
+  // 大きさが変わるのはちょうど90度の瞬間で、そこは両面とも真横を向いていて見えない
   Object.assign(front.style, { width: r.width + "px", height: r.height + "px" });
 
-  const k  = r.width / s.width;                     // 開始時の縮尺
   const dx = (r.left + r.width / 2) - (s.left + s.width / 2);
   const dy = (r.top + r.height / 2) - (s.top + s.height / 2);
 
-  /** t=0→1 のコマを作る。表面の逆数 scale もここで焼き込む */
-  const frames = (reverse) => {
-    const wrapK = [], frontK = [];
-    for (let i = 0; i <= FLIP_STEPS; i++) {
-      const t = reverse ? 1 - i / FLIP_STEPS : i / FLIP_STEPS;
-      const sc = k + (1 - k) * t;
-      wrapK.push({
-        offset: i / FLIP_STEPS,
-        transform: `perspective(1800px) translate(${(dx * (1 - t)).toFixed(2)}px, ${(dy * (1 - t)).toFixed(2)}px) ` +
-                   `scale(${sc.toFixed(4)}) rotateY(${(180 * t).toFixed(2)}deg)`,
-      });
-      frontK.push({ offset: i / FLIP_STEPS, transform: `scale(${(1 / sc).toFixed(4)})` });
-    }
-    return { wrapK, frontK };
-  };
-
-  const play = (reverse) => {
-    const { wrapK, frontK } = frames(reverse);
-    const opt = { duration: FLIP_MS, easing: "linear", fill: "forwards" };
-    front.animate(frontK, opt);
-    return wrap.animate(wrapK, opt);
-  };
+  const frames = [
+    { transform: `perspective(1800px) translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) rotateY(0deg)` },
+    { transform: `perspective(1800px) translate(0px, 0px) rotateY(180deg)` },
+  ];
+  const play = (reverse) =>
+    wrap.animate(reverse ? [...frames].reverse() : frames,
+      { duration: FLIP_MS, easing: FLIP_EASE, fill: "forwards" });
 
   const bg = ov.querySelector(".overlay-bg");
   card.style.visibility = "hidden";
@@ -1482,8 +1487,7 @@ function openFlight(ov, card) {
   const close = () => {
     if (closing) return;
     closing = true;
-    // 縮んでいく間はスクロール領域を畳んでおく。
-    // スクロールできる要素を拡大縮小すると、コマごとに描き直しが起きる
+    // 回転中はスクロール領域にしない（スクロール可能な要素は合成の扱いが変わる）
     back.style.overflowY = "hidden";
     play(true).onfinish = () => {
       // 片付けは次のフレームに回す。最後のコマとDOMの破棄が重ならないようにする
@@ -1663,7 +1667,8 @@ function renderShapeInto(el, S, allowJump) {
       <div class="top-rank">${i + 1}</div>
       <div class="top-title">${t.title}</div>
       <div class="top-quote">${t.quote}</div>
-      <div class="top-count">${t.count}回のありがとう${allowJump ? "<span>　→ アルバムで見る</span>" : ""}</div>
+      <div class="top-count">${t.count}回のありがとう</div>
+      ${allowJump ? '<span class="top-go">アルバムで見る</span>' : ""}
     </${allowJump ? "button" : "div"}>`).join("");
 
   const rep = S.report ? Object.keys(S.report.months) : [];
