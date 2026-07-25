@@ -1050,8 +1050,10 @@ function tick(now) {
 
 /* 紙としての自然な動きだけ。3Dチルト・光沢なし。
    静的な傾きがまっすぐに直る＋3px浮く＋影が伸びる */
-const CONF = { liftY: -3, shadY: 6, shadBlur: 14, shadA: .10 };
-const BASE_ROT   = [-0.8, 0.55, -0.35, 0.9, -0.5, 0.3, 0.7, -0.6];
+const CONF = { liftY: -3, shadY: 8, shadBlur: 18, shadA: .13 };
+/* ベタ塗りのカードはまっすぐ置く（紙＋マステ案の名残の静的な傾きは廃止）。
+   ホバーは数px浮いて影が伸びるだけ */
+const BASE_ROT   = [0];
 const TAPE_ROT   = [-3.6, 2.4, -1.8, 3.2, -2.6, 1.6, -4.2, 2.8];
 const TAPE_SHIFT = [-14, 10, -6, 16, 4, -18, 8, -10];
 const STAMP_ROT  = [-2.4, -1.2, -3.1, -0.8, -2.8, -1.7, -3.4, -1.1];
