@@ -364,9 +364,11 @@
   /* カード→拡大詳細は「1枚のカードの表裏」で表現する。
      表にカードの見た目、裏に詳細を貼り、この要素ごと回して裏返す。
      要素は1つなので、入れ替わりの隙間も二重の重なりも起きない */
+  /* contain は付けない。paint の封じ込めは合成のグループ化を強制するため、
+     3Dで回している要素に付けるとコマごとに描き直しが起きる */
   .flipwrap {
     position: relative; transform-style: preserve-3d;
-    will-change: transform; contain: layout paint;
+    will-change: transform;
     width: min(560px, 100%); max-height: calc(100vh - 60px);
   }
   .f-front {
