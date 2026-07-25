@@ -84,6 +84,12 @@
   .seg button[aria-pressed="true"] { background: var(--stage-ink); color: var(--bg); opacity: 1; font-weight: 700; }
   .toggle { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; opacity: .78; }
   .toggle input { accent-color: var(--accent); }
+  /* デザインsegが4ボタンになるため、モバイルでは詰める（390pxで実測オーバーフローした） */
+  @media (max-width: 480px) {
+    .bar { padding: 10px 12px; gap: 8px 12px; }
+    .ctrl { flex-wrap: wrap; }
+    .seg button { padding: 5px 8px; font-size: 10.5px; }
+  }
 
   /* ---------------- ステージ ---------------- */
   main { max-width: 1080px; margin: 0 auto; padding: 0 20px 90px; }
@@ -108,6 +114,7 @@
     border-radius: 18px;
   }
   .pat-b .card3d { border-radius: 12px; }
+  .pat-d .card3d { border-radius: 10px; }
   .pat-c .card3d { border-radius: 6px; }
   /* overflow は指定しない（overflow:hidden は transform-style を flat に落とし、
      子要素の translateZ による奥行きパララックスが効かなくなるため） */
@@ -174,9 +181,14 @@
   .pat-b .face { border-radius: 12px; }
   .pat-b .wl-tag { display: none; }        /* タグはピルで出すので名前だけにする */
 
+  /* 新パレットは彩度が高いため、タグピルは淡色地＋濃色文字で可読性を保つ（B/D/C共通）。
+     文字はカード面用インク（--ci、5色は白）ではなく、タグ色を深くした派生色を使う */
   .tagpill {
     font-size: 10.5px; font-weight: 700; letter-spacing: .08em;
-    background: var(--cc); color: var(--ci); border-radius: 999px; padding: 4px 12px;
+    background: color-mix(in srgb, var(--cc) 18%, #fff);
+    color: color-mix(in srgb, var(--cc) 52%, #1d2430);
+    border: 1px solid color-mix(in srgb, var(--cc) 55%, transparent);
+    border-radius: 999px; padding: 3px 11px;
   }
 
   /* ---------------- パターンC：現行v4（比較用の簡易再現） ---------------- */
@@ -204,11 +216,62 @@
   }
   .pat-c .who-line { display: none; }
 
+  /* ---------------- パターンD：紙＋マステ（Bの整い × Cの手触り） ---------------- */
+  .pat-d .face { border-radius: 10px; }
+  .pat-d .front {
+    background: #fffdfa; color: var(--ink);
+    border: 1px solid rgba(61,50,41,.09);
+    padding: 32px 24px 18px;
+    min-height: 236px;
+  }
+  /* マスキングテープ：タグ色・半透明・縞の質感・カードごとに角度と位置がゆらぐ */
+  .pat-d .front::before {
+    content: ""; position: absolute; top: -11px; left: 50%;
+    width: 92px; height: 24px; z-index: 4; pointer-events: none;
+    transform: translateX(calc(-50% + var(--tape-shift, 0px))) rotate(var(--tape-rot, -3deg));
+    background:
+      repeating-linear-gradient(90deg, rgba(255,255,255,.25) 0 2px, rgba(255,255,255,0) 2px 7px),
+      linear-gradient(rgba(255,255,255,.18), rgba(0,0,0,.03)),
+      color-mix(in srgb, var(--cc) 72%, transparent);
+    clip-path: polygon(2% 0, 98% 3%, 100% 28%, 97% 52%, 100% 76%, 97% 100%, 3% 97%, 0 74%, 2.5% 48%, 0 22%);
+    box-shadow: 0 1px 2px rgba(60,48,30,.10);
+  }
+  /* カード自体のわずかな紙質（グレイン） */
+  .pat-d .front::after {
+    content: ""; position: absolute; inset: 0; border-radius: inherit;
+    pointer-events: none; z-index: 1; opacity: .55;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.24 0 0 0 0 0.2 0 0 0 0 0.16 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .pat-d .ava {
+    width: 44px; height: 44px; font-size: 16px; transform: none;
+    box-shadow: 0 0 0 4px #fffdfa, 0 4px 10px rgba(58,74,102,.25);
+  }
+  .pat-d .say {
+    font-family: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
+    font-weight: 400; letter-spacing: .04em; line-height: 2.1; font-size: 15px;
+    transform: none;
+  }
+  .pat-d .who-line { color: var(--ink-soft); opacity: 1; transform: none; }
+  .pat-d .wl-tag { display: none; }               /* タグはピルで出すので名前だけにする */
+  .pat-d .corner-new {
+    background: color-mix(in srgb, var(--cc) 62%, #1d2430); color: #fff;
+    transform: rotate(-2deg); top: 16px; left: 14px;
+  }
+  .pat-d .memo-dot { background: #f0dc63; box-shadow: 0 0 0 3px rgba(240,220,99,.35); transform: none; }
+  .pat-d .glare { display: none; }                /* Dに光沢は不要（紙なので） */
+  /* 日付＝回転印風のスタンプ（遊び心）。色はタグ色を深くした派生色 */
+  .pat-d .c-time {
+    font-size: 10px; letter-spacing: .05em; padding: 2px 8px; border-radius: 3px;
+    border: 1px solid color-mix(in srgb, var(--cc) 45%, transparent);
+    color: color-mix(in srgb, var(--cc) 52%, #1d2430);
+    transform: rotate(-2deg);
+  }
+
   /* --- パターンごとの要素の出し分け --- */
   .c-head { display: none; }                       /* 左寄せの送り主行：Cのみ */
   .pat-c .c-head { display: flex; }
-  .c-foot { display: none; }                       /* タグピル＋日時の行：B/C */
-  .pat-b .c-foot, .pat-c .c-foot {
+  .c-foot { display: none; }                       /* タグピル＋日時の行：B/D/C */
+  .pat-b .c-foot, .pat-d .c-foot, .pat-c .c-foot {
     display: flex; align-items: center; gap: 8px; width: 100%; margin-top: auto; padding-top: 4px;
   }
   .c-time { margin-left: auto; font-size: 10.5px; color: var(--ink-soft); font-family: "Courier New", monospace; }
@@ -343,8 +406,9 @@
     <div class="ctrl">
       <span>デザイン</span>
       <div class="seg" id="segPattern">
-        <button data-pat="pat-a" aria-pressed="true">A ベタ塗り</button>
+        <button data-pat="pat-a" aria-pressed="false">A ベタ塗り</button>
         <button data-pat="pat-b" aria-pressed="false">B 紙＋タグ色</button>
+        <button data-pat="pat-d" aria-pressed="true">D 紙＋マステ</button>
         <button data-pat="pat-c" aria-pressed="false">C 現行v4</button>
       </div>
     </div>
@@ -364,18 +428,20 @@
 
 <main>
   <section class="lead">
-    <h1>カードを、これ以上ないくらい削ってみる。<br>そのぶん、動きに全部かける。</h1>
+    <h1>カードは削る。<br>手ざわりは、残す。</h1>
     <p>
-      情報を「言葉・送り主・場面の色」の3つだけに絞ったカードです。出典やチャネル、日時、メモといった脇の情報は、
-      カードをクリックして開く拡大詳細に逃がしています。上のスイッチで、削りすぎた案（A）／折衷案（B）／現行v4（C）を切り替えて見比べられます。
+      カードに残したのは「言葉・送り主・場面の色」の3つだけです。出典やチャネル、日時、メモといった脇の情報は、
+      カードをクリックして開く拡大詳細に逃がしました。上のスイッチで、削りすぎた案（A）／紙＋タグ色（B）／
+      おすすめの新案（D）／現行v4（C）を切り替えて見比べられます。Dは「Bの整い × Cの手ざわり」で、
+      方眼ノートにマスキングテープでカードを貼ったような佇まいです。
     </p>
   </section>
 
   <div class="sec-label">01　カードの束</div>
   <div class="stage"><div class="deck" id="deck"></div></div>
   <div class="hint">
-    <span><kbd>hover</kbd>傾ける</span>
-    <span><kbd>click</kbd>詳細</span>
+    <span><kbd>hover</kbd>ふわりと浮く</span>
+    <span><kbd>click</kbd>詳細を見る</span>
     <span><kbd>束の外側</kbd>をクリックで次のカードへ</span>
   </div>
 
@@ -402,12 +468,12 @@
       </ul>
     </div>
     <div class="memo-card">
-      <h3>おすすめは B</h3>
+      <h3>おすすめは D（B × C の折衷）</h3>
       <ul>
-        <li>ベタ塗りの潔さは上帯とタグピルに残す</li>
-        <li>感謝の本文だけは明朝のまま守る</li>
-        <li>紙の地・グレイン・月ごとの綴じは維持</li>
-        <li>チルト／拡大詳細／束のモーションはAと共通で使える</li>
+        <li>Bから：白い紙・明朝の本文・タグピル＋日時の整い</li>
+        <li>Cから：タグ色マステの「貼ってある」手ざわりと±1°未満の静かな傾き</li>
+        <li>遊び心：テープの角度と位置のゆらぎ、回転印風の日付スタンプ</li>
+        <li>ホバーは紙らしく。傾きがまっすぐに直って数px浮き、影が少し伸びるだけ</li>
       </ul>
     </div>
   </div>
@@ -551,9 +617,28 @@ function tick(now) {
    カードコントローラ（チルト・浮き・光沢・登場）
    ========================================================================= */
 const OPT = { tilt: true, glare: true };
-const MAX_TILT = 6.5;  // deg
-const LIFT_Z   = 17;   // px
-const GLARE_MAX = .28;
+
+/* パターンごとのホバー挙動：
+   A/B = カード的な3Dチルト（最大6.5°）＋光沢
+   D/C = 紙として自然な動きのみ。3Dチルトなし・光沢なし。
+         静的な傾きがまっすぐに直る＋数pxのリフト＋影が少し伸びる */
+const PAT_CONF = {
+  "pat-a": { tilt: 6.5, glare: .28, liftZ: 17, liftY: 0,  straighten: false, shadY: 14, shadBlur: 22, shadA: .16 },
+  "pat-b": { tilt: 6.5, glare: .28, liftZ: 17, liftY: 0,  straighten: false, shadY: 14, shadBlur: 22, shadA: .16 },
+  "pat-d": { tilt: 0,   glare: 0,   liftZ: 0,  liftY: -3, straighten: true,  shadY: 6,  shadBlur: 14, shadA: .10 },
+  "pat-c": { tilt: 0,   glare: 0,   liftZ: 0,  liftY: -3, straighten: true,  shadY: 6,  shadBlur: 14, shadA: .10 },
+};
+let CUR_PAT = "pat-d";
+
+/* D/C：カードごとのわずかな静的傾き（deg）。Dは±1°未満に抑える */
+const BASE_ROT = {
+  "pat-c": [-0.7, 0.5, -0.3, 0.8],
+  "pat-d": [-0.8, 0.55, -0.35, 0.9, -0.5, 0.3, 0.7, -0.6],
+};
+
+/* D案：マスキングテープの角度・位置ゆらぎ（カードIDで決まる静的な値） */
+const TAPE_ROT   = [-3.6, 2.4, -1.8, 3.2, -2.6, 1.6, -4.2, 2.8];
+const TAPE_SHIFT = [-14, 10, -6, 16, 4, -18, 8, -10];
 
 class CardMotion {
   constructor(root) {
@@ -571,6 +656,8 @@ class CardMotion {
     this.slotY = new Spring(0, { stiffness: 180, damping: 20 });
     this.slotR = new Spring(0, { stiffness: 180, damping: 20 });
     this.slotS = new Spring(1, { stiffness: 180, damping: 20 });
+    this.lift = new Spring(0, { stiffness: 260, damping: 24 });  // D/C：紙のリフト（px, 負が上）
+    this.rz   = new Spring(0, { stiffness: 170, damping: 19 });  // 静的な傾き（ホバーでまっすぐに直る）
     this.baseRot = 0;
     engine.items.add(this);
     this.bind();
@@ -579,22 +666,28 @@ class CardMotion {
   bind() {
     const r = this.root;
     r.addEventListener("pointermove", e => {
-      if (!OPT.tilt || e.pointerType === "touch") return;
+      const conf = PAT_CONF[CUR_PAT];
+      if (!OPT.tilt || !conf.tilt || e.pointerType === "touch") return;
       const b = r.getBoundingClientRect();
       const px = (e.clientX - b.left) / b.width;
       const py = (e.clientY - b.top) / b.height;
-      this.ry.set((px - .5) * 2 * MAX_TILT);
-      this.rx.set(-(py - .5) * 2 * MAX_TILT);
+      this.ry.set((px - .5) * 2 * conf.tilt);
+      this.rx.set(-(py - .5) * 2 * conf.tilt);
       this.gx = px * 100; this.gy = py * 100;
       kick();
     });
     r.addEventListener("pointerenter", () => {
-      this.z.set(LIFT_Z);
-      if (OPT.glare) this.glare.set(GLARE_MAX);
+      const conf = PAT_CONF[CUR_PAT];
+      this.z.set(conf.liftZ);
+      this.lift.set(conf.liftY);
+      if (conf.straighten) this.rz.set(0);            // 紙：傾きがまっすぐに直る
+      if (OPT.glare && conf.glare) this.glare.set(conf.glare);
       kick();
     });
     r.addEventListener("pointerleave", () => {
-      this.rx.set(0); this.ry.set(0); this.z.set(0); this.glare.set(0); this.s.set(1);
+      this.rx.set(0); this.ry.set(0); this.z.set(0); this.lift.set(0);
+      this.glare.set(0); this.s.set(1);
+      this.rz.set(this.baseRot);                      // 静的な傾きに戻る
       kick();
     });
     r.addEventListener("pointerdown", () => { this.s.set(.97); kick(); });
@@ -614,22 +707,24 @@ class CardMotion {
 
   update(dt) {
     let a = false;
-    [this.rx, this.ry, this.z, this.s, this.op, this.ty,
-     this.glare, this.slotX, this.slotY, this.slotR, this.slotS]
+    [this.rx, this.ry, this.z, this.s, this.op, this.ty, this.glare,
+     this.slotX, this.slotY, this.slotR, this.slotS, this.lift, this.rz]
       .forEach(sp => { if (sp.step(dt)) a = true; });
 
     this.el.style.transform =
-      `translate3d(${this.slotX.v.toFixed(2)}px, ${(this.slotY.v + this.ty.v).toFixed(2)}px, 0) ` +
+      `translate3d(${this.slotX.v.toFixed(2)}px, ${(this.slotY.v + this.ty.v + this.lift.v).toFixed(2)}px, 0) ` +
       `rotateX(${this.rx.v.toFixed(2)}deg) rotateY(${this.ry.v.toFixed(2)}deg) ` +
-      `rotateZ(${(this.slotR.v + this.baseRot).toFixed(2)}deg) ` +
+      `rotateZ(${(this.slotR.v + this.rz.v).toFixed(2)}deg) ` +
       `translateZ(${this.z.v.toFixed(2)}px) scale(${(this.s.v * this.slotS.v).toFixed(3)})`;
     this.root.style.opacity = this.op.v.toFixed(3);
 
-    // 影は傾きに合わせて反対側へ流す
-    const sx = (-this.ry.v / MAX_TILT) * 10;
-    const sy = 14 + (this.rx.v / MAX_TILT) * 10 + this.z.v * .35;
-    const blur = 22 + this.z.v * .8;
-    this.el.style.boxShadow = `${sx.toFixed(1)}px ${sy.toFixed(1)}px ${blur.toFixed(1)}px rgba(0,0,0,${(.16 + this.z.v * .002).toFixed(3)})`;
+    // 影は傾きに合わせて反対側へ流し、リフト（負のY）で少し伸ばす
+    const conf = PAT_CONF[CUR_PAT];
+    const tref = conf.tilt || 6.5;
+    const sx = (-this.ry.v / tref) * 8;
+    const sy = conf.shadY + (this.rx.v / tref) * 8 + this.z.v * .35 - this.lift.v * 1.4;
+    const blur = conf.shadBlur + this.z.v * .8 - this.lift.v * 2.4;
+    this.el.style.boxShadow = `${sx.toFixed(1)}px ${sy.toFixed(1)}px ${blur.toFixed(1)}px rgba(0,0,0,${(conf.shadA + this.z.v * .002 - this.lift.v * .008).toFixed(3)})`;
 
     this.root.style.setProperty("--gx", this.gx + "%");
     this.root.style.setProperty("--gy", this.gy + "%");
@@ -669,6 +764,8 @@ function buildCard(d, { hero = false } = {}) {
   root.setAttribute("aria-label", `${d.who}からの「${d.msg.replace(/<br>/g, "")}」の詳細を開く`);
   root.style.setProperty("--cc", `var(${cc})`);
   root.style.setProperty("--ci", `var(${ci})`);
+  root.style.setProperty("--tape-rot", TAPE_ROT[d.id % TAPE_ROT.length] + "deg");
+  root.style.setProperty("--tape-shift", TAPE_SHIFT[d.id % TAPE_SHIFT.length] + "px");
   root.style.opacity = "0";          // 登場アニメの初期値（1フレーム目のちらつき防止）
   root.innerHTML = cardHTML(d);
   root.dataset.id = d.id;
@@ -880,13 +977,19 @@ function toast(msg) {
    コントロール
    ========================================================================= */
 function setPattern(pat) {
-  document.body.classList.remove("pat-a", "pat-b", "pat-c");
+  CUR_PAT = pat;
+  document.body.classList.remove("pat-a", "pat-b", "pat-c", "pat-d");
   document.body.classList.add(pat);
-  // C（現行v4）だけは、カードを少しずつ傾けて紙束らしく見せる
+  const conf = PAT_CONF[pat];
+  // D・C（紙）はカードを少しずつ傾けて紙束らしく見せる
   document.querySelectorAll(".card").forEach((el, i) => {
-    el._m.baseRot = pat === "pat-c" ? [-0.7, 0.5, -0.3, 0.8][i % 4] : 0;
+    const rots = BASE_ROT[pat];
+    el._m.baseRot = rots ? rots[i % rots.length] : 0;
+    el._m.rz.set(el._m.baseRot);
+    if (!conf.tilt) { el._m.rx.set(0); el._m.ry.set(0); }   // D/C：3Dチルト無効
+    if (!conf.glare) el._m.glare.set(0);                    // D/C：光沢なし
   });
-  // 中央の大きいアバターは A・B のみ（C は左寄せの送り主行を使う）
+  // 中央の大きいアバターは A・B・D（C は左寄せの送り主行を使う）
   document.querySelectorAll("[data-hero-ava]").forEach(a => {
     a.style.display = pat === "pat-c" ? "none" : "";
   });
@@ -909,7 +1012,7 @@ function wireSeg(id, fn, attr) {
    ========================================================================= */
 buildDeck();
 buildGrid();
-setPattern("pat-a");
+setPattern("pat-d");
 wireSeg("segPattern", setPattern, "pat");
 wireSeg("segTheme", setTheme, "theme");
 document.getElementById("optTilt").addEventListener("change", e => {
