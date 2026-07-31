@@ -164,10 +164,23 @@
   .card3d.live { will-change: transform; }
   /* カードの高さは全枚そろえる。中身の量で丈がばらつかないようにする */
   .front {
+    /* position を持たせるのは、押した波紋を紙の内側で切り取るため。
+       これが無いと波紋の基準がひとつ外側の .card3d になり、
+       .front の overflow では切り取られずカードの外まではみ出す */
+    position: relative;
     background: var(--paper); color: var(--ink); border-radius: 12px;
     border-top: 7px solid var(--cc);
     padding: 26px 24px 18px; height: var(--card-h, 268px);
     display: flex; flex-direction: column; align-items: center; gap: 16px; overflow: hidden;
+  }
+  /* 押した場所から広がる波紋。紙にインクがにじむように、色は場面タグの色を使う。
+     中心をやや濃く、外へ向けて消していく */
+  .ripple {
+    position: absolute; border-radius: 50%; pointer-events: none; z-index: 1;
+    background: radial-gradient(circle,
+      color-mix(in srgb, var(--cc) 42%, transparent) 0%,
+      color-mix(in srgb, var(--cc) 26%, transparent) 45%,
+      color-mix(in srgb, var(--cc) 0%, transparent) 72%);
   }
   /* ホバー時の光沢。ポインタの位置に淡く乗る */
   .glare {
@@ -212,12 +225,12 @@
      以前はノイズ画像をマスクに使っていたが、カードの枚数だけ再描画が走って
      重かったため、傾きと薄い枠だけで判子らしさを出す */
   .c-time {
-    margin-left: auto; font-size: 10px; letter-spacing: .05em; padding: 2px 8px; border-radius: 2px;
+    margin-left: auto; font-size: 15px; letter-spacing: .04em; padding: 3px 11px; border-radius: 3px;
     font-family: "Courier New", monospace; font-weight: 700;
-    border: 1.5px solid color-mix(in srgb, var(--cc) 42%, #1d2430);
-    color: color-mix(in srgb, var(--cc) 42%, #1d2430);
+    border: 2px solid color-mix(in srgb, var(--cc) 46%, #1d2430);
+    color: color-mix(in srgb, var(--cc) 46%, #1d2430);
     transform: rotate(var(--stamp-rot, -2deg));
-    opacity: .85;
+    opacity: .9; white-space: nowrap;
   }
   .corner-new {
     position: absolute; top: 14px; left: 14px; z-index: 5;
@@ -1222,6 +1235,38 @@ const TAPE_ROT   = [-3.6, 2.4, -1.8, 3.2, -2.6, 1.6, -4.2, 2.8];
 const TAPE_SHIFT = [-14, 10, -6, 16, 4, -18, 8, -10];
 const STAMP_ROT  = [-2.4, -1.2, -3.1, -0.8, -2.8, -1.7, -3.4, -1.1];
 
+/* =========================================================================
+   押した波紋
+
+   押してから飛び立つまでの間を埋める。押した瞬間に実カードは隠れて
+   複製が飛ぶので、波紋を実カードだけに出すと一瞬で消えてしまう。
+   そこで、押した位置と時刻を覚えておき、飛ぶ複製の側で
+   途中から続きを再生する。押した点から広がった波紋が、
+   そのままカードに乗って裏返っていく
+   ========================================================================= */
+const RIPPLE_MS = 560;
+
+/** host（カードの紙面）の (x, y) から波紋を出す。startAt を渡すと途中から始める */
+function spawnRipple(host, x, y, startAt = 0) {
+  if (REDUCED || !host) return null;
+  const b = host.getBoundingClientRect();
+  // 押した点から四隅までのいちばん遠い距離まで広げれば、紙面を覆い切る
+  const rad = Math.hypot(Math.max(x, b.width - x), Math.max(y, b.height - y));
+  const el = document.createElement("span");
+  el.className = "ripple";
+  Object.assign(el.style, {
+    left: (x - rad) + "px", top: (y - rad) + "px",
+    width: rad * 2 + "px", height: rad * 2 + "px",
+  });
+  host.appendChild(el);
+  const a = el.animate(
+    [{ transform: "scale(.08)", opacity: .9 }, { transform: "scale(1)", opacity: 0 }],
+    { duration: RIPPLE_MS, easing: "cubic-bezier(.22,.61,.36,1)", fill: "forwards" });
+  if (startAt) a.currentTime = Math.min(startAt, RIPPLE_MS);
+  a.onfinish = () => el.remove();
+  return a;
+}
+
 class CardMotion {
   constructor(root) {
     this.root = root;
@@ -1259,7 +1304,18 @@ class CardMotion {
       this.lift.set(0); this.s.set(1); this.rz.set(this.baseRot);
       this.rx.set(0); this.ry.set(0); this.z.set(0); this.glare.set(0); kick();
     });
-    r.addEventListener("pointerdown", () => { this.s.set(.97); kick(); });
+    r.addEventListener("pointerdown", e => {
+      this.s.set(.97); kick();
+      if (r.classList.contains("static")) return;
+      const face = r.querySelector(".front");
+      if (!face) return;
+      const b = face.getBoundingClientRect();
+      const x = e.clientX - b.left, y = e.clientY - b.top;
+      spawnRipple(face, x, y);
+      // 飛ぶ複製に続きを渡すための控え。押した点は紙面の割合で持つ
+      // （複製は実寸が同じなので割合で足りるうえ、大きさが変わっても崩れない）
+      r._ripple = { px: x / b.width, py: y / b.height, at: performance.now() };
+    });
     ["pointerup", "pointercancel"].forEach(t => r.addEventListener(t, () => { this.s.set(1); kick(); }));
   }
   enter(delay = 0) { setTimeout(() => { this.op.set(1); this.ty.set(0); kick(); }, delay); }
@@ -1489,12 +1545,26 @@ function openThread(d, fromCard, opts) {
       <div class="bub"><div class="bub-name">${d.who}<span>${d.time}</span></div>
       <div class="bub-text">${d.msg}</div></div></div>`;
 
-  // 1つの要素の表にカード、裏に詳細を貼る。この要素ごと回して裏返す
-  const faceHTML = fromCard ? fromCard.querySelector(".card3d").outerHTML : "";
+  /* 1つの要素の表にカード、裏に詳細を貼る。この要素ごと回して裏返す。
+     写すときに波紋は取り除く。動きは複製されないので、そのまま写すと
+     広がりかけたまま止まった輪が焼き付いて残ってしまう。
+     続きは複製ができたあとで改めて出す（下の spawnRipple） */
+  let faceHTML = "";
+  if (fromCard) {
+    const face = fromCard.querySelector(".card3d").cloneNode(true);
+    face.querySelectorAll(".ripple").forEach(r => r.remove());
+    faceHTML = face.outerHTML;
+  }
+  /* 本文の大きさ・行数・寄せは kind-* で決まるが、それが付いているのは .card のほうで、
+     写しているのは中の .card3d なので、そのままでは飛ぶ複製に効かない。
+     押した瞬間だけ既定（中くらい）の見た目に化けていた
+     ——長文は13px→14.5pxで大きくなり、短文は17px→14.5pxで小さくなっていた。
+     複製の側にも同じ kind-* を渡して、押す前と同じ字面で飛ばす */
+  const kindCls = fromCard ? [...fromCard.classList].find(c => c.startsWith("kind-")) || "" : "";
   ov.innerHTML = `
     <div class="overlay-bg"></div>
     <div class="flipwrap">
-      <div class="f-front" aria-hidden="true">${faceHTML}</div>
+      <div class="f-front ${kindCls}" aria-hidden="true">${faceHTML}</div>
       <div class="f-back sheet" role="dialog" aria-modal="true" aria-label="${d.who}からの「ありがとう」の詳細">
       <div class="sheet-head">
         <div class="ava">${d.ini}</div>
@@ -1573,6 +1643,20 @@ function openThread(d, fromCard, opts) {
 
   /* カードがめくれながら中央へ飛び、拡大して詳細になる */
   const flight = openFlight(ov, fromCard);
+
+  /* 押した波紋を、飛ぶ複製の上で途中から続ける。
+     押してから離すまでの間ぶんだけ進めた状態で始めるので、
+     実カードの上で広がりかけた輪が、そのままカードに乗って裏返っていく */
+  const rip = fromCard && fromCard._ripple;
+  if (rip) {
+    const elapsed = performance.now() - rip.at;
+    const face = ov.querySelector(".f-front .front");
+    if (face && elapsed < RIPPLE_MS) {
+      const b = face.getBoundingClientRect();
+      spawnRipple(face, rip.px * b.width, rip.py * b.height, elapsed);
+    }
+    fromCard._ripple = null;
+  }
   const onEsc = e => { if (e.key === "Escape") close(); };
   const close = () => { document.removeEventListener("keydown", onEsc); flight.close(); };
   ov.addEventListener("click", e => { if (e.target === ov || e.target.classList.contains("overlay-bg") || e.target.closest(".sheet-close")) close(); });
