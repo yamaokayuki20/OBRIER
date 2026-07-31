@@ -20,7 +20,14 @@
 
     /* アバター＝全員この1色。拡大詳細の文字色もこの濃紺に揃える */
     --ava: #3A4A66;
-    --navy: #3A4A66; --navy-soft: #6d7a94; --navy-line: #dfe4ed; --navy-bg: #f2f4f8;
+    /* --navy-soft は拡大詳細とダイアログの「添える文字」の色。
+       元の #6d7a94 は白地で 4.32:1、パネル地（--navy-bg #f2f4f8）で 3.92:1 と
+       いずれも本文の基準（4.5:1）に届いておらず、9種のダイアログの中で
+       実測32箇所が未達だった（再監査 A-03 の残り）。
+       同じ色相・同じ「濃紺より一段やわらかい」役目のまま濃さだけを上げる。
+       白地 5.57:1 ／ #f2f4f8 地 5.06:1。濃紺 --navy #3A4A66（アバターと
+       拡大詳細の文字色）は変えない——役目が違う色なので統一は崩さない */
+    --navy: #3A4A66; --navy-soft: #5c6884; --navy-line: #dfe4ed; --navy-bg: #f2f4f8;
 
 
     /* ステージ（白地×薄い青の方眼） */
@@ -67,7 +74,20 @@
     --fs-ui:    14.5px;  /* ボタン・タブ・表など操作面の既定 */
     --fs-body:  16px;    /* 読ませる文章。ここを下回らない */
     --fs-lead:  17.5px;  /* 強めの本文・小見出し */
-    --fs-head:  20px;    /* 見出し */
+    --fs-head:  20px;    /* 大きめのUI文字（短い一言のカード本文など） */
+    /* 見出しは本文（16px）との関係で決める。
+       見出しが本文の1.25倍に届いていないと、大きさで階層が読み取れない
+       （再監査 VD-1：h2 17.5px ÷ 16px ＝ 1.09倍で未達だった）。
+         h2 ＝ 本文の1.25倍（20px）… 節の題
+         h1 ＝ 本文の1.5倍（24px）… 画面の題
+       上げ幅は「本文との関係が成り立つ最小限」に留める。
+       アルバムの静かな佇まいを壊さないよう、これ以上は大きくしない。
+       スマホは h1 だけ 20px に落とす（見出しが2行に折り返すと、
+       主役のカードがそのぶん画面の下へ押し出されるため。下の @media 参照）。
+       --fs-head とは別に持つ：--fs-head は短い一言のカード本文にも
+       使われており、そちらは D-28 で決めた字面なので動かせない */
+    --fs-h2:    20px;
+    --fs-h1:    24px;
     --lh-body:  1.7;     /* 日本語本文の行送り（JLReq 既定） */
     --lh-ui:    1.5;     /* 詰まった面の下限（WCAG 1.4.12 の耐性値と同じ） */
   }
@@ -78,6 +98,13 @@
       --fs-cap:  14px;
       --fs-ui:   15px;
       --fs-head: 19px;
+      /* スマホの h1 は 20px＝本文16pxのちょうど1.25倍。
+         390px 幅では「あなたに届いたありがとう」と「533通」を1行に置いており
+         （#viewAlbum .hero）、見出しに使える幅は 264px しかない。
+         21px では 273px になって2行に折り返し、そのぶん主役のカードが
+         30px 下へ押し出される（初画面の2枚目 47px → 19px）。
+         狭い画面では h1 と h2 が同じ 20px になるが、階層は太さで示す */
+      --fs-h1:   20px;
     }
   }
 
@@ -130,7 +157,9 @@
   .diag { position: fixed; right: 16px; bottom: 16px; z-index: 90; width: min(360px, calc(100vw - 32px));
     background: #fff; border: 1px solid var(--panel-line); border-radius: 14px; box-shadow: 0 18px 40px rgba(20,26,40,.24);
     padding: 16px 18px; font-size: var(--fs-ui); line-height: 1.8; color: var(--navy); }
-  .diag h2 { font-size: var(--fs-ui); margin-bottom: 6px; }
+  /* 開発用の自己診断パネルの題。画面の見出しの階層には入れない
+     （本番には無い面なので h2 を1つ増やしてしまわないよう、p で置く） */
+  .diag-title { font-size: var(--fs-ui); font-weight: 800; margin-bottom: 6px; }
   .diag table { width: 100%; margin: 8px 0; font-variant-numeric: tabular-nums; }
   .diag td { padding: 2px 0; font-size: var(--fs-cap); }
   .diag td:last-child { text-align: right; font-weight: 700; }
@@ -567,7 +596,9 @@
     background: var(--navy-bg); border: 1px solid var(--navy-line); border-radius: 3px 12px 12px 12px; padding: 10px 12px;
     color: var(--navy); outline: none;
   }
-  .memo-ta::placeholder { color: var(--navy-soft); opacity: .75; }
+  /* プレースホルダは「何を書く欄か」の例示なので、読める濃さで置く。
+     opacity で薄めると、濃くしたはずの --navy-soft でも 3.3:1 まで落ちる（D-33） */
+  .memo-ta::placeholder { color: var(--navy-soft); opacity: 1; }
   .memo-ta:focus { border-color: var(--navy-soft); }
   .memo-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
   .memo-row small { font-size: var(--fs-note); color: var(--navy-soft); }
@@ -864,9 +895,10 @@
      ------------------------------------------------------------------------ */
 
   /* 帯の置き場。position:fixed なので流れから外れ、アルバムの高さを取らない。
-     top は header の高さに合わせて JS が入れる（ヘッダーは画面幅で高さが変わる） */
+     top は header の高さに合わせて JS が --ms-top に入れる
+     （ヘッダーは画面幅で高さが変わる）。狭い画面では下端へ移すので使わない */
   .ms-host {
-    position: fixed; left: 0; right: 0; top: 0; z-index: 19;
+    position: fixed; left: 0; right: 0; top: var(--ms-top, 0); z-index: 19;
     padding: 0 20px; margin: 0; pointer-events: none;
     display: flex; flex-direction: row; justify-content: center;
   }
@@ -1014,15 +1046,40 @@
   /* ---- A-30 見出しの階層を、意味と見た目の両方で成り立たせる ----
      h1 が16px（本文と同寸・3.92:1の薄いグレー）で、見出しに見えていた
      .lead-line は22px の div だった。目に見える順と、支援技術に伝わる順が逆。
-     h1 20px（スマホ19px）＞ h2 17.5px ＞ h3 13.5〜16px と、
      大きさと太さだけで階層を作る（薄い色では作らない）。
-     基本設計2.3.1で定義済みの --fs-head / --fs-lead を、ここで初めて使う */
-  .hero h1 { font-size: var(--fs-head); font-weight: 800; color: var(--stage-ink); letter-spacing: .04em; }
-  .lead-line { font-size: var(--fs-lead); }
-  .panel h2 { font-size: var(--fs-lead); }
+     ※このとき置いた h1 20px ＞ h2 17.5px という寸法は、下の再監査（VD-1）で
+       h1 24px ＞ h2 20px に改めている */
+  /* 再監査（VD-1）で、h2 17.5px は本文16pxの1.09倍にしかならず、
+     「見出しは本文の1.25倍以上」に届いていないと分かった。
+     大きくするのではなく、本文との関係が成り立つ最小限の寸法にそろえる。
+     h1 24px（本文の1.5倍）＞ h2 20px（1.25倍）＞ h3 13.5〜16px。
+     h1 の箱は文字の幅にそろえる（width: fit-content）。
+     見出しは1行の題で、箱だけが画面幅いっぱいに広がっていると、
+     その脇の余白が「空いていない」ことになり、知らせの帯（N-01）のような
+     重ねものを置ける場所が画面から無くなる */
+  .hero h1 {
+    font-size: var(--fs-h1); font-weight: 800; color: var(--stage-ink); letter-spacing: .04em;
+    width: fit-content; max-width: 100%;
+  }
+  .count-wrap { width: fit-content; max-width: 100%; }
+  .lead-line { font-size: var(--fs-h2); }
+  .panel h2 { font-size: var(--fs-h2); }
   .state-box h3 { font-size: var(--fs-body); }
   /* ダイアログ・拡大詳細の題も見出しにする（中の ①〜⑤ が h3 なので、その親が要る） */
-  .sheet-head h2 { font-size: var(--fs-body); font-weight: 700; letter-spacing: inherit; }
+  .sheet-head h2 { font-size: var(--fs-h2); font-weight: 700; letter-spacing: inherit; }
+  /* 題が20pxになったぶん、狭い画面では 送り主名・時刻・✕ が1行に収まらず、
+     名前が語の途中で折り返していた（「上司さ／ん」）。
+     名前は折らず、収まらないときは時刻のほうを次の行へ送る。
+     ✕ は右端のままにしたいので、並べ替えるのは狭い画面だけにする */
+  .sheet-head h2 { white-space: nowrap; }
+  @media (max-width: 640px) {
+    .sheet-head { flex-wrap: wrap; }
+    .sheet-head .sheet-close { order: 2; }
+    .sheet-head .sheet-time { order: 3; margin-left: 44px; }
+  }
+  /* メンバー詳細（S06）の画面名。見た目は見出し・意味は div だったので、
+     h1 にして「各画面に h1 がちょうど1つ」を満たす（再監査 VD-2） */
+  .detail-name { font-size: var(--fs-h1); font-weight: 800; }
 
   /* ---- A-31 ラベルのない入力をなくす ----
      .vh-label … 見えるラベルは select の中の接頭辞（「場面：」「並び順：」）が
@@ -1085,6 +1142,85 @@
      減らせるのは余白だけなので、そこだけを詰める（118px → 110px） */
   @media (max-width: 640px) {
     .bar { padding: 8px 13px; gap: 6px 10px; }
+  }
+
+  /* ========================================================================
+     再監査で残った MUST（イシュー#15）
+     A-11 当たり判定／A-30 見出し（上の A-30 の節に併記）／N-01 節目の帯の置き場。
+     既存の値を変えているのは帯の置き場だけで、それ以外はここに足している。
+     ======================================================================== */
+
+  /* ---- A-11 の残り：押せるものの当たり判定 ----
+     戻る導線（← メンバー一覧にもどる）が 169×19px で、PC の 24px にも
+     届いていなかった。**見た目は大きくせず、余白だけで広げる**。
+     文字の位置がずれないよう、足したぶんだけ左へ引き戻す */
+  .back-link { min-height: 24px; padding: 3px 8px; margin-left: -8px; border-radius: 8px; }
+  .back-link:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; }
+
+  @media (max-width: 640px) {
+    /* スマホは 44px。拡大詳細の中のボタン（Slackで開く・お気に入り・保存する・
+       報告する・削除する）とチャートの期間タブ、上司／管理者のサブタブは、
+       640px の 44px 化から漏れていた。上の .select, .btn と同じ扱いにそろえる */
+    .back-link { min-height: 44px; }
+    .mini-btn, .danger-btn { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+    .chart-tab, .sub-tab { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+    .adm-select { min-height: 44px; }
+    /* 月次レポートの行（メンバー詳細）。43px で1pxだけ足りていなかった */
+    .report-item { min-height: 44px; }
+    /* ✕ は丸い面の大きさ（32px）が見た目の一部なので、面はそのままに
+       当たり判定だけを 44px にする。地色を content-box で塗ると、
+       塗られるのは中の 32px だけで、押せる範囲は 44px になる */
+    .sheet-close {
+      width: 44px; height: 44px; padding: 6px;
+      background-clip: content-box; background-origin: content-box;
+    }
+  }
+
+  /* ---- N-01 節目の帯を、主役の上に重ねない ----
+     #10 で「流れの中に置かない（高さを取らない）」ところまでは直したが、
+     ヘッダーの直下に画面幅いっぱいで降ろしたため、390px では h1・「533通」・
+     説明文を 5.5秒のあいだ覆っていた。押し下げていたものを、こんどは
+     隠していた——主役が読めない点では同じである。
+
+     本文に余白を足して押し下げる直し方は採らない。それは #10 で外したものを
+     戻すことになり、スマホの初画面からカードがまた消える（1枚全体＋41px → 0枚）。
+
+     置き場を変える。帯は「そこに何も無い場所」に出す。
+       ・広い画面（900px以上）＝見出しの右の余白。h1 と「533通」の箱は
+         文字の幅にそろえてあるので（上の A-30 の節）、右側は空いている。
+         **何も覆わない**
+       ・狭い画面（900px未満）＝画面の下端。余白が無いので重ねるほかなく、
+         重ねてよいのは、いちばん害の小さいところ——すでに画面の縁で
+         切れているカードの上端の帯だけ（本文の文字には掛からない）。
+         ここはこの画面がもともと知らせを出す場所（トースト）でもある。
+     どちらの置き方も高さを取らないので、初画面のカードの枚数は変わらない。 */
+  .ms-host {
+    max-width: 1140px; margin: 0 auto;
+    background: none; border-bottom: none; box-shadow: none;
+    padding: 8px 20px;
+    justify-content: flex-end;
+  }
+  /* 覆うものが無くなったので、下端のぼかしも要らない（D-47 はここで役目を終える） */
+  .ms-host::after { content: none; }
+  .ms-host .ms {
+    width: auto; max-width: 420px;
+    box-shadow: 0 10px 26px rgba(61, 50, 41, .16);
+    border-color: rgba(61, 50, 41, .2);
+  }
+  @media (max-width: 899px) {
+    /* 見出しの右に 420px の余白を取れない幅。画面の下端へ移す。
+       ここは、この画面がもともと知らせを出している場所（.toast）でもある。
+       下端にぴったり貼り付ける（浮かせない）——浮かせたぶんだけ帯が上へ動き、
+       そのぶん1枚目のカードの脚（場面タグと日付）に掛かってしまう。
+       出入りの向きも下向きにする（下から出て、下へ引っ込む） */
+    .ms-host { top: auto; bottom: 0; padding: 0 13px; justify-content: center;
+               transform: translateY(100%); }
+    .ms-host.is-in { transform: none; }
+    .ms-host .ms {
+      width: 100%; max-width: 620px;
+      border-radius: 12px 12px 0 0; border-bottom: none;
+      box-shadow: 0 -8px 22px rgba(61, 50, 41, .16);
+    }
   }
 </style>
 </head>
@@ -1495,7 +1631,7 @@ async function runSelfTest(btn) {
   el.className = "diag";
   el.innerHTML = `
     <button class="x" aria-label="閉じる">✕</button>
-    <h2>自己診断：詳細を閉じるときのなめらかさ</h2>
+    <p class="diag-title">自己診断：詳細を閉じるときのなめらかさ</p>
     <table>
       <tr><td><b>着地ずれ（これで判定します）</b></td><td><b>${landing} px　${landOk ? "○" : "×"}</b></td></tr>
       <tr><td>参考：直後に閉じる　取りこぼし</td><td>${A.avg} ms</td></tr>
@@ -2465,8 +2601,24 @@ function buildCard(d, opts, idx) {
   if (opts.clickable) {
     root.tabIndex = 0;
     root.setAttribute("role", "button");
+    /* カードの読み上げ名（A-39）。
+       目で見て分かること——新着の印・お気に入りの★・メモの付箋・場面タグ・
+       受け取った日時——が、読み上げでは一つも伝わっていなかった。
+       言葉・送り主・場面・日時までを1文で読み、状態はそのあとに短く添える。
+       ここは長くしすぎると一覧を送るときに邪魔になるので、
+       画面に出ている印と同じものだけを、同じ順で並べる。
+       ★と付箋は opts で描き分けているので、名前も同じ条件で作る
+       ——上司には、じぶんのメモがあること自体を伝えない（原則8） */
+    const marks = [
+      d.isNew ? "新着" : "",
+      (opts.fav && d.fav) ? "お気に入り" : "",
+      (opts.memo && d.myMemo) ? "じぶんのメモあり" : "",
+    ].filter(Boolean);
     root.setAttribute("aria-label",
-      `${d.who}からの「${String(d.msg).replace(/<br>/g, "")}」の詳細を開く`);
+      `${d.who}からの「${String(d.msg).replace(/<br>/g, "")}」`
+      + `。場面：${d.tag}、${d.time}`
+      + (marks.length ? `、${marks.join("、")}` : "")
+      + "。詳細を開く");
   }
   root.style.setProperty("--cc", tagColor(d.tag));
   root.style.setProperty("--ci", tagInk(d.tag));
@@ -2767,11 +2919,11 @@ function renderMilestones() {
   el.className = "ms";
   el.innerHTML = msHTML(next) + '<button class="ms-x" aria-label="この知らせを閉じる">✕</button>';
   host.appendChild(el);
-  /* ヘッダーは画面幅で高さが変わるので、その下端にぴったり貼り付ける（イシュー#14）。
-     以前は 10px 浮かせていたので、帯の下端で本文が半分だけ覗いて、
-     文字が途中で切れたまま透けて見えていた。
-     いまは置き場（.ms-host）ごと画面幅の不透明な帯にして、下をきれいに隠す */
-  host.style.top = document.querySelector("header").getBoundingClientRect().bottom + "px";
+  /* ヘッダーは画面幅で高さが変わるので、その下端を帯の上端として渡す。
+     広い画面では、この高さで見出しの右の余白に並ぶ。
+     狭い画面では画面の下端へ移すので、この値は使われない（N-01） */
+  document.documentElement.style.setProperty(
+    "--ms-top", document.querySelector("header").getBoundingClientRect().bottom + "px");
 
   const retract = () => {
     clearTimeout(msTimer);
@@ -2902,11 +3054,46 @@ const focusablesIn = root => [...root.querySelectorAll(FOCUS_SEL)].filter(el => 
    ------------------------------------------------------------------------ */
 function syncScrollLock() {
   while (modalStack.length && !modalStack[modalStack.length - 1].ov.isConnected) modalStack.pop();
+  syncBackgroundInert();
   const root = document.documentElement;
   const on = !!document.querySelector(".overlay");
   if (on === root.classList.contains("modal-open")) return;
   if (on) root.style.setProperty("--sbw", (window.innerWidth - root.clientWidth) + "px");
   root.classList.toggle("modal-open", on);
+}
+
+/* ---- 開いている間は、背景を読み上げからも外す（A-02 の残り） -----------
+   焦点は閉じ込めてあり、暗幕でマウスも届かない。それでも残っていたのが
+   読み上げの「ブラウズモード」で、仮想カーソルは背後のカード533枚も
+   ヘッダーも読めてしまう。見えている面と読める面が食い違うので、
+   どこを読んでいるのか分からなくなる。
+
+   外し方は `inert`。焦点も、押すことも、支援技術の読み上げも、まとめて
+   止まる（aria-hidden を別に足すと、焦点が当たったまま隠す事故が起きる）。
+   付けるのは body の直下の兄弟のうち、いま開いている器（.overlay）以外。
+   入れ子（詳細の上に削除の確認）でも、幕がDOMに1つでもあれば付けたまま、
+   1つも無くなったら外す——ここは syncScrollLock と同じ判断でよい。
+
+   知らせの器（.toast-live / .toast）だけは外さない。ダイアログの中の操作でも
+   トーストは出るので、ここを inert にすると読み上げに届かなくなる。
+
+   焦点を中へ移したあとに呼ばれる（pushModalFocus → syncScrollLock）ので、
+   焦点が背景に残ったまま inert になることはない。
+   Tab の閉じ込め（keydown の capture）はそのまま効く。
+   ------------------------------------------------------------------------ */
+let inertedEls = [];
+function syncBackgroundInert() {
+  const on = !!document.querySelector(".overlay");
+  if (on) {
+    if (inertedEls.length) return;              // 入れ子。すでに外してある
+    inertedEls = [...document.body.children].filter(el =>
+      !el.classList.contains("overlay") && !el.classList.contains("toast-live")
+      && !el.classList.contains("toast") && !el.inert);
+    inertedEls.forEach(el => { el.inert = true; });
+  } else if (inertedEls.length) {
+    inertedEls.forEach(el => { el.inert = false; });
+    inertedEls = [];
+  }
 }
 
 /** 開いた直後に呼ぶ。焦点を中へ移し、閉じ込めの対象として積む */
@@ -3978,7 +4165,7 @@ function openMember(i) {
   const p = periodSum(m.shape, span);
   $("detailHead").innerHTML = `
     <div class="ava-l">${m.ini}</div>
-    <div><div class="detail-name">${m.name}</div>
+    <div><h1 class="detail-name">${m.name}</h1>
     <div class="detail-sub">${m.role} ・ ${teamPeriodLabel()}：もらった ${p.r}通 ／ おくった ${p.s}通（メンバー一覧と同じ期間・同じ数え方です）</div></div>`;
   const months = Object.keys(m.reports);
   $("reportList").innerHTML = months.map((mo, j) =>

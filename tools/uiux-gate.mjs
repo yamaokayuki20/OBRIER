@@ -147,14 +147,20 @@ async function visitAll(p, collect) {
     await p.locator('.seg button', { hasText: '上司' }).first().click({ timeout: 3000 });
     await wait(900);
     await take('上司一覧');
-    await p.locator('.tbl tbody tr').first().click({ timeout: 3000 });
+    /* 行は上司の一覧（#viewTeam）のものを指す。
+       `.tbl tbody tr` だけだと、先に描かれている「表で見る」の隠れた表
+       （#viewShape の .chart-table）の行に当たり、
+       「element is not visible」でメンバー詳細まで一度も進めていなかった。
+       同じ理由で 1on1準備メモも「1on1」という文字のボタンが無いため開けていない
+       （開く操作は月次レポートの行＝.report-item） */
+    await p.locator('#viewTeam .tbl tbody tr').first().click({ timeout: 3000 });
     await wait(900);
     await take('メンバー詳細');
     for (const sub of await p.locator('.sub-tab').all()) {
       try { await sub.click({ timeout: 2000 }); await wait(700); await take('メンバー詳細サブ'); } catch {}
     }
     try {
-      await p.locator('button', { hasText: '1on1' }).first().click({ timeout: 2500 });
+      await p.locator('.report-item').first().click({ timeout: 2500 });
       await wait(800);
       await take('1on1準備メモ');
       await p.keyboard.press('Escape');
