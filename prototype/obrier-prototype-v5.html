@@ -587,6 +587,13 @@
     .bar-label { width: 84px; font-size: var(--fs-ui); }
   }
   @media (prefers-reduced-motion: reduce) { .card3d { transition: none; } }
+
+  /* ---- キーボード操作まわり（イシュー#8） ----
+     タブを div から button に変えたぶん、ブラウザ既定の見た目だけを打ち消す。
+     大きさに関わる指定（padding・font-size）は上の .tab のままにしておく。
+     ここで枠を足すと当たり判定の寸法が変わってしまうので border は 0。
+     背景は .tab.active / .tab:hover のほうが詳しいので、そちらが勝つ */
+  .tab { appearance: none; -webkit-appearance: none; background: none; border: 0; font-family: inherit; text-align: center; }
 </style>
 </head>
 <body>
@@ -594,12 +601,31 @@
 <header>
   <div class="bar">
     <div class="brand"><div class="brand-mark">O</div><div>オブリエ<small>OBRIER</small></div></div>
-    <nav class="tabs" id="personTabs">
-      <div class="tab active" data-v="album">アルバム</div>
-      <div class="tab" data-v="shape">あなたのカタチ</div>
-      <div class="tab" data-v="sent">おくった ありがとう</div>
+    <!-- 画面の切り替え（イシュー#8）
+         div のままだと Tab キーでたどり着けず、キーボードだけの人は
+         アルバムから先へ一歩も進めなかった。button にして順番に入れる。
+         Enter / Space での切り替えは button の既定の挙動でそのまま効く。
+
+         role="tab"（タブUI）ではなく nav + aria-current="page" を選んだ理由：
+           ・WAI-ARIA のタブUIは「Tab順に入るのは選択中の1枚だけ、
+             ほかへは矢印キーで移る」作り（ローピング tabindex）が前提。
+             残り2枚は tabindex="-1" になり、
+             「見えている操作要素すべてに Tab で到達できる」を満たせなくなる
+           ・切り替える先は tabpanel ではなく画面（section）そのもので、
+             見出しも件数も入れ替わる。中身の切り替えというより行き先の選択に近い
+           ・元から <nav> で囲まれており、行き先の選択という見立てと合う
+         そのため「いま開いている行き先」を aria-current="page" で示す。 -->
+    <nav class="tabs" id="personTabs" aria-label="画面の切り替え">
+      <button type="button" class="tab active" data-v="album" aria-current="page">アルバム</button>
+      <button type="button" class="tab" data-v="shape">あなたのカタチ</button>
+      <button type="button" class="tab" data-v="sent">おくった ありがとう</button>
     </nav>
     <div class="spacer"></div>
+    <!-- 役割の切り替えは3つのうち1つだけが押された状態になる操作面。
+         aria-pressed は setRole() で3つとも毎回書き換えており、
+         いま選ばれているものが true、ほかが false で正しく保たれている。
+         （厳密には排他選択なので radiogroup という手もあるが、
+           見た目・操作とも押しボタンの並びなので aria-pressed のままとする） -->
     <div class="seg" id="roleSeg">
       <button data-role="person" aria-pressed="true">本人</button>
       <button data-role="boss" aria-pressed="false">上司</button>
@@ -1549,6 +1575,75 @@ const EXT_ICON = `<svg class="ext-icon" viewBox="0 0 16 16" aria-hidden="true">
         fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>`;
 
+/* ---- モーダルの焦点の作法（イシュー#8） ---------------------------------
+   拡大詳細やダイアログを開いても焦点が背後のページに残っていると、
+   キーボードだけの人は「開いたのに中を触れない・Tabを送ると裏の画面を
+   操作してしまう」状態になる。開いたら中へ入れ、開いている間は中で回し、
+   閉じたら開く前にいた場所へ返す。
+
+   ・焦点を当てるときは必ず focus({ preventScroll: true })。
+     ここでページが動くと、カードが元の位置へ戻る計算（openFlight の delta）
+     が測り直しのたびにずれて、着地の瞬間に跳ねる
+   ・ダイアログは入れ子になる（拡大詳細の中から削除の確認を開く）ので、
+     重ねた順に積んで、いちばん上のものだけが Tab を受け持つ
+   ------------------------------------------------------------------------ */
+const FOCUS_SEL = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+const modalStack = [];
+
+/** その器の中で、いま実際に焦点を取れるもの（隠れているものは除く） */
+const focusablesIn = root => [...root.querySelectorAll(FOCUS_SEL)].filter(el => el.offsetParent !== null);
+
+/** 開いた直後に呼ぶ。焦点を中へ移し、閉じ込めの対象として積む */
+function pushModalFocus(ov) {
+  const panel = ov.querySelector('[role="dialog"]') || ov;
+  if (!panel.hasAttribute("tabindex")) panel.tabIndex = -1;   // 中に操作要素が無いときの受け皿
+  const prev = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  const entry = { ov, panel, prev };
+  modalStack.push(entry);
+  // 最初の焦点は閉じるボタン。無ければ中の最初の操作要素、それも無ければ器そのもの
+  (panel.querySelector(".sheet-close") || focusablesIn(panel)[0] || panel).focus({ preventScroll: true });
+  return entry;
+}
+
+/** 閉じるときに呼ぶ。積みから外し、開く前にいた場所へ焦点を返す */
+function popModalFocus(entry) {
+  const i = modalStack.indexOf(entry);
+  if (i < 0) return;
+  modalStack.splice(i, 1);
+  const el = entry.prev;
+  if (!el) return;
+  /* 元のカードは裏返りが戻り切るまで visibility:hidden で置かれており、
+     その間は焦点を受け取れない。表に戻ってから当てる
+     （動きを減らす設定ならすぐ戻るので、たいてい最初の1回で決まる）。
+     カードを削除して閉じた場合は戻り先が無いので、そのまま何もしない */
+  const tryFocus = (n = 0) => {
+    if (!el.isConnected) return;
+    if (n < 45 && (el.offsetParent === null || getComputedStyle(el).visibility === "hidden"))
+      return requestAnimationFrame(() => tryFocus(n + 1));
+    el.focus({ preventScroll: true });
+  };
+  tryFocus();
+}
+
+/* Tab の行き先を、いちばん上のモーダルの中に閉じ込める。
+   最後の要素から Tab で先頭へ、先頭から Shift+Tab で最後へ回す */
+document.addEventListener("keydown", e => {
+  if (e.key !== "Tab") return;
+  // 片付け漏れ（自己診断はオーバーレイを直に取り除く）で古い器が残らないように
+  while (modalStack.length && !modalStack[modalStack.length - 1].ov.isConnected) modalStack.pop();
+  if (!modalStack.length) return;
+  const { panel } = modalStack[modalStack.length - 1];
+  const list = focusablesIn(panel);
+  const cur = document.activeElement;
+  if (!list.length) { e.preventDefault(); panel.focus({ preventScroll: true }); return; }
+  const first = list[0], last = list[list.length - 1];
+  const inside = panel.contains(cur);
+  if (e.shiftKey ? (!inside || cur === first) : (!inside || cur === last)) {
+    e.preventDefault();
+    (e.shiftKey ? last : first).focus({ preventScroll: true });
+  }
+}, true);
+
 /** カード以外から開く一般ダイアログ（プレビュー・確認・レポート） */
 function openDialog({ title, sub, body, actions = [], cls = "" }) {
   const ov = document.createElement("div");
@@ -1567,7 +1662,8 @@ function openDialog({ title, sub, body, actions = [], cls = "" }) {
   const sheet = ov.querySelector(".sheet");
   if (!REDUCED) sheet.animate([{ opacity: 0, transform: "translateY(14px) scale(.98)" }, { opacity: 1, transform: "none" }],
     { duration: 220, easing: "cubic-bezier(.2,.9,.3,1.1)" });
-  const close = () => { document.removeEventListener("keydown", onEsc); ov.remove(); };
+  const focusEntry = pushModalFocus(ov);
+  const close = () => { document.removeEventListener("keydown", onEsc); popModalFocus(focusEntry); ov.remove(); };
   const onEsc = e => { if (e.key === "Escape") close(); };
   document.addEventListener("keydown", onEsc);
   ov.addEventListener("click", e => { if (e.target === ov || e.target.classList.contains("overlay-bg") || e.target.closest(".sheet-close")) close(); });
@@ -1661,6 +1757,11 @@ function openThread(d, fromCard, opts) {
     </div>`;
   document.body.appendChild(ov);
 
+  /* 焦点を詳細の中（閉じるボタン）へ移す。カードの複製が飛び始める前に済ませる。
+     飛ぶときに元のカードを visibility:hidden で隠すので、そのあとだと
+     「開く前にいた場所」を取り損ねて、閉じたときに戻れなくなる */
+  const focusEntry = pushModalFocus(ov);
+
   ov.querySelector("[data-open-src]").addEventListener("click", () => toast("元のメッセージを開きます（モック）"));
 
   const favBtn = ov.querySelector("[data-fav]");
@@ -1721,7 +1822,7 @@ function openThread(d, fromCard, opts) {
     fromCard._ripple = null;
   }
   const onEsc = e => { if (e.key === "Escape") close(); };
-  const close = () => { document.removeEventListener("keydown", onEsc); flight.close(); };
+  const close = () => { document.removeEventListener("keydown", onEsc); popModalFocus(focusEntry); flight.close(); };
   ov.addEventListener("click", e => { if (e.target === ov || e.target.classList.contains("overlay-bg") || e.target.closest(".sheet-close")) close(); });
   document.addEventListener("keydown", onEsc);
   if (ROLE === "boss") logAudit("カード詳細閲覧", `${currentMember ? currentMember.name : ""}・${d.who}からのカード`);
@@ -2125,7 +2226,12 @@ function showPersonView(name) {
   if (ROLE !== "person") setRole("person", true);
   hideAllViews();
   $(PERSON_VIEWS[name]).classList.remove("hidden");
-  document.querySelectorAll("#personTabs .tab").forEach(t => t.classList.toggle("active", t.dataset.v === name));
+  document.querySelectorAll("#personTabs .tab").forEach(t => {
+    const on = t.dataset.v === name;
+    t.classList.toggle("active", on);
+    // いま開いている行き先を支援技術にも伝える（見た目の .active と対）
+    if (on) t.setAttribute("aria-current", "page"); else t.removeAttribute("aria-current");
+  });
 }
 
 function setRole(role, quiet) {
