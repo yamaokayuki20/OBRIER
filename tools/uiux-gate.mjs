@@ -79,6 +79,102 @@ window.__ui = {
 };
 `;
 
+
+/* 巡回する場面。
+   ここが薄いと、測っていない場所の違反を見逃したまま「合格」を返してしまう。
+   実際、最初はダイアログの中とメンバー詳細を一度も開いておらず、
+   再監査で MUST 違反4件（ダイアログ内の文字色32件・戻るリンクの当たり判定・
+   メンバー詳細に h1 が無い・拡大詳細のボタンがスマホで32px）を
+   見逃したまま合格を出していた。直した範囲と巡回範囲がちょうど一致していた。
+   場面を増やすときは「閉じるところまで」を1組にすること */
+async function visitAll(p, collect) {
+  const out = [];
+  const take = async label => out.push(...(await collect()).map(x => ({ ...x, screen: label })));
+  const wait = ms => p.waitForTimeout(ms);
+
+  // ---- 本人の3画面 ----
+  for (const v of ['album', 'shape', 'sent']) {
+    await p.locator(`.tab[data-v="${v}"]`).click();
+    await wait(700);
+    await take(v);
+  }
+
+  // ---- 拡大詳細（カードの中身。ボタン・注記・やり取りが全部ここにある） ----
+  await p.locator(`.tab[data-v="album"]`).click();
+  await wait(600);
+  try {
+    await p.locator('#grid .card').first().click({ timeout: 3000 });
+    await wait(900);
+    await take('拡大詳細');
+    await p.keyboard.press('Escape');
+    await wait(700);
+  } catch {}
+
+  // ---- ダイアログ群 ----
+  const dialogs = [
+    ['CSVで書き出す', 'CSV'],
+    ['年間アルバム', '年間アルバム'],
+    ['これまでの節目', '節目一覧'],
+  ];
+  for (const [label, name] of dialogs) {
+    try {
+      await p.locator('button', { hasText: label }).first().click({ timeout: 2500 });
+      await wait(700);
+      if (await p.locator('.overlay').count() === 0) continue;
+      await take(name);
+      await p.keyboard.press('Escape');
+      await wait(600);
+    } catch {}
+  }
+
+  // ---- 削除の確認（拡大詳細の中から開く入れ子） ----
+  try {
+    await p.locator('#grid .card').first().click({ timeout: 3000 });
+    await wait(900);
+    await p.locator('[data-del]').first().click({ timeout: 2500 });
+    await wait(700);
+    await take('削除の確認');
+    await p.keyboard.press('Escape');
+    await wait(500);
+    await p.keyboard.press('Escape');
+    await wait(700);
+  } catch {}
+  await p.evaluate(() => document.querySelectorAll('.overlay').forEach(o => o.remove()));
+  await wait(300);
+
+  // ---- 上司：一覧とメンバー詳細（3つのサブタブ）と1on1準備メモ ----
+  try {
+    await p.locator('.seg button', { hasText: '上司' }).first().click({ timeout: 3000 });
+    await wait(900);
+    await take('上司一覧');
+    await p.locator('.tbl tbody tr').first().click({ timeout: 3000 });
+    await wait(900);
+    await take('メンバー詳細');
+    for (const sub of await p.locator('.sub-tab').all()) {
+      try { await sub.click({ timeout: 2000 }); await wait(700); await take('メンバー詳細サブ'); } catch {}
+    }
+    try {
+      await p.locator('button', { hasText: '1on1' }).first().click({ timeout: 2500 });
+      await wait(800);
+      await take('1on1準備メモ');
+      await p.keyboard.press('Escape');
+      await wait(600);
+    } catch {}
+  } catch {}
+
+  // ---- 管理者：4つのタブ ----
+  try {
+    await p.locator('.seg button', { hasText: '管理者' }).first().click({ timeout: 3000 });
+    await wait(900);
+    await take('管理者');
+    for (const sub of await p.locator('.sub-tab').all()) {
+      try { await sub.click({ timeout: 2000 }); await wait(700); await take('管理者サブ'); } catch {}
+    }
+  } catch {}
+
+  return out;
+}
+
 const browser = await chromium.launch();
 
 /* ---- コントラスト比 -------------------------------------------------- */
@@ -111,22 +207,12 @@ const browser = await chromium.launch();
     return bad;
   });
 
-  const all = [];
-  for (const v of ['album', 'shape', 'sent']) {
-    await p.locator(`.tab[data-v="${v}"]`).click();
-    await p.waitForTimeout(700);
-    all.push(...(await scan()).map(x => ({ ...x, screen: v })));
-  }
-  for (const r of ['上司', '管理者']) {
-    try { await p.locator('.seg button', { hasText: r }).first().click({ timeout: 3000 }); } catch { continue; }
-    await p.waitForTimeout(900);
-    all.push(...(await scan()).map(x => ({ ...x, screen: r })));
-  }
+  const all = await visitAll(p, scan);
   // 同じ見た目のものは1件にまとめる
   const uniq = [...new Map(all.map(x => [x.cls + x.r, x])).values()].sort((a, b) => a.r - b.r);
   check('文字のコントラスト比が基準を満たす（本文4.5:1／大きな文字3:1）',
     uniq.length === 0,
-    uniq.slice(0, 6).map(x => `${x.cls} ${x.r}:1(要${x.need}) ${x.size}px「${x.t}」`).join(' / ')
+    uniq.slice(0, 6).map(x => `[${x.screen}] ${x.cls} ${x.r}:1(要${x.need}) ${x.size}px`).join(' / ')
     + (uniq.length > 6 ? ` ほか${uniq.length - 6}件` : ''));
   await p.close();
 }
@@ -136,7 +222,9 @@ for (const [w, h, label, need] of [[1280, 900, 'PC', 24], [390, 844, 'スマホ'
   const p = await browser.newPage({ viewport: { width: w, height: h } });
   await p.goto(URL);
   await p.waitForTimeout(2200);
-  const small = await p.evaluate(need => {
+  /* 当たり判定も、コントラストと同じ場面を全部まわって測る。
+     拡大詳細とダイアログの中のボタンは、ここを巡回しないと一度も測られない */
+  const scanHit = () => p.evaluate(need => {
     const out = [];
     const sel = 'button, a[href], [role="button"], input, select, textarea, .tab, .card, [tabindex]:not([tabindex="-1"])';
     for (const el of document.querySelectorAll(sel)) {
@@ -152,9 +240,10 @@ for (const [w, h, label, need] of [[1280, 900, 'PC', 24], [390, 844, 'スマホ'
     }
     return out;
   }, need);
+  const small = await visitAll(p, scanHit);
   const uniq = [...new Map(small.map(x => [x.cls + x.w + x.h, x])).values()];
   check(`${label}: 押せるものの当たり判定が${need}px以上`, uniq.length === 0,
-    uniq.slice(0, 6).map(x => `${x.cls} ${x.w}x${x.h}`).join(' / ')
+    uniq.slice(0, 6).map(x => `[${x.screen}] ${x.cls} ${x.w}x${x.h}`).join(' / ')
     + (uniq.length > 6 ? ` ほか${uniq.length - 6}件` : ''));
   await p.close();
 }
@@ -307,6 +396,35 @@ for (const [w, h, label, need] of [[1280, 900, 'PC', 24], [390, 844, 'スマホ'
   const hasNext = hasEmpty && /(と|すると|してください|できます|変えて|外して|届く|並びます|見直)/.test(t) && t.length >= 24;
   check('空状態に次の一手が書かれている', hasNext, hasEmpty ? `表示=「${t}」` : '空状態が出ないため未確認');
 
+  await p.close();
+}
+
+/* ---- 見出しの階層 ---------------------------------------------------- */
+{
+  const p = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+  await p.goto(URL);
+  await p.waitForTimeout(2200);
+  const scanH = () => p.evaluate(() => {
+    const hs = [...document.querySelectorAll('h1,h2,h3,h4,h5,h6')].filter(e => e.offsetParent !== null);
+    const lv = hs.map(e => ({ n: +e.tagName[1], size: parseFloat(getComputedStyle(e).fontSize),
+                              t: e.textContent.trim().slice(0, 12) }));
+    // visitAll は結果に画面名を足すので、文字列ではなくオブジェクトで返す
+    const bad = [];
+    const n1 = lv.filter(x => x.n === 1).length;
+    if (n1 !== 1) bad.push({ msg: `h1が${n1}個` });
+    // 階層の飛び（h1 のあと h3 が来る等）
+    for (let i = 1; i < lv.length; i++)
+      if (lv[i].n > lv[i - 1].n + 1) bad.push({ msg: `h${lv[i - 1].n}→h${lv[i].n}の飛び` });
+    // 見出しは本文より十分大きいこと。日本語は密なので 1.25倍を下限にする
+    const body = 16;
+    for (const x of lv)
+      if (x.n <= 2 && x.size < body * 1.25) bad.push({ msg: `h${x.n} ${x.size}px「${x.t}」` });
+    return bad;
+  });
+  const all = await visitAll(p, scanH);
+  const uniq = [...new Set(all.map(x => `[${x.screen}] ${x.msg}`))];
+  check('見出しの階層が成立している（h1が1つ・飛びなし・本文の1.25倍以上）',
+    uniq.length === 0, uniq.slice(0, 6).join(' / ') + (uniq.length > 6 ? ` ほか${uniq.length - 6}件` : ''));
   await p.close();
 }
 
