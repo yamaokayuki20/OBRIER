@@ -27,13 +27,20 @@
     --bg: #ffffff;
     --grid-line: rgba(90,143,216,.13);
     --stage-ink: #2c3345;
-    --stage-ink-soft: rgba(44,51,69,.62);
+    /* 以前は rgba(44,51,69,.62) で薄めていたが、背景が白・薄青方眼・パネル面と
+       一定でないため、透過だと乗る場所によってコントラスト比が変わってしまう
+       （実測 3.24〜3.9:1 で複数箇所が基準未達）。色そのものを不透明の
+       ソフトネイビーに変え、どの背景でも 4.5:1 を上回るようにした */
+    --stage-ink-soft: #5f6473;
 
     /* パネル */
     --panel-line: #d7e0ee; --panel-bg: #f4f7fc; --panel-soft: #ffffff;
 
     /* チャート2系列 */
-    --line-recv: #3A4A66; --line-sent: #55B7BF;
+    /* --line-sent は元 #55B7BF（白背景で 2.36:1）。表内の受発件数（.mt-num に
+       style="color:var(--line-sent)" で直接使われる）が読めなかったため、
+       同じ色相のまま濃くした（白背景で 5.8:1） */
+    --line-recv: #3A4A66; --line-sent: #336e73;
 
     /* ---------------- 文字の大きさ ----------------
        日本語は同じ px でも欧文よりずっと密になる。欧文の小文字が
@@ -97,8 +104,11 @@
   }
   .bar { max-width: 1140px; margin: 0 auto; padding: 11px 20px; display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap; }
   .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; letter-spacing: .12em; font-size: var(--fs-body); flex: none; }
-  .brand-mark { width: 28px; height: 28px; border-radius: 9px; background: linear-gradient(145deg, #d89a48, #b9752c); display: grid; place-items: center; color: #fff; font-size: var(--fs-body); font-weight: 800; }
-  .brand small { display: block; font-size: var(--fs-note); letter-spacing: .2em; opacity: .55; font-weight: 600; }
+  /* 元は #d89a48→#b9752c（白文字が薄い方の端で 2.4:1 まで落ちる）。
+     暖色のまま両端とも白文字 4.5:1 以上を確保できる濃さに直した */
+  .brand-mark { width: 28px; height: 28px; border-radius: 9px; background-color: #724a10; background-image: linear-gradient(145deg, #96591a, #724a10); display: grid; place-items: center; color: #fff; font-size: var(--fs-body); font-weight: 800; }
+  /* opacity で薄めると背景ごとに実効コントラストが変わるため、色そのものを調整 */
+  .brand small { display: block; font-size: var(--fs-note); letter-spacing: .2em; color: var(--stage-ink-soft); font-weight: 600; }
   .tabs { display: flex; gap: 4px; margin-left: 8px; overflow-x: auto; scrollbar-width: none; }
   .tabs::-webkit-scrollbar { display: none; }
   .tab { padding: 7px 14px; border-radius: 999px; font-size: var(--fs-ui); color: var(--stage-ink-soft); cursor: pointer; white-space: nowrap; transition: background .15s, color .15s; }
@@ -110,9 +120,12 @@
   .seg button:hover { background: color-mix(in srgb, var(--stage-ink) 9%, transparent); opacity: 1; }
   .seg button[aria-pressed="true"] { background: var(--stage-ink); color: #fff; opacity: 1; font-weight: 700; }
   .me { display: flex; align-items: center; gap: 8px; font-size: var(--fs-ui); color: var(--stage-ink-soft); flex: none; }
-  .build { font-size: var(--fs-note); letter-spacing: .06em; color: var(--stage-ink-soft); opacity: .5; flex: none;
-    font-variant-numeric: tabular-nums; background: none; border: none; cursor: pointer; font-family: inherit; padding: 2px 4px; }
-  .build:hover { opacity: 1; text-decoration: underline; }
+  /* opacity .5 だと 1.8:1 まで落ちるため外した。当たり判定は見た目を変えず
+     min-height だけで PC 24px 以上を確保（スマホでは非表示のまま） */
+  .build { font-size: var(--fs-note); letter-spacing: .06em; color: var(--stage-ink-soft); flex: none;
+    font-variant-numeric: tabular-nums; background: none; border: none; cursor: pointer; font-family: inherit;
+    padding: 2px 4px; min-height: 24px; display: inline-flex; align-items: center; }
+  .build:hover { text-decoration: underline; }
   /* 自己診断の結果パネル */
   .diag { position: fixed; right: 16px; bottom: 16px; z-index: 90; width: min(360px, calc(100vw - 32px));
     background: #fff; border: 1px solid var(--panel-line); border-radius: 14px; box-shadow: 0 18px 40px rgba(20,26,40,.24);
@@ -147,8 +160,15 @@
   }
   .ms-mark { font-size: var(--fs-cap); font-weight: 800; letter-spacing: .08em; color: var(--accent-deep); flex: none; }
   .ms b { color: var(--ink); font-weight: 700; }
-  .ms-x { margin-left: auto; border: none; background: none; cursor: pointer; color: var(--ink-soft); font-size: var(--fs-ui); opacity: .6; padding: 2px 4px; flex: none; }
-  .ms-x:hover { opacity: 1; }
+  /* opacity .6 だと ✕ が 2.5:1 まで落ちるため色を不透明に。
+     当たり判定は見た目を変えず余白（min-width/min-height）だけで PC 24px 以上を確保
+     （スマホは下の @media で 44px に広げる） */
+  .ms-x {
+    margin-left: auto; border: none; background: none; cursor: pointer; color: var(--ink-soft); font-size: var(--fs-ui);
+    min-width: 24px; min-height: 24px; padding: 0; flex: none; border-radius: 6px;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .ms-x:hover { background: color-mix(in srgb, var(--ink-soft) 14%, transparent); }
 
   /* ---------------- ツールバー ---------------- */
   .toolbar { display: flex; gap: 9px; align-items: center; flex-wrap: wrap; margin-bottom: 6px; }
@@ -161,7 +181,26 @@
   .btn-primary { background: var(--navy); color: #fff; border-color: var(--navy); font-weight: 700; }
   .btn-primary:hover { background: #2f3d57; color: #fff; }
   .check { display: inline-flex; align-items: center; gap: 6px; color: var(--stage-ink-soft); }
-  .check input { accent-color: var(--navy); }
+  /* ブラウザ標準のチェックボックスは 13×13px 固定で、当たり判定を広げようと
+     padding を足しても見た目ごと大きくなってしまう（当たり判定だけを広げたい）。
+     appearance:none で見た目を自作し、四角自体は元の大きさのまま、
+     その周りの余白ぶんだけ当たり判定（min-width/min-height）を広げる */
+  .check input[type="checkbox"] {
+    appearance: none; -webkit-appearance: none; margin: 0; padding: 0;
+    min-width: 24px; min-height: 24px; flex: none;
+    display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer; background: none; border: none; position: relative;
+  }
+  .check input[type="checkbox"]::before {
+    content: ""; box-sizing: border-box; width: 15px; height: 15px; border-radius: 4px;
+    border: 1.5px solid var(--stage-ink-soft); background: #fff;
+  }
+  .check input[type="checkbox"]:checked::before { background: var(--navy); border-color: var(--navy); }
+  .check input[type="checkbox"]:checked::after {
+    content: ""; position: absolute; left: 50%; top: 50%; width: 4px; height: 8px;
+    border: solid #fff; border-width: 0 2px 2px 0; transform: translate(-50%, -60%) rotate(45deg);
+  }
+  .check input[type="checkbox"]:focus-visible::before { outline: 2px solid var(--navy); outline-offset: 2px; }
   .search-input { width: 170px; }
   /* スマホでは入力欄を16px未満にしない。iOS Safari は 16px 未満の入力欄に
      焦点が当たると、読めないと判断してページごと勝手に拡大する（仕様どおりの挙動）。
@@ -265,7 +304,9 @@
   .tagpill {
     font-size: var(--fs-cap); font-weight: 700; letter-spacing: .06em;
     background: color-mix(in srgb, var(--cc) 16%, #fff);
-    color: color-mix(in srgb, var(--cc) 55%, #1d2430);
+    /* 55%→40%：代表7色そのものは変えず、その上に乗せる文字色の配合だけ濃くした。
+       黄（アイデア）等の明るい色でも淡色地に対し 4.5:1 を超える */
+    color: color-mix(in srgb, var(--cc) 40%, #1d2430);
     border: 1px solid color-mix(in srgb, var(--cc) 45%, transparent);
     border-radius: 999px; padding: 3px 11px;
   }
@@ -278,14 +319,18 @@
     border: 2px solid color-mix(in srgb, var(--cc) 46%, #1d2430);
     color: color-mix(in srgb, var(--cc) 46%, #1d2430);
     transform: rotate(var(--stamp-rot, -2deg));
-    opacity: .9; white-space: nowrap;
+    /* opacity .9 で紙に馴染ませていたが、明るい色（黄など）で 4:1 まで落ちるため外した。
+       濃さは color-mix 側の配合（46%）で足りている */
+    white-space: nowrap;
   }
   .corner-new {
     position: absolute; top: 14px; left: 14px; z-index: 5;
     font-size: var(--fs-note); font-weight: 800; letter-spacing: .14em; border-radius: 999px; padding: 4px 10px;
     background: rgba(255,255,255,.94); color: color-mix(in srgb, var(--cc) 62%, #1d2430);
   }
-  .fav-seal { position: absolute; top: 12px; right: 14px; z-index: 5; font-size: var(--fs-body); color: #ffd66b; transform: rotate(9deg); text-shadow: 0 1px 4px rgba(0,0,0,.35); }
+  /* お気に入り済みの目印は装飾ではなく情報なので、淡い金 #ffd66b（白地で1.37:1）
+     ではなく、.fav-btn の押下済み表示と同じ濃い琥珀色に揃えた */
+  .fav-seal { position: absolute; top: 12px; right: 14px; z-index: 5; font-size: var(--fs-body); color: #8a6410; transform: rotate(9deg); }
   .memo-dot { position: absolute; bottom: 14px; right: 16px; z-index: 5; width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.92); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ci) 22%, transparent); }
 
   /* ---------------- パネル ---------------- */
@@ -578,13 +623,20 @@
     /* 文字を上げたぶん3つ並べると幅を越えるので、余白のほうを詰める。
        文字を小さくして収める向きには倒さない（読めることを優先する） */
     .tabs { order: 3; width: 100%; margin-left: 0; gap: 3px; }
-    .tab { padding: 7px 9px; }
+    /* 横幅はそのまま（3つ横並びを維持）、高さだけ44pxにして当たり判定を広げる。
+       文字を大きくしたり幅を広げたりはしない */
+    .tab { padding: 7px 9px; min-height: 44px; display: flex; align-items: center; justify-content: center; }
     .me span { display: none; }
     main { padding: 20px 13px 70px; }
     .count { font-size: 40px; }
-    .search-input { width: 100%; }
+    .search-input { width: 100%; min-height: 44px; }
     .sheet-body, .dlg-body { padding-left: 16px; padding-right: 16px; }
     .bar-label { width: 84px; font-size: var(--fs-ui); }
+    /* スマホの当たり判定 44px。見た目のパディングは変えず、高さだけ広げる */
+    .seg button { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+    .select, .btn { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+    .ms-x { min-width: 44px; min-height: 44px; }
+    .check input[type="checkbox"] { min-width: 44px; min-height: 44px; }
   }
   @media (prefers-reduced-motion: reduce) { .card3d { transition: none; } }
 
