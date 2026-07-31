@@ -672,6 +672,121 @@
      下限だけ残して伸びるようにする */
   .bar-count { width: auto; min-width: 72px; }
   .bar-unit { font-weight: 600; }
+
+  /* ---- 状態の表示（イシュー#12） ----------------------------------------
+     これまで、この画面には「うまくいっているとき」しか無かった。
+     読込中・失敗・権限なし・0件・連携の失効を、通常時と同じ静かさで描く。
+
+     方針（docs/uiux-references.md 6章）
+       ・構造が分かっているもの（カード一覧・表・パネル）はスケルトン。
+         枠の大きさを本物と同じにして、出てきたときに画面が飛ばないようにする
+       ・確定処理（書き出し・生成・再連携）はスピナー
+       ・読込表示は1秒を過ぎてから出す（1秒未満で終わる待ちに出すとちらつく）
+       ・エラーは 事象・原因・対処 の3要素。責める主語は使わない
+     色は既にある赤（#b0432f 系）・琥珀（#fffaf0 系）を流用し、
+     いずれも下地に対して 4.5:1 以上になる濃さだけを使う。
+     ここに書くのは新しいクラスだけで、既存のルールの値には触れない。
+     ---------------------------------------------------------------------- */
+
+  /* 骨組み（スケルトン）。淡い帯が左から右へゆっくり流れるだけ */
+  @keyframes sk-shimmer { from { background-position: 140% 0; } to { background-position: -40% 0; } }
+  .sk-bar, .sk-card {
+    background: linear-gradient(100deg, #eef1f6 30%, #f8fafd 48%, #eef1f6 66%);
+    background-size: 260% 100%;
+    animation: sk-shimmer 1.5s linear infinite;
+    border-radius: 8px;
+  }
+  /* 本物のカードと同じ丈（320px）で置く。読み終わって差し替わっても行がずれない */
+  .sk-card { height: 320px; border-radius: 12px; border-top: 7px solid #e3e8f0; }
+  .sk-status { grid-column: 1/-1; font-size: var(--fs-ui); color: var(--stage-ink-soft); padding: 4px 0 10px; }
+  .sk-line { display: flex; align-items: center; gap: 12px; }
+  .sk-dot { width: 30px; height: 30px; border-radius: 50%; flex: none; }
+  .sk-panel { padding: 6px 0; display: flex; flex-direction: column; gap: 14px; }
+
+  /* 状態のパネル（0件・失敗・権限なし）。中央に寄せず、読む順に上から積む */
+  .state-box {
+    grid-column: 1/-1; max-width: 560px; margin: 26px auto; text-align: center;
+    background: var(--panel-bg); border: 1px solid var(--panel-line); border-radius: 14px;
+    padding: 26px 24px;
+  }
+  .state-box h3 { font-size: var(--fs-lead); font-weight: 800; color: var(--stage-ink); margin-bottom: 8px; }
+  .state-box p { font-size: var(--fs-ui); line-height: 1.9; color: var(--stage-ink-soft); }
+  .state-box .state-count { font-size: var(--fs-cap); color: var(--stage-ink-soft); margin-top: 10px; font-variant-numeric: tabular-nums; }
+  .state-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 16px; }
+  /* 0件のときの箱。失敗ではないので、赤にも警告色にもしない */
+  .state-box.empty-state { background: #fff; }
+  .state-box.is-fail { background: #fdeceb; border-color: #eccfca; }
+  .state-box.is-fail h3, .state-box.is-fail p { color: #8c3a2c; }
+
+  /* 画面の中に差し込む一行の知らせ（連携の失効・書き出しの失敗など） */
+  .state-note {
+    border-radius: 10px; padding: 12px 14px; font-size: var(--fs-ui); line-height: 1.9;
+    margin: 0 0 14px;
+  }
+  .state-note b { display: block; font-weight: 800; margin-bottom: 2px; }
+  .state-note.is-fail { background: #fdeceb; border: 1px solid #eccfca; color: #8c3a2c; }
+  .state-note.is-warn { background: #fffaf0; border: 1px solid #f0e2c4; color: #7a5300; }
+  .state-note .state-actions { justify-content: flex-start; margin-top: 10px; }
+
+  /* 接続状態の赤。ラベルの文字（「失効」）でも分かるようにし、色だけに頼らない */
+  .status-dot.err::before { background: #b0432f; }
+
+  /* 取り込みの進み具合 */
+  .prog { height: 8px; border-radius: 999px; background: var(--navy-line); overflow: hidden; max-width: 320px; margin: 8px 0 6px; }
+  .prog > i { display: block; height: 100%; background: var(--navy); border-radius: 999px; transition: width .25s linear; }
+
+  /* スピナー（確定処理）。輪の濃さは下地に対して3:1以上 */
+  @keyframes sp-turn { to { transform: rotate(360deg); } }
+  .spinner {
+    width: 13px; height: 13px; border-radius: 50%; flex: none;
+    border: 2px solid currentColor; border-top-color: transparent;
+    animation: sp-turn .7s linear infinite; display: inline-block;
+  }
+  button[aria-busy="true"] { opacity: .85; cursor: progress; }
+
+  /* じぶんのメモの保存状態（A-10） */
+  .memo-state { font-size: var(--fs-note); color: var(--navy); font-weight: 700; }
+  .memo-state.is-dirty { color: #7a5300; }
+
+  /* 取り返しのつかない操作の確認文だけは、本文色を濃紺まで上げる。
+     .dlg-text の既定（--navy-soft）は白地で 4.32:1 しかなく、
+     「復元できません」を読み落とすと取り戻せない。
+     既存の .dlg-text の値には触れず、確認ダイアログ（.narrow）の中だけを上書きする */
+  .sheet.narrow .dlg-text { color: var(--navy); }
+
+  /* 削除・報告の確認に出す「どれのことか」（A-14） */
+  .confirm-target { background: var(--navy-bg); border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; }
+  .confirm-target .ct-head { font-size: var(--fs-cap); font-weight: 700; color: var(--navy); }
+  .confirm-target .ct-quote { font-size: var(--fs-ui); line-height: 1.8; color: var(--navy); margin-top: 4px; }
+
+  /* 状態デモ（開発用）。既定では hidden 属性で消えており、利用者には出ない */
+  .state-demo {
+    position: fixed; left: 14px; bottom: 60px; z-index: 90; width: min(300px, calc(100vw - 28px));
+    background: #fff; border: 1px solid var(--panel-line); border-radius: 12px; padding: 12px 14px;
+    box-shadow: 0 10px 24px rgba(20,26,40,.18); font-size: var(--fs-cap); color: var(--stage-ink);
+  }
+  .state-demo > b { display: block; font-size: var(--fs-ui); margin-bottom: 2px; }
+  .state-demo > small { display: block; color: var(--stage-ink-soft); line-height: 1.7; margin-bottom: 10px; }
+  .sd-row { margin-top: 10px; }
+  .sd-row > span { display: block; color: var(--stage-ink-soft); margin-bottom: 5px; }
+  .sd-btns { display: flex; gap: 5px; flex-wrap: wrap; }
+  .sd-btns button {
+    font-family: inherit; font-size: var(--fs-cap); cursor: pointer; color: var(--stage-ink);
+    background: #fff; border: 1px solid var(--panel-line); border-radius: 8px; padding: 6px 10px; min-height: 32px;
+  }
+  .sd-btns button[aria-pressed="true"] { background: var(--navy); border-color: var(--navy); color: #fff; font-weight: 700; }
+
+  /* トーストの読み上げ用の器。中身が空のあいだは何も占めない（0×0）。
+     .toast 自体は position:fixed のままなので、見た目は今までどおり */
+  .toast-live { position: fixed; left: 0; top: 0; width: 0; height: 0; z-index: 80; pointer-events: none; }
+
+  @media (max-width: 640px) {
+    .sd-btns button { min-height: 44px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .sk-bar, .sk-card, .spinner { animation: none; }
+    .prog > i { transition: none; }
+  }
 </style>
 </head>
 <body>
@@ -849,6 +964,8 @@
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
 const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+/** いまの時刻（15:58）。保存した時刻の表示に使う */
+const hhmm = () => { const d = new Date(), p = n => String(n).padStart(2, "0"); return `${p(d.getHours())}:${p(d.getMinutes())}`; };
 
 /* 場面タグ→色。タグは可変（自動で増える）ため、未知のタグは7色に決定的に割り当てる */
 const TAG_COLOR = {
@@ -1005,19 +1122,135 @@ async function runSelfTest(btn) {
   return window.__diag;
 }
 
-/* トースト */
+/* トースト（A-17）
+   これまで role も aria-live も無く、読み上げ利用者には何も起きていないのと
+   同じだった。読み上げの器は「先に置いてあって、あとから中身が入る」ときにしか
+   読まれないため、器（.toast-live）をページの最初から body に置き、
+   トーストはその中へ入れる。
+   ・ふつうの結果は role="status"（polite。作業を邪魔しない）
+   ・削除など取り返しのつかない操作の結果と失敗は role="alert"（assertive）
+   表示時間は 2.2秒では読み切れないため、文字数に応じて延ばす
+   （2秒＋1文字100ms、最低4秒・最長9秒）。 */
+const toastHosts = { polite: null, alert: null };
+{
+  const mk = (role, live) => {
+    const el = document.createElement("div");
+    el.className = "toast-live";
+    el.setAttribute("role", role);
+    el.setAttribute("aria-live", live);
+    el.setAttribute("aria-atomic", "true");
+    document.body.appendChild(el);
+    return el;
+  };
+  toastHosts.polite = mk("status", "polite");
+  toastHosts.alert = mk("alert", "assertive");
+}
 let toastTimer = null;
-function toast(msg) {
+function toast(msg, opts = {}) {
   document.querySelectorAll(".toast").forEach(t => t.remove());
   const t = document.createElement("div");
   t.className = "toast"; t.textContent = msg;
-  document.body.appendChild(t);
+  (opts.alert ? toastHosts.alert : toastHosts.polite).appendChild(t);
   if (!REDUCED) t.animate([{ opacity: 0, transform: "translate(-50%, 10px)" }, { opacity: 1, transform: "translate(-50%, 0)" }], { duration: 240, easing: "ease-out" });
   clearTimeout(toastTimer);
+  const ms = Math.min(9000, Math.max(4000, 2000 + [...msg].length * 100));
   toastTimer = setTimeout(() => {
     if (REDUCED) return t.remove();
     t.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200 }).onfinish = () => t.remove();
-  }, 2200);
+  }, ms);
+}
+
+/* =========================================================================
+   0-b. 状態の表示（イシュー#12）
+
+   読込中・失敗・権限なし・0件を、画面ごとに作り分けずに1か所で持つ。
+   実装ではこの MOCK.screen が API の応答に置き換わる。
+   ========================================================================= */
+
+/* 読込表示を出すまでの待ち。これより早く終わる待ちには何も出さない
+   （出すと一瞬だけ骨組みが見えて、かえって画面が落ち着かない） */
+const LOADER_DELAY = 1000;
+
+/* モックの状態。既定はすべて「うまくいっている」。
+   Shift+Alt+S で出る状態デモから切り替える（下の initStateDemo） */
+const MOCK = { screen: "ok", result: "ok" };
+
+/** その器に残っているカードの動きを engine から外す（骨組みに差し替える前に呼ぶ） */
+function dropCards(el) {
+  el.querySelectorAll(".card").forEach(c => engine.items.delete(c._m));
+}
+
+/** 骨組み。器の構造に合わせて形を変える */
+function skeletonHTML(kind) {
+  if (kind === "cards")
+    return `<p class="sk-status">読み込んでいます</p>` + '<div class="sk-card" aria-hidden="true"></div>'.repeat(6);
+  if (kind === "rows")
+    return Array.from({ length: 5 }, () => `<tr aria-hidden="true">
+      <td><div class="sk-line"><div class="sk-dot sk-bar"></div><div class="sk-bar" style="height:14px;width:150px"></div></div></td>
+      <td><div class="sk-bar" style="height:14px;width:52px"></div></td>
+      <td><div class="sk-bar" style="height:14px;width:52px"></div></td>
+      <td><div class="sk-bar" style="height:26px;width:130px"></div></td></tr>`).join("");
+  return `<div class="panel"><p class="sk-status">読み込んでいます</p><div class="sk-panel" aria-hidden="true">
+    <div class="sk-bar" style="height:20px;width:180px"></div>
+    <div class="sk-bar" style="height:14px;width:70%"></div>
+    <div class="sk-bar" style="height:14px;width:56%"></div>
+    <div class="sk-bar" style="height:14px;width:64%"></div>
+  </div></div>`;
+}
+
+/* 文言は 事象・原因・対処 の3要素で書く。原因が分からないときも
+   「分かりません」と言い切り、利用者を主語にした責め方はしない */
+const FAIL_TEXT = {
+  cards: ["カードを読み込めませんでした", "オブリエとの通信が途中で途切れたためです。", "もう一度読み込む"],
+  rows: ["メンバーの一覧を読み込めませんでした", "オブリエとの通信が途中で途切れたためです。", "もう一度読み込む"],
+  panel: ["設定を読み込めませんでした", "オブリエとの通信が途中で途切れたためです。", "もう一度読み込む"],
+};
+const DENIED_TEXT = ["この画面を見る権限がありません",
+  "この画面を見られるのは、担当の上司と管理者だけです。必要なときは、社内の管理者に問い合わせてください。"];
+
+function stateBoxHTML(kind, cls, head, note, btn) {
+  const inner = `<div class="state-box ${cls}"${cls === "is-fail" ? ' role="alert"' : ""}>
+      <h3>${head}</h3><p>${note}</p>
+      ${btn ? `<div class="state-actions"><button class="btn" data-retry>${btn}</button></div>` : ""}
+    </div>`;
+  return kind === "rows" ? `<tr><td colspan="4">${inner}</td></tr>` : inner;
+}
+
+/** 器に状態を描く。ok のときだけ false を返し、呼び出し元が本来の描画をする */
+function screenState(el, kind, redraw) {
+  if (MOCK.screen === "ok") return false;
+  dropCards(el);
+  if (MOCK.screen === "loading") { el.innerHTML = skeletonHTML(kind); return true; }
+  if (MOCK.screen === "denied") { el.innerHTML = stateBoxHTML(kind, "is-denied", DENIED_TEXT[0], DENIED_TEXT[1], ""); return true; }
+  const [head, why, btn] = FAIL_TEXT[kind] || FAIL_TEXT.panel;
+  el.innerHTML = stateBoxHTML(kind, "is-fail", head, why + "もう一度お試しください。", btn);
+  el.querySelector("[data-retry]").addEventListener("click", () => {
+    MOCK.screen = "ok"; syncStateDemo();
+    loadInto(el, kind, 1600, redraw);
+  });
+  return true;
+}
+
+/** ms ミリ秒かかる読み込みを演じる。1秒を過ぎたときだけ骨組みを出す */
+function loadInto(el, kind, ms, done) {
+  let timer = setTimeout(() => { dropCards(el); el.innerHTML = skeletonHTML(kind); }, LOADER_DELAY);
+  setTimeout(() => { clearTimeout(timer); done(); }, ms);
+}
+
+/* 確定処理（書き出し・生成・再連携）のあいだのボタン。
+   押した瞬間に無効化するのは二度押しを止めるためで、これは読込表示ではない。
+   スピナーと「〜しています…」は、上と同じく1秒を過ぎてから出す */
+function startBusy(btn, label) {
+  const orig = btn.innerHTML;
+  btn.disabled = true;
+  btn.setAttribute("aria-busy", "true");
+  const t = setTimeout(() => {
+    btn.innerHTML = `<span class="spinner" aria-hidden="true"></span>&nbsp;${label}`;
+  }, LOADER_DELAY);
+  return () => {
+    clearTimeout(t);
+    btn.disabled = false; btn.removeAttribute("aria-busy"); btn.innerHTML = orig;
+  };
 }
 
 /* =========================================================================
@@ -1536,14 +1769,19 @@ function monthlyAt(shape, label) {
 
 /* 管理者データ */
 const ADMIN = {
+  /* 連携の状態（A-21）。要件F21が定める「トークン失効時の再連携」こそ、
+     この画面が存在する理由なので、失効を既定のデモ状態として1つ置いておく。
+     status: ok（接続中）／ soon（まもなく期限）／ expired（失効） */
   conns: [
-    { name: "Slack", ok: true, org: "acme-inc.slack.com", since: "2025-08-01", scope: "パブリックチャンネル 12件",
+    { name: "Slack", status: "ok", org: "acme-inc.slack.com", since: "2025-08-01", scope: "パブリックチャンネル 12件",
       channels: ["#企画チーム","#プロジェクトA","#営業連携","#資料作成","#問い合わせ対応","#カスタマーサクセス","#全社アナウンス","#開発","#情報システム","#新人サポート","#雑談","#日報"],
       token: "有効（次回更新 2026-08-01）" },
-    { name: "Microsoft Teams", ok: true, org: "acme.onmicrosoft.com", since: "2025-08-01", scope: "3チーム 7チャネル",
+    { name: "Microsoft Teams", status: "expired", org: "acme.onmicrosoft.com", since: "2025-08-01", scope: "3チーム 7チャネル",
       channels: ["新人サポート","問い合わせ対応","プロジェクトA"],
-      token: "有効（次回更新 2026-09-12）" },
+      token: "失効（2026-07-28 に期限切れ）" },
   ],
+  /* 過去ログの取り込み。done（完了）／ running（取り込み中）／ fail（失敗） */
+  job: { state: "done", pct: 100, note: "過去1年分・2025-08-01" },
   people: [
     { name: "YUKIYAMAさん", ini: "Y", team: "企画部 第2チーム", boss: "上司さん", role: "本人" },
     { name: "佐藤さん", ini: "佐", team: "企画部 第2チーム", boss: "上司さん", role: "本人" },
@@ -1817,6 +2055,50 @@ function buildCard(d, opts, idx) {
   return root;
 }
 
+/* ---- 0件のとき（A-18／#11の件数と合わせる） -----------------------------
+   これまでは「条件に合うカードがありません。」の一行だけで、上には総数が
+   出たままだった。何かが壊れたようにも読め、絞り込みを外す手立ても
+   この場に無かった。
+   状態の説明（なぜ0件か）と次の一手（どうすれば並ぶか）を必ず対で出す。
+
+   イシュー#11 と重なる部分の扱い：
+     ・総数は決め打ちにせず、#11 が渡してくる info.totalAll（絞り込む前の数）を使う。
+       ここに数字を書くと、また画面ごとに違う数が出ることになる
+     ・解除ボタンは新しく作らず、#11 の一括解除（clearAlbumFilter）を呼ぶ。
+       絞り込みの状態を持つのはツールバーの select とチェックの1か所のまま
+     ・絞り込みの言い方も #11 の filterNote() から取り、言葉をそろえる
+   煽り・催促は書かない（原則11）。
+   ------------------------------------------------------------------------ */
+function emptyStateHTML(kind, info = {}) {
+  const total = info.totalAll != null ? info.totalAll : DATA.length;
+  if (kind === "self") {
+    const note = filterNote();
+    if (note) return `<div class="state-box empty-state">
+        <h3>条件に合うカードがありません</h3>
+        <p>いまの絞り込みは「${note}」です。条件を変えるか、絞り込みを解除すると、これまでに届いたカードが並びます。</p>
+        <p class="state-count">表示中：0通 ／ 絞り込む前は全 ${total}通</p>
+        <div class="state-actions"><button class="btn" data-clear-filters>絞り込みを解除する</button></div>
+      </div>`;
+    return `<div class="state-box empty-state">
+        <h3>まだカードがありません</h3>
+        <p>Slack・Teams のやり取りから、あなた宛ての感謝が見つかると、ここに自動で並びます。連携の状態は、管理者メニューで確認できます。</p>
+        <p class="state-count">表示中：0通 ／ 全 ${total}通</p>
+      </div>`;
+  }
+  if (kind === "sent") return `<div class="state-box empty-state">
+      <h3>まだ記録がありません</h3>
+      <p>あなたが Slack・Teams でおくった感謝が見つかると、ここに新しい順で並びます。書き方や宛先の決まりはありません。</p>
+    </div>`;
+  if (kind === "member-sent") return `<div class="state-box empty-state">
+      <h3>まだ記録がありません</h3>
+      <p>本人が感謝を伝えると、ここに残ります。記録が無いことは、評価には使いません。</p>
+    </div>`;
+  return `<div class="state-box empty-state">
+      <h3>${info.name ? esc(info.name) + "の" : "この期間の"}アルバムには、まだカードがありません</h3>
+      <p>連携したチャンネルで感謝が見つかると、ここに並びます。期間を変えると、ほかの月のぶんを見られます。カードが無いことは、評価には使いません。</p>
+    </div>`;
+}
+
 /* =========================================================================
    アルバムのページング（イシュー#11：A-06）
 
@@ -1849,8 +2131,11 @@ function renderAlbumInto(el, list, opts, info) {
   el._list = list; el._opts = opts; el._info = info || {}; el._shown = 0; el._month = null;
   const foot = albumFootOf(el);
   if (!list.length) {
-    el.innerHTML = `<div class="empty-note">${(info && info.emptyHTML)
-      || "まだカードがありません。SlackやTeamsであなた宛ての感謝が見つかると、ここに並びます。"}</div>`;
+    el.innerHTML = emptyStateHTML((info && info.empty) || opts.emptyKind || "member", info || {});
+    /* 解除は #11 の一括解除に乗せる。ここで別の解除処理を作ると、
+       ツールバーのボタンと挙動が分かれてしまう */
+    const cb = el.querySelector("[data-clear-filters]");
+    if (cb) cb.addEventListener("click", clearAlbumFilter);
     foot.innerHTML = "";
     return;
   }
@@ -1904,7 +2189,8 @@ function renderAlbumFoot(el) {
 }
 
 /* 本人のアルバム（S01） */
-const SELF_OPTS = { clickable: true, memo: true, del: true, report: true, fav: true, list: DATA };
+const SELF_OPTS = { clickable: true, memo: true, del: true, report: true, fav: true, list: DATA, emptyKind: "self" };
+const SENT_OPTS = { clickable: true, memo: false, del: false, report: false, fav: false, emptyKind: "sent" };
 const filter = { tag: "", fav: false, sort: "new" };
 
 /** いま画面に出ている（＝絞り込み・並び替え後の）カード。書き出しもこれを使う（A-08） */
@@ -1914,13 +2200,16 @@ function visibleAlbum() {
   return filter.sort === "old" ? list.slice().reverse() : list;
 }
 
-/** いまの絞り込みを一言で。書き出しの副題と件数表示の両方で使い、言い方をそろえる */
+/** いまの絞り込みを一言で。書き出しの副題・件数表示・0件の案内で使い、言い方をそろえる */
 function filterNote() {
   const on = [];
   if (filter.tag) on.push(`場面：${filter.tag}`);
   if (filter.fav) on.push("お気に入りのみ");
   return on.join(" ／ ");
 }
+
+/** 読込中・失敗・権限なしのときは、下の件数と続きの導線も出しっぱなしにしない */
+function clearAlbumFoot(el) { albumFootOf(el).innerHTML = ""; }
 
 function applyFilters() {
   filter.tag = $("tagFilter").value;
@@ -1934,13 +2223,18 @@ function applyFilters() {
   $("clearFilter").classList.toggle("on", !!note);
   /* 見出しの通数もここで出し直す。カードを削除したのに「533通」のまま、を防ぐ */
   $("count").textContent = String(DATA.length);
+  /* 読み込めていないときは、カードの代わりに状態を描いて終わる（イシュー#12） */
+  if (screenState($("grid"), "cards", applyFilters)) { clearAlbumFoot($("grid")); return; }
   renderAlbumInto($("grid"), list, SELF_OPTS, {
     totalAll: DATA.length,
     filterNote: note,
-    emptyHTML: note
-      ? `条件に合うカードがありません。<span class="empty-next">いまの絞り込みは「${note}」です。条件を変えるか、絞り込みを解除すると、ほかのカードが見られます。</span>`
-      : `まだカードがありません。<span class="empty-next">SlackやTeamsであなた宛ての感謝が見つかると、ここに自動で並びます。連携の状態は管理者メニューで確認できます。</span>`,
+    empty: "self",
   });
+}
+
+function renderSent() {
+  if (screenState($("sentGrid"), "cards", renderSent)) { clearAlbumFoot($("sentGrid")); return; }
+  renderAlbumInto($("sentGrid"), SENT, SENT_OPTS, { totalAll: SENT.length, empty: "sent" });
 }
 
 function clearAlbumFilter() {
@@ -2051,6 +2345,17 @@ document.addEventListener("keydown", e => {
   }
 }, true);
 
+/* Escape は「いちばん上のもの」だけを閉じる（A-14）。
+   これまでは拡大詳細と確認ダイアログがそれぞれ document に keydown を足しており、
+   確認の上で Escape を押すと拡大詳細まで一緒に閉じていた。
+   「やめる」つもりが読んでいた詳細ごと消えるので、押し直しからやり直しになる。
+   積み（modalStack）の先頭かどうかを見てから閉じる。
+   自己診断はオーバーレイを直に取り除くので、外れた器は先に捨てる */
+function isTopModal(ov) {
+  while (modalStack.length && !modalStack[modalStack.length - 1].ov.isConnected) modalStack.pop();
+  return !modalStack.length || modalStack[modalStack.length - 1].ov === ov;
+}
+
 /** カード以外から開く一般ダイアログ（プレビュー・確認・レポート） */
 function openDialog({ title, sub, body, actions = [], cls = "" }) {
   const ov = document.createElement("div");
@@ -2071,22 +2376,54 @@ function openDialog({ title, sub, body, actions = [], cls = "" }) {
     { duration: 220, easing: "cubic-bezier(.2,.9,.3,1.1)" });
   const focusEntry = pushModalFocus(ov);
   const close = () => { document.removeEventListener("keydown", onEsc); popModalFocus(focusEntry); ov.remove(); };
-  const onEsc = e => { if (e.key === "Escape") close(); };
+  const onEsc = e => { if (e.key === "Escape" && isTopModal(ov)) close(); };
   document.addEventListener("keydown", onEsc);
   ov.addEventListener("click", e => { if (e.target === ov || e.target.classList.contains("overlay-bg") || e.target.closest(".sheet-close")) close(); });
+
+  /* 時間のかかる確定処理（書き出し・PDF生成）。押しっぱなしの無反応をなくす。
+     失敗はダイアログを閉じずに、その場に 事象・原因・対処 で出す
+     （閉じてしまうと、何を書き出そうとしていたかが分からなくなる） */
+  const runTask = (a, b) => {
+    const dlgBody = ov.querySelector(".dlg-body");
+    dlgBody.querySelectorAll(".state-note").forEach(n => n.remove());
+    const stop = startBusy(b, a.busy || "処理しています…");
+    setTimeout(() => {
+      stop();
+      if (MOCK.result === "fail") {
+        dlgBody.insertAdjacentHTML("afterbegin",
+          `<div class="state-note is-fail" role="alert"><b>${a.failHead}</b>${a.failWhy}もう一度お試しください。</div>`);
+        toast(a.failHead, { alert: true });
+        return;
+      }
+      if (a.run) a.run();
+      close();
+    }, a.ms || 1600);
+  };
   actions.forEach((a, i) => {
     const b = ov.querySelector(`[data-act="${i}"]`);
-    if (b) b.addEventListener("click", () => { if (a.run) a.run(); if (a.keep !== true) close(); });
+    if (!b) return;
+    b.addEventListener("click", () => {
+      if (a.task) return runTask(a, b);
+      if (a.run) a.run();
+      if (a.keep !== true) close();
+    });
   });
   return { ov, close };
 }
 
-/** 確認ダイアログ（削除は復元不可のため必須） */
-function confirmDialog(title, message, okLabel, onOk) {
+/* 確認ダイアログ（削除は復元不可のため必須・原則10）。
+   A-14：何を消すのかが書かれていないと、開いたまま別のカードを消す事故が起きる。
+   対象（送り主・日時・本文）をこの場に再掲し、疑問形のタイトルで確認する。
+   取り消し（Undo）やアーカイブは、未決のため提案しない（decision-log 追加対応_v4 No.18） */
+function confirmDialog(title, message, okLabel, onOk, target) {
+  const targetHTML = target ? `<div class="confirm-target">
+      <div class="ct-head">${esc(target.who)} ・ ${esc(target.time)}</div>
+      <p class="ct-quote">「${esc(String(target.msg || "").replace(/<br>/g, " "))}」</p>
+    </div>` : "";
   openDialog({
     title, sub: "",
     cls: "narrow",
-    body: `<p class="dlg-text">${message}</p>`,
+    body: targetHTML + `<p class="dlg-text">${message}</p>`,
     actions: [
       { label: "やめる" },
       { label: okLabel, danger: true, run: onOk },
@@ -2148,10 +2485,11 @@ function openThread(d, fromCard, opts) {
         </div>
         ${opts.memo ? `
         <div class="sheet-sec">じぶんのメモ</div>
-        <textarea class="memo-ta" data-memo placeholder="気づいたことを、じぶんのために残しておけます">${esc(d.myMemo || "")}</textarea>
+        <textarea class="memo-ta" data-memo aria-label="じぶんのメモ" aria-describedby="memoState" placeholder="気づいたことを、じぶんのために残しておけます">${esc(d.myMemo || "")}</textarea>
         <div class="memo-row">
           <small>このメモはあなただけに表示されます</small>
-          <button class="mini-btn" data-save-memo>保存</button>
+          <span class="memo-state" id="memoState" data-memo-state role="status" aria-live="polite">${d.myMemo ? "保存済み" : ""}</span>
+          <button class="mini-btn" data-save-memo>保存する</button>
         </div>` : `
         <div class="sheet-sec">じぶんのメモ</div>
         <div class="privacy-note">じぶんのメモは本人だけのものです。上司・管理者には表示されません。</div>`}
@@ -2185,38 +2523,75 @@ function openThread(d, fromCard, opts) {
     toast(d.fav ? "お気に入りに登録しました" : "お気に入りを外しました");
   });
 
+  /* ---- じぶんのメモ：自動保存（A-10） -----------------------------------
+     「閉じる前に確認する」ではなく「自動保存する」を選んだ。理由は3つ。
+       1. メモは本人しか持てない記録（原則8）で、失ったときの損失が大きい。
+          確認ダイアログは「破棄する」を押せてしまう＝失う道が残るが、
+          自動保存なら失う道そのものが無くなる
+       2. 拡大詳細は読み返すために何度も開け閉めする面で、閉じるたびに
+          問いが出ると読み返しの流れが止まる。静かなトーン（原則11・12）とも合わない
+       3. 未保存かどうかは、問いではなく状態表示（「未保存」「保存しました ・ 15:58」）で
+          伝えられる。伝えたうえで勝手に失わない、が最も穏やかな形
+     入力が止まって1.5秒で保存し、閉じるときは確定していない入力をその場で保存する。
+     ------------------------------------------------------------------------ */
+  const memoTa = ov.querySelector("[data-memo]");
+  const memoState = ov.querySelector("[data-memo-state]");
+  let memoTimer = null;
+  const setMemoState = (txt, cls) => {
+    if (!memoState) return;
+    memoState.textContent = txt;
+    memoState.className = "memo-state" + (cls ? " " + cls : "");
+  };
+  const commitMemo = () => {
+    clearTimeout(memoTimer); memoTimer = null;
+    if (!memoTa) return false;
+    const v = memoTa.value.trim();
+    if (v === (d.myMemo || "")) return false;
+    d.myMemo = v;
+    setMemoState(`保存しました ・ ${hhmm()}`, "");
+    return true;
+  };
+  if (memoTa) memoTa.addEventListener("input", () => {
+    setMemoState("未保存", "is-dirty");
+    clearTimeout(memoTimer);
+    memoTimer = setTimeout(commitMemo, 1500);
+  });
+
   const saveBtn = ov.querySelector("[data-save-memo]");
   if (saveBtn) saveBtn.addEventListener("click", () => {
-    d.myMemo = ov.querySelector("[data-memo]").value.trim();
+    commitMemo();
+    setMemoState(`保存しました ・ ${hhmm()}`, "");
     toast("じぶんのメモを保存しました");
   });
 
   const delBtn = ov.querySelector("[data-del]");
   if (delBtn) delBtn.addEventListener("click", () => {
     confirmDialog("このカードを削除しますか？",
-      "削除すると、あとから元に戻すことはできません。",
+      "このカードは、削除するとあとから復元できません。アルバムからも、書き出したCSVの元になるデータからも消えます。",
       "削除する",
       () => {
         const i = DATA.indexOf(d);
         if (i >= 0) DATA.splice(i, 1);
         close();
         initTagFilter(); applyFilters();
-        toast("カードを削除しました");
-      });
+        toast("カードを削除しました", { alert: true });
+      },
+      d);
   });
 
   const ntBtn = ov.querySelector("[data-not-thanks]");
   if (ntBtn) ntBtn.addEventListener("click", () => {
     confirmDialog("これは感謝ではない、と報告しますか？",
-      "確認のうえ、このカードをアルバムから外します。報告の内容は、感謝の見分け方を良くするための学習にだけ使われます。",
+      "確認のうえ、このカードをアルバムから外します。外したあと、このカードは復元できません。報告の内容は、感謝の見分け方を良くするための学習にだけ使われます。",
       "報告する",
       () => {
         const i = DATA.indexOf(d);
         if (i >= 0) DATA.splice(i, 1);
         close();
         initTagFilter(); applyFilters();
-        toast("報告を受け取りました。このカードを外しました");
-      });
+        toast("報告を受け取りました。このカードを外しました", { alert: true });
+      },
+      d);
   });
 
   /* カードがめくれながら中央へ飛び、拡大して詳細になる */
@@ -2235,8 +2610,10 @@ function openThread(d, fromCard, opts) {
     }
     fromCard._ripple = null;
   }
-  const onEsc = e => { if (e.key === "Escape") close(); };
-  const close = () => { document.removeEventListener("keydown", onEsc); popModalFocus(focusEntry); flight.close(); };
+  const onEsc = e => { if (e.key === "Escape" && isTopModal(ov)) close(); };
+  /* 閉じる前に、確定していないメモをその場で保存する（A-10）。
+     裏返りの再生（flight.close）には触れない */
+  const close = () => { commitMemo(); document.removeEventListener("keydown", onEsc); popModalFocus(focusEntry); flight.close(); };
   ov.addEventListener("click", e => { if (e.target === ov || e.target.classList.contains("overlay-bg") || e.target.closest(".sheet-close")) close(); });
   document.addEventListener("keydown", onEsc);
   if (ROLE === "boss") logAudit("カード詳細閲覧", `${currentMember ? currentMember.name : ""}・${d.who}からのカード`);
@@ -2367,8 +2744,11 @@ function openCsvDialog() {
       ${list.length ? `<div class="prev"><pre>受取日,送り主,場面タグ,出典,本文
 ${esc(rows)}
 …（ほか ${Math.max(0, list.length - 4)}件）</pre></div>` : '<p class="dlg-text">いま書き出せるカードがありません。絞り込みを外してからお試しください。</p>'}`,
-    actions: [{ label: "閉じる" },
-      { label: "書き出す", primary: true, run: () => toast(`${list.length}件を書き出しました（モック）`) }],
+    actions: [{ label: "閉じる" }, {
+      label: "書き出す", primary: true, task: true, busy: "書き出しています…",
+      failHead: "CSVを書き出せませんでした", failWhy: "書き出しの途中で通信が途切れたためです。",
+      run: () => toast(`${list.length}件を書き出しました（モック）`),
+    }],
   });
 }
 
@@ -2388,7 +2768,11 @@ Situation  情報が散らばり、判断がつかない状態で、
 Task       ${esc(t2.tag)}を求められる場面が${t2.count}回ありました。
 Action     論点別に整理し直し、1枚で伝わる形にまとめました。
 Result     ${esc(t2.quote)}</pre></div>`,
-    actions: [{ label: "閉じる" }, { label: "書き出す", primary: true, run: () => toast("実績シートを書き出しました（モック）") }],
+    actions: [{ label: "閉じる" }, {
+      label: "書き出す", primary: true, task: true, busy: "書き出しています…",
+      failHead: "実績シートを書き出せませんでした", failWhy: "書き出しの途中で通信が途切れたためです。",
+      run: () => toast("実績シートを書き出しました（モック）"),
+    }],
   });
 }
 
@@ -2407,7 +2791,12 @@ function openAnnualDialog() {
         </div>
       </div>
       <p class="dlg-text" style="margin-top:12px;">月ごとのページに、その月に届いた言葉と送り主が並びます。じぶんのメモは含めません。</p>`,
-    actions: [{ label: "閉じる" }, { label: "PDFで書き出す", primary: true, run: () => toast("年間アルバムを書き出しました（モック）") }],
+    /* PDFは生成に数秒かかる処理。押した直後に無反応だと必ず二度押しが起きる */
+    actions: [{ label: "閉じる" }, {
+      label: "PDFで書き出す", primary: true, task: true, busy: "PDFを作っています…", ms: 2400,
+      failHead: "年間アルバムを書き出せませんでした", failWhy: "PDFを作っている途中で処理が止まったためです。",
+      run: () => toast("年間アルバムを書き出しました（モック）"),
+    }],
   });
 }
 
@@ -2710,6 +3099,10 @@ function sparkline(shape, w = 130, h = 34) {
     <polyline class="line-sent" style="stroke-width:2" points="${pts(hist.sent)}"/></svg>`;
 }
 function renderMembers() {
+  /* 読み込めていないときは表の代わりに状態を描く（イシュー#12）。
+     数の基準の注記も消す。数が出ていないのに「数字は直近1か月の…」だけ
+     残ると、読めない数について説明していることになる */
+  if (screenState($("memberRows"), "rows", renderMembers)) { $("teamBasis").textContent = ""; return; }
   const months = parseInt($("teamPeriod").value, 10);
   const q = $("teamSearch").value.trim();
   const alertOnly = $("alertOnly").checked;
@@ -2776,7 +3169,7 @@ function showMemberSub(name) {
   const m = currentMember, el = $("memberSub");
   /* アルバムの通数は、一覧・詳細ヘッダー・レポートと同じ推移データから作ってある。
      どの期間ぶんを見ているのかを添える（A-06／A-20／A-47） */
-  const albumInfo = { emptyHTML: `${m.name}のアルバムには、まだカードがありません。<span class="empty-next">連携したチャンネルで感謝が見つかると、ここに並びます。</span>` };
+  const albumInfo = { empty: "member", name: m.name };
   if (name === "album") {
     el.innerHTML = `<div class="mini-note">${ALBUM_PERIOD} に届いたぶんです。</div><div class="grid"></div>`;
     const g = el.querySelector(".grid");
@@ -2790,7 +3183,7 @@ function showMemberSub(name) {
     const g = el.querySelector(".grid");
     renderAlbumInto(g, m.key === "yuki" ? SENT : (MEMBER_SENT[m.key] || []),
       m.key === "yuki" ? BOSS_OPTS : STATIC_OPTS,
-      { emptyHTML: "まだ記録がありません。<span class=\"empty-next\">本人が感謝を伝えると、ここに残ります。</span>" });
+      { empty: "member-sent" });
   }
 }
 
@@ -2832,7 +3225,11 @@ function openReport(m, month) {
       </div>`,
     actions: [
       { label: "1on1メモを書く", run: () => toast("1on1メモを保存しました（モック）") },
-      { label: "PDFで書き出す", primary: true, run: () => { logAudit("レポートPDF書き出し", `${m.name}・${month}`); toast("レポートを書き出しました（モック）"); } },
+      {
+        label: "PDFで書き出す", primary: true, task: true, busy: "PDFを作っています…", ms: 2400,
+        failHead: "レポートを書き出せませんでした", failWhy: "PDFを作っている途中で処理が止まったためです。",
+        run: () => { logAudit("レポートPDF書き出し", `${m.name}・${month}`); toast("レポートを書き出しました（モック）"); },
+      },
     ],
   });
   logAudit("1on1準備メモ閲覧", `${m.name}・${month}`);
@@ -2854,39 +3251,117 @@ function logAudit(op, target) {
   if (ROLE === "admin" && currentAdminTab === "audit") showAdmin("audit");
 }
 
+/* 連携の状態の見せ方（A-21）。管理者が「いま何か困っているか」を
+   3秒で判断できることが、この画面の合格条件。
+   文言は 事象・原因・対処 の3要素で書き、利用者を主語にした責め方はしない。
+   点の色だけでなくラベルの語（接続中／まもなく期限／失効）でも分かるようにする */
+const CONN_VIEW = {
+  ok: { dot: "", label: "接続中", note: "" },
+  soon: { dot: "warn", label: "まもなく期限", cls: "is-warn",
+    head: "あと7日で連携の期限が切れます",
+    body: "連携トークンの有効期限が90日だからです。期限までに再連携すると、取り込みは途切れません。" },
+  expired: { dot: "err", label: "失効", cls: "is-fail",
+    head: "メッセージを取り込めていません",
+    body: "連携トークンの有効期限が切れたためです。再連携すると、止まっていた期間のぶんもさかのぼって取り込みます。" },
+};
+
+let fetchTimer = null;
+/** 過去ログの取り込みを進める（モック）。画面を離れても値は進める */
+function runFetchJob() {
+  clearInterval(fetchTimer);
+  fetchTimer = setInterval(() => {
+    const j = ADMIN.job;
+    if (!j || j.state !== "running") return clearInterval(fetchTimer);
+    /* 失敗は「途中で止まる」形にする。100%まで進んでから失敗と言われても、
+       どこまで取り込めたのかが分からず、やり直しの判断がつかない */
+    const stopAt = MOCK.result === "fail" ? 64 : 100;
+    j.pct = Math.min(stopAt, j.pct + 8);
+    const bar = $("adminBody").querySelector("[data-progbar]");
+    if (bar) {
+      bar.style.width = j.pct + "%";
+      bar.parentElement.setAttribute("aria-valuenow", String(j.pct));
+      const tx = $("adminBody").querySelector("[data-progtext]");
+      if (tx) tx.textContent = `取り込み中（${j.pct}%）`;
+    }
+    if (j.pct >= stopAt) {
+      clearInterval(fetchTimer);
+      j.state = MOCK.result === "fail" ? "fail" : "done";
+      if (j.state === "done") { j.note = `過去1年分・${nowStamp().slice(0, 10)}`; toast("過去ログの取り込みが終わりました"); }
+      else toast("過去ログを取り込めませんでした", { alert: true });
+      if (ROLE === "admin" && currentAdminTab === "conn") showAdmin("conn");
+    }
+  }, 240);
+}
+
 function showAdmin(tab) {
   currentAdminTab = tab;
   document.querySelectorAll("#adminTabs .sub-tab").forEach(t => t.classList.toggle("active", t.dataset.a === tab));
   const el = $("adminBody");
+  if (screenState(el, "panel", () => showAdmin(tab))) return;
   if (tab === "conn") {
+    const j = ADMIN.job;
     el.innerHTML = `
       <div class="panel-stack">
-        ${ADMIN.conns.map((c, i) => `
-        <div class="panel">
+        ${ADMIN.conns.map((c, i) => {
+          const s = CONN_VIEW[c.status] || CONN_VIEW.ok;
+          return `
+        <div class="panel" data-conn="${i}">
           <h2>${c.name}</h2>
           <div class="panel-sub">メッセージの取り込み元</div>
-          <div class="adm-row"><div class="k">接続状態</div><div class="v"><span class="status-dot">接続中</span></div>
-            <button class="btn" data-reconn="${i}">再連携する</button></div>
+          ${s.head ? `<div class="state-note ${s.cls}" ${c.status === "expired" ? 'role="alert"' : ""}><b>${s.head}</b>${s.body}</div>` : ""}
+          <div data-connnote></div>
+          <div class="adm-row"><div class="k">接続状態</div><div class="v"><span class="status-dot ${s.dot}">${s.label}</span></div>
+            <button class="${c.status === "expired" ? "btn btn-primary" : "btn"}" data-reconn="${i}">再連携する</button></div>
           <div class="adm-row"><div class="k">接続先</div><div class="v">${c.org}　（接続日 ${c.since}）</div></div>
           <div class="adm-row"><div class="k">トークン</div><div class="v">${c.token}</div></div>
           <div class="adm-row"><div class="k">解析対象</div><div class="v">
             ${c.scope}
             <div class="ch-list" style="margin-top:8px;">${c.channels.map(ch => `<span class="ch">${ch}</span>`).join("")}</div>
           </div><button class="btn" data-editch="${i}">対象を編集</button></div>
-        </div>`).join("")}
+        </div>`; }).join("")}
         <div class="panel">
           <h2>過去ログの取り込み</h2>
           <div class="panel-sub">初回連携時にさかのぼって解析します</div>
-          <div class="adm-row"><div class="k">状態</div><div class="v"><span class="status-dot">完了（過去1年分・2025-08-01）</span></div>
-            <button class="btn" data-refetch>もう一度取り込む</button></div>
+          ${j.state === "fail" ? `<div class="state-note is-fail" role="alert"><b>過去ログを取り込めませんでした</b>取り込みの途中で連携先との通信が途切れたためです。もう一度取り込んでください。</div>` : ""}
+          <div class="adm-row"><div class="k">状態</div><div class="v">
+            ${j.state === "running"
+              ? `<span data-progtext>取り込み中（${j.pct}%）</span>
+                 <div class="prog" role="progressbar" aria-label="過去ログの取り込み" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${j.pct}"><i data-progbar style="width:${j.pct}%"></i></div>
+                 <small style="font-size:var(--fs-cap)">終わるまで、この画面を離れても進みます。</small>`
+              : j.state === "fail"
+                ? `<span class="status-dot err">失敗（${j.pct}%まで取り込み済み）</span>`
+                : `<span class="status-dot">完了（${j.note}）</span>`}
+          </div>
+            <button class="btn" data-refetch ${j.state === "running" ? "disabled" : ""}>もう一度取り込む</button></div>
           <div class="lock-note"><span>■</span><div>感謝と判定されなかったメッセージの本文は保存していません。じぶんのメモは、管理者からも参照できません。</div></div>
         </div>
       </div>`;
-    el.querySelectorAll("[data-reconn]").forEach(b => b.addEventListener("click", () =>
-      toast(`${ADMIN.conns[b.dataset.reconn].name} の再連携画面を開きます（モック）`)));
+    el.querySelectorAll("[data-reconn]").forEach(b => b.addEventListener("click", () => {
+      const c = ADMIN.conns[b.dataset.reconn];
+      const note = b.closest(".panel").querySelector("[data-connnote]");
+      note.innerHTML = "";
+      const stop = startBusy(b, "再連携しています…");
+      setTimeout(() => {
+        stop();
+        if (MOCK.result === "fail") {
+          note.innerHTML = `<div class="state-note is-fail" role="alert"><b>再連携できませんでした</b>${c.name} から応答がなかったためです。少し時間をおいて、もう一度お試しください。</div>`;
+          toast(`${c.name} を再連携できませんでした`, { alert: true });
+          return;
+        }
+        c.status = "ok";
+        c.token = "有効（次回更新 2026-10-29）";
+        logAudit("連携設定の変更", `${c.name} 再連携`);
+        toast(`${c.name} を再連携しました`);
+        showAdmin("conn");
+      }, 1600);
+    }));
     el.querySelectorAll("[data-editch]").forEach(b => b.addEventListener("click", () =>
       toast("解析対象チャンネルの編集（モック）")));
-    el.querySelector("[data-refetch]").addEventListener("click", () => toast("過去ログの取り込みを開始しました（モック）"));
+    el.querySelector("[data-refetch]").addEventListener("click", () => {
+      ADMIN.job = { state: "running", pct: 0, note: ADMIN.job.note };
+      showAdmin("conn");
+      runFetchJob();
+    });
 
   } else if (tab === "team") {
     el.innerHTML = `
@@ -2996,6 +3471,60 @@ function playDemo() {
 }
 
 /* =========================================================================
+   13-b. 状態デモ（開発用・イシュー#12）
+
+   本物のAPIが無いので、読込中・失敗・権限なし・連携の失効を目で確かめる
+   手立てが要る。既定では hidden 属性で消えていて、利用者の画面には出ない。
+   Shift + Alt + S で開閉する（コンソールからは window.__mock でも触れる）。
+   ========================================================================= */
+const STATE_DEMO = [
+  { g: "screen", label: "画面の読み込み", opts: [["ok", "通常"], ["loading", "読込中"], ["fail", "失敗"], ["denied", "権限なし"]] },
+  { g: "result", label: "確定処理の結果（書き出し・再連携・取り込み）", opts: [["ok", "成功"], ["fail", "失敗"]] },
+  { g: "conn", label: "Slack の連携状態", opts: [["ok", "接続中"], ["soon", "まもなく期限"], ["expired", "失効"]] },
+];
+
+function redrawCurrentScreen() {
+  if (ROLE === "admin") showAdmin(currentAdminTab);
+  else if (ROLE === "boss") renderMembers();
+  else { applyFilters(); renderSent(); }
+}
+
+function syncStateDemo() {
+  const el = $("stateDemo");
+  if (!el) return;
+  el.querySelectorAll("[data-g]").forEach(row => {
+    const g = row.dataset.g;
+    const now = g === "conn" ? ADMIN.conns[0].status : MOCK[g];
+    row.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === now)));
+  });
+}
+
+function initStateDemo() {
+  const el = document.createElement("div");
+  el.className = "state-demo"; el.id = "stateDemo"; el.hidden = true;
+  el.innerHTML = `<b>状態デモ（開発用）</b>
+    <small>利用者の画面には出ません。Shift+Alt+S で開閉します。</small>
+    ${STATE_DEMO.map(s => `<div class="sd-row"><span>${s.label}</span>
+      <div class="sd-btns" data-g="${s.g}">${s.opts.map(([v, l]) =>
+        `<button type="button" data-v="${v}" aria-pressed="false">${l}</button>`).join("")}</div></div>`).join("")}`;
+  document.body.appendChild(el);
+  el.addEventListener("click", e => {
+    const b = e.target.closest("button[data-v]");
+    if (!b) return;
+    const g = b.closest("[data-g]").dataset.g;
+    if (g === "conn") ADMIN.conns[0].status = b.dataset.v;
+    else MOCK[g] = b.dataset.v;
+    syncStateDemo();
+    redrawCurrentScreen();
+  });
+  syncStateDemo();
+  document.addEventListener("keydown", e => {
+    if (e.altKey && e.shiftKey && (e.key === "S" || e.key === "s")) { el.hidden = !el.hidden; syncStateDemo(); }
+  });
+  window.__mock = MOCK;
+}
+
+/* =========================================================================
    14. 起動
    ========================================================================= */
 /* 画面の見出しに出る数は、すべてカードの実体から出す（A-06／A-20／A-47）。
@@ -3009,11 +3538,11 @@ $("shapeLead").textContent =
   `${ALBUM_PERIOD}に届いた${DATA.length}通の言葉を、オブリエが読み解いて分類しています。`
   + "場面タグは感謝の内容から自動で生まれ、増えていきます。";
 
+initStateDemo();
 initTagFilter();
 applyFilters();
 renderMilestones();
-renderAlbumInto($("sentGrid"), SENT, { clickable: true, memo: false, del: false, report: false, fav: false },
-  { emptyHTML: "まだ記録がありません。<span class=\"empty-next\">あなたが感謝を伝えると、ここに残ります。</span>" });
+renderSent();
 renderShapeInto($("myShape"), MY_SHAPE, true);
 
 document.querySelectorAll("#personTabs .tab").forEach(t =>
