@@ -646,6 +646,32 @@
      ここで枠を足すと当たり判定の寸法が変わってしまうので border は 0。
      背景は .tab.active / .tab:hover のほうが詳しいので、そちらが勝つ */
   .tab { appearance: none; -webkit-appearance: none; background: none; border: 0; font-family: inherit; text-align: center; }
+
+  /* ---- 件数と絞り込み（イシュー#11） ----
+     画面が示す数と、実際に見えているもの・書き出されるものを一致させるための
+     表示を足す。色・余白・文字サイズは既存の変数をそのまま借りる。 */
+
+  /* 並び順。ツールバーの右端に置き、押せるものとして select で出す */
+  .sort-select { margin-left: auto; }
+
+  /* 絞り込みを解除する導線。状態の表示はコントロール自身（select・チェック）が
+     受け持ち、ここは「解除する」という動作だけを持つ（状態の二重表示をしない） */
+  .clear-filter { display: none; }
+  .clear-filter.on { display: inline-flex; }
+
+  /* アルバムの下に置く「いま何通見えているか」と「続きを読み込む」 */
+  .album-foot { margin-top: 18px; text-align: center; }
+  .album-foot:empty { margin-top: 0; }
+  .album-count { font-size: var(--fs-cap); color: var(--stage-ink-soft); margin-bottom: 10px; line-height: 1.9; }
+  .album-count b { font-weight: 700; color: var(--stage-ink); font-variant-numeric: tabular-nums; }
+
+  /* 空状態は「次に何をすればいいか」まで書く */
+  .empty-note .empty-next { display: block; margin-top: 10px; }
+
+  /* タグ内訳の数に単位を添える（A-47）。66px 固定だと「82通 +24」が入らないので、
+     下限だけ残して伸びるようにする */
+  .bar-count { width: auto; min-width: 72px; }
+  .bar-unit { font-weight: 600; }
 </style>
 </head>
 <body>
@@ -695,17 +721,25 @@
 <section id="viewAlbum">
   <div class="hero">
     <h1>あなたに届いたありがとう</h1>
-    <div class="count-wrap"><div class="count" id="count">264</div><div class="count-unit">通</div></div>
+    <div class="count-wrap"><div class="count" id="count">0</div><div class="count-unit">通</div></div>
   </div>
-  <div class="hero-note">Slack・Teams のやり取りから、あなた宛ての感謝を自動で見つけて集めています。カードを押すと、その言葉が生まれた経緯が見られます。</div>
+  <!-- 数の基準（いつからいつまでの何の数か）を必ず添える（A-47） -->
+  <div class="hero-note" id="albumLead">Slack・Teams のやり取りから、あなた宛ての感謝を自動で見つけて集めています。カードを押すと、その言葉が生まれた経緯が見られます。</div>
   <div class="ms-wrap" id="msWrap"></div>
   <div class="toolbar">
     <select class="select" id="tagFilter"><option value="">場面：すべて</option></select>
     <label class="check"><input type="checkbox" id="favFilter"> お気に入りのみ</label>
+    <!-- 絞り込みの状態は select とチェックが持つ。ここは解除という「動作」だけ（A-41） -->
+    <button class="btn clear-filter" id="clearFilter">絞り込みを解除</button>
     <button class="btn" id="btnCsv">CSVで書き出す</button>
     <button class="btn" id="btnYear">年間アルバム</button>
-    <span id="activeFilter"></span>
-    <div class="view-note">新しい順</div>
+    <!-- 「新しい順」は以前ただの div で、押せそうに見えて押せなかった（A-40）。
+         押せない見た目に落とすのではなく、期待どおり押せるようにした。
+         並び替えるのは時系列だけで、人どうしの順位づけではないため原則6に反しない。 -->
+    <select class="select sort-select" id="albumSort" aria-label="カードの並び順">
+      <option value="new">並び順：新しい順</option>
+      <option value="old">並び順：古い順</option>
+    </select>
   </div>
   <div class="grid" id="grid"></div>
 </section>
@@ -716,7 +750,7 @@
     <h1>あなたのカタチ</h1>
     <div class="lead-line">もらったありがとうから見えてきた、あなたの得意</div>
   </div>
-  <div class="hero-note">これまでに届いた265通の言葉を、オブリエが読み解いて分類しています。場面タグは感謝の内容から自動で生まれ、増えていきます。</div>
+  <div class="hero-note" id="shapeLead"></div>
   <div id="myShape"></div>
 </section>
 
@@ -724,9 +758,9 @@
 <section id="viewSent" class="hidden">
   <div class="hero">
     <h1>あなたがおくったありがとう</h1>
-    <div class="count-wrap"><div class="count">31</div><div class="count-unit">通</div></div>
+    <div class="count-wrap"><div class="count" id="sentCount">0</div><div class="count-unit">通</div></div>
   </div>
-  <div class="hero-note">あなたが伝えた感謝も、ここに残しています。</div>
+  <div class="hero-note" id="sentLead">あなたが伝えた感謝も、ここに残しています。</div>
   <div class="grid" id="sentGrid"></div>
 </section>
 
@@ -747,6 +781,9 @@
     <label class="check"><input type="checkbox" id="alertOnly"> 要確認のみ</label>
   </div>
   <div class="chart-legend"><span class="lg-recv">もらった</span><span class="lg-sent">おくった</span></div>
+  <!-- 数の基準を書いておく（A-47）。スパークラインの縦の目盛は行ごとに違うため、
+       行をまたいで高さを比べると読み違える -->
+  <div class="mini-note" id="teamBasis"></div>
   <div class="table-scroll">
     <table class="tbl wide">
       <thead><tr>
@@ -1101,6 +1138,7 @@ SENT.forEach((d, i) => { d.id = 900 + i; });
 
 /* 節目の演出（F09）。派手にせず、アルバム上部に控えめな帯で置く */
 const MILESTONES = [
+  /* 節目の数も決め打ちにせず、アルバムの実際の通数から出す（起動時に差し替える） */
   { mark: "100", text: "この1年で、<b>100通目のありがとう</b>が届きました。" },
   { mark: "はじめて", text: "<b>森さん</b>から、はじめてのありがとうが届きました。" },
   { mark: "1年", text: "オブリエと過ごして、<b>1年</b>になりました。" },
@@ -1294,6 +1332,207 @@ const MEMBER_CARDS = {
   mori: [{ who:"渡辺さん", ini:"渡", ch:"問い合わせ対応", src:"Teams", month:"2026年 7月", msg:"参考資料のまとめ、わかりやすかったです！", tag:"資料品質", time:"7/2 11:30" }],
 };
 Object.values(MEMBER_CARDS).forEach(list => list.forEach((d, i) => { d.id = 800 + i; }));
+
+/* =========================================================================
+   1-b. 数の出どころを1つにする（イシュー#11：A-06／A-20／A-47）
+
+   これまでは「264通」「265通」「52通」といった数字を画面ごとに手で書いていた。
+   そのため同じ人・同じ期間でも画面によって数が食い違い（A-20）、
+   「264通」と出ているのにカードは12枚しかない（A-06）という状態になっていた。
+
+   ここで **推移データ（shape.monthly）を唯一の出どころ**と決め、
+     ・アルバムに並ぶカード（月ごとの枚数）
+     ・場面タグの内訳と「よく感謝される場面」の回数
+     ・ありがとうの広がり（送り主ごとの通数）
+     ・年間アルバムの月別ページ
+     ・1on1準備メモの「今月のようす」
+   をすべてそこから作る。手書きのカードは消さず、その月の先頭に残す。
+   足りないぶんだけを機械で作って「実際に見えている枚数＝画面が示す数」にする。
+   ========================================================================= */
+const ALBUM_SPAN = 12;                   // アルバムが扱う期間（か月）
+const SERIES_END = { y: 2026, m: 7 };    // 推移データの最後の点＝当月（集計中）
+const SERIES_LEN = 60;
+
+/** 直近 span か月ぶんを、古い順に返す（monthly 配列の添字つき） */
+function albumMonths(span = ALBUM_SPAN) {
+  const out = [];
+  for (let k = span - 1; k >= 0; k--) {
+    let m = SERIES_END.m - k, y = SERIES_END.y;
+    while (m <= 0) { m += 12; y--; }
+    out.push({ y, m, label: `${y}年 ${m}月`, idx: SERIES_LEN - 1 - k });
+  }
+  return out;
+}
+const ALBUM_MONTHS = albumMonths();
+const ALBUM_PERIOD =
+  `${ALBUM_MONTHS[0].y}年${ALBUM_MONTHS[0].m}月 〜 ${SERIES_END.y}年${SERIES_END.m}月`;
+
+/** 重みつきのくじ引き用の袋。[[名前, 重み], …] → 名前がその比率で並んだ配列 */
+function weighted(pairs) {
+  const bag = [];
+  pairs.forEach(([name, w]) => { for (let i = 0; i < Math.max(1, Math.round(w)); i++) bag.push(name); });
+  return bag;
+}
+
+/* 機械で作るカードの言い回し。場面タグごとに、短い一言・中くらい・長文を混ぜる
+   （カードの丈は全枚そろえ、量は行数で受け止める＝設計原則5） */
+const FILL_SAY = {
+  "スピード対応": ["レス早くて助かりました！", "すぐ動いてくれてありがとう。おかげで間に合いました。",
+    "急なお願いだったのに、その日のうちに返してくれてありがとうございました。おかげで先方への回答を翌朝いちばんに出せました。"],
+  "資料品質": ["資料ありがとう、見やすい！", "資料まとめてくれてありがとう。そのまま使わせてもらいました。",
+    "いただいた資料、こちらで直すところがほとんどありませんでした。図と本文の役割がはっきり分かれていて、初めて見る人にも伝わる作りになっていました。ありがとうございます。"],
+  "調整力": ["調整ありがとう！", "間に入ってもらえて助かりました。ありがとうございます。",
+    "関係者が多くて止まっていた件、順番に当たって前に進めてくれてありがとうございました。おかげで来週の締切に間に合いそうです。"],
+  "気配り": ["気づいてくれてありがとう。", "先に声をかけてもらえて助かりました。ありがとうございます。",
+    "こちらが言い出す前に気づいて動いてくれて、本当に助かりました。細かいところまで見てもらえているのが伝わってきます。"],
+  "後輩サポート": ["教えてくれてありがとう！", "丁寧に教えてもらえて助かりました。ありがとうございます。",
+    "分からないところを最初から順に教えていただいて、やっと全体像がつかめました。次からは自分で進められそうです。ありがとうございました。"],
+  "情報共有": ["共有ありがとう！", "先に共有してもらえて助かりました。ありがとうございます。",
+    "早めに共有していただいたおかげで、こちらの段取りを組み直すことができました。いつも先回りして流してくれてありがとうございます。"],
+  "アイデア": ["その発想はなかった！", "案を出してくれてありがとう。方向が見えました。",
+    "行き詰まっていたところに別の切り口を出してもらえて、一気に道が開けました。おかげでチームの議論も前向きになりました。ありがとうございます。"],
+};
+const FILL_SAY_DEFAULT = ["ありがとうございます！", "対応ありがとうございました。助かりました。",
+  "お願いした件、丁寧に進めていただいてありがとうございました。おかげでこちらの作業も気持ちよく進められました。"];
+const FILL_CH = [["#企画チーム", "Slack"], ["#プロジェクトA", "Slack"], ["#営業連携", "Slack"],
+  ["#資料作成", "Slack"], ["問い合わせ対応", "Teams"], ["新人サポート", "Teams"]];
+
+/**
+ * 手書きのカード（keep）を残したまま、月ごとの枚数が
+ * shape.monthly.recv と一致するようカードを補う。
+ * 返すのは新しい月が先の並び。
+ */
+function buildAlbumFrom(shape, keep, seed, series = "recv") {
+  const rnd = seeded(seed);
+  const toward = series === "sent";        // おくった側は宛先として「◯◯さんへ」と出す
+  const tagBag = weighted(shape.tags);
+  const senderBag = weighted(shape.groups.flatMap(g => g.people.map(p => [`${p[0]}|${p[1]}`, p[2]])));
+  const out = [];
+  for (const mo of ALBUM_MONTHS) {
+    const mine = keep.filter(d => d.month === mo.label);
+    const want = shape.monthly[series][mo.idx];
+    const made = [];
+    /* 当月は集計中で、まだ数日しか経っていない。日付をその範囲に収める */
+    const span = (mo.y === SERIES_END.y && mo.m === SERIES_END.m) ? 4 : 28;
+    for (let k = mine.length; k < want; k++) {
+      const tag = tagBag[Math.floor(rnd() * tagBag.length)];
+      const [ini, name] = senderBag[Math.floor(rnd() * senderBag.length)].split("|");
+      const who = toward ? `${name}へ` : name;
+      const [ch, src] = FILL_CH[Math.floor(rnd() * FILL_CH.length)];
+      const says = FILL_SAY[tag] || FILL_SAY_DEFAULT;
+      const msg = says[Math.floor(rnd() * says.length)];
+      const day = Math.max(1, span - Math.floor(k * span / Math.max(1, want)));   // 新しい日から順に置く
+      const hh = 9 + Math.floor(rnd() * 10), mm = Math.floor(rnd() * 60);
+      made.push({
+        who, ini, ch, src, month: mo.label, msg, tag,
+        time: `${mo.m}/${Math.max(1, day)} ${hh}:${String(mm).padStart(2, "0")}`,
+        summary: `${ch} でのやり取りから、「${tag}」の場面として ${who} からの感謝を見つけました。`,
+        story: [
+          { who, ini, time: `${mo.m}/${Math.max(1, day)}`, thanks: true, text: msg },
+        ],
+      });
+    }
+    /* 月の中では手書きのカードが先（いちばん新しい）。そのあとに補ったぶんを日付順で置く */
+    out.unshift(...mine, ...made);
+  }
+  /* out は月ごとに unshift しているので、そのままだと月の並びが逆。月単位で並べ直す */
+  const order = new Map(ALBUM_MONTHS.map((m, i) => [m.label, ALBUM_MONTHS.length - 1 - i]));
+  return out.sort((a, b) => (order.get(a.month) ?? 99) - (order.get(b.month) ?? 99));
+}
+
+/**
+ * カードの中身から、カタチ（場面タグ・よく感謝される場面・広がり）を数え直す。
+ * 画面に出る数字が、並んでいるカードと必ず一致するようにするため。
+ */
+function recountShape(shape, list) {
+  const byTag = {}, byWho = {};
+  list.forEach(d => {
+    byTag[d.tag] = (byTag[d.tag] || 0) + 1;
+    byWho[d.who] = (byWho[d.who] || 0) + 1;
+  });
+  const before = shape.tags.reduce((a, t) => a + t[1], 0) || 1;
+  shape.tags = Object.entries(byTag).sort((a, b) => b[1] - a[1]);
+  const after = shape.tags.reduce((a, t) => a + t[1], 0) || 1;
+  const map = Object.fromEntries(shape.tags);
+  shape.tops = shape.tops.filter(t => map[t.tag] != null);
+  shape.tops.forEach(t => { t.count = map[t.tag]; });
+  shape.tops.sort((a, b) => b.count - a.count);
+  /* 過去のじぶん（比較用）も同じものさしに合わせて伸縮させる。
+     比べるのは過去のじぶんだけなので、比率さえ保てばよい */
+  if (shape.past) for (const k of Object.keys(shape.past)) {
+    const p = shape.past[k].tags, np = {};
+    shape.tags.forEach(([n]) => { if (p[n] != null) np[n] = Math.round(p[n] * after / before); });
+    shape.past[k].tags = np;
+  }
+  shape.groups.forEach(g => {
+    g.people.forEach(p => { p[2] = byWho[p[1]] || 0; });
+    g.people = g.people.filter(p => p[2] > 0).sort((a, b) => b[2] - a[2]);
+  });
+  shape.groups = shape.groups.filter(g => g.people.length);
+  return after;
+}
+
+/* 手書きのカードに出てくる送り主のうち、広がりの一覧に載っていなかった人を足す。
+   載っていないと、カードはあるのに広がりの合計と合わない */
+MY_SHAPE.groups[2].people.push(["岡", "岡田さん", 1], ["伊", "伊藤さん", 1], ["渡", "渡辺さん", 1], ["小", "小林さん", 1]);
+
+/* 本人のアルバム。手書きの12枚は残したまま、月ごとの枚数を推移データに合わせる */
+{
+  const keep = DATA.slice();
+  const built = buildAlbumFrom(MY_SHAPE, keep, 3);
+  DATA.length = 0; DATA.push(...built);
+  DATA.forEach((d, i) => {
+    d.id = i;
+    if (d.fav === undefined) d.fav = false;
+    if (d.myMemo === undefined) d.myMemo = "";
+  });
+  recountShape(MY_SHAPE, DATA);
+}
+
+/* おくったありがとう（S03）も同じ推移データから作る。
+   ここだけ3枚のままだと、一覧の「おくった ◯通」と数が合わなくなる */
+{
+  const keep = SENT.slice();
+  const built = buildAlbumFrom(MY_SHAPE, keep, 5, "sent");
+  SENT.length = 0; SENT.push(...built);
+  SENT.forEach((d, i) => { d.id = 900000 + i; });
+}
+
+/* メンバーのアルバム・おくったぶんも同じ作り方でそろえる（上司ビューの数と合わせるため） */
+const MEMBER_SENT = {};
+MEMBERS.forEach((m, mi) => {
+  if (m.key === "yuki") return;
+  const built = buildAlbumFrom(m.shape, MEMBER_CARDS[m.key] || [], 17 + mi * 7);
+  MEMBER_CARDS[m.key] = built;
+  built.forEach((d, i) => { d.id = 800000 + mi * 1000 + i; });
+  recountShape(m.shape, built);
+  const sent = buildAlbumFrom(m.shape, [], 53 + mi * 7, "sent");
+  sent.forEach((d, i) => { d.id = 700000 + mi * 1000 + i; });
+  MEMBER_SENT[m.key] = sent;
+});
+
+/* 年間アルバム（PDF）の月別ページも、同じ推移データから作る */
+ANNUAL.months = ALBUM_MONTHS.map(mo => [
+  mo.m === 1 || mo === ALBUM_MONTHS[0] ? `${mo.y}年${mo.m}月` : `${mo.m}月`,
+  MY_SHAPE.monthly.recv[mo.idx],
+]);
+ANNUAL.sub = `YUKIYAMA ／ ${ALBUM_PERIOD}`;
+
+/* 節目の知らせも実際の通数に合わせる（ここだけ別の数字が出ないように） */
+{
+  const round = Math.floor(DATA.length / 100) * 100;
+  MILESTONES[0].mark = String(round);
+  MILESTONES[0].text = `この1年で、<b>${round}通目のありがとう</b>が届きました。`;
+}
+
+/** 推移データから、その月ぶんの通数を引く（1on1準備メモ用） */
+function monthlyAt(shape, label) {
+  const m = /(\d{4})年\s?(\d{1,2})月/.exec(label);
+  if (!m) return null;
+  const idx = SERIES_LEN - 1 - ((SERIES_END.y - +m[1]) * 12 + (SERIES_END.m - +m[2]));
+  if (idx < 0 || idx >= SERIES_LEN) return null;
+  return { r: shape.monthly.recv[idx], s: shape.monthly.sent[idx] };
+}
 
 /* 管理者データ */
 const ADMIN = {
@@ -1525,6 +1764,25 @@ function cardHTML(d, opts) {
   </div>`;
 }
 
+/** カード表面の★（お気に入り済みの目印）を、いまの状態に合わせる。
+    位置は position:absolute なので、どこに挿しても見た目は変わらない。
+    レイアウトを動かさないので、裏返りの着地位置にも影響しない */
+function syncFavSeal(cardEl, d) {
+  if (!cardEl) return;
+  const face = cardEl.querySelector(".front");
+  if (!face) return;
+  const cur = face.querySelector(".fav-seal");
+  if (d.fav && !cur) {
+    const s = document.createElement("div");
+    s.className = "fav-seal";
+    s.title = "お気に入り";
+    s.textContent = "★";
+    face.appendChild(s);
+  } else if (!d.fav && cur) {
+    cur.remove();
+  }
+}
+
 function buildCard(d, opts, idx) {
   const root = document.createElement("div");
   root.className = "card " + cardKind(d) + (opts.clickable ? "" : " static");
@@ -1559,40 +1817,137 @@ function buildCard(d, opts, idx) {
   return root;
 }
 
-/** el（.grid）にカードを月ごとに並べる */
-function renderAlbumInto(el, list, opts) {
+/* =========================================================================
+   アルバムのページング（イシュー#11：A-06）
+
+   これまでは渡された配列を全部描いて終わりだった。
+   「264通」と出ているのにカードは12枚、続きへ進む導線も無く、
+   これで全部なのか読み込みに失敗したのかが分からなかった。
+   基本設計8章の「カードは30件単位で取得する」に合わせ、
+   30枚ずつ描き、下に「いま何通目まで見えているか」と続きの導線を置く。
+   ========================================================================= */
+const ALBUM_PAGE = 30;
+
+/** .grid のすぐ下に置く、件数と「さらに読み込む」の置き場 */
+function albumFootOf(el) {
+  let f = el.nextElementSibling;
+  if (!f || !f.classList.contains("album-foot")) {
+    f = document.createElement("div");
+    f.className = "album-foot";
+    el.parentNode.insertBefore(f, el.nextSibling);
+  }
+  return f;
+}
+
+/**
+ * el（.grid）にカードを月ごとに並べる。
+ * info（任意）… { totalAll: 絞り込む前の総数, filterNote: 絞り込みの説明, unit: 単位 }
+ */
+function renderAlbumInto(el, list, opts, info) {
   el.querySelectorAll(".card").forEach(c => engine.items.delete(c._m));
   el.innerHTML = "";
+  el._list = list; el._opts = opts; el._info = info || {}; el._shown = 0; el._month = null;
+  const foot = albumFootOf(el);
   if (!list.length) {
-    el.innerHTML = '<div class="empty-note">条件に合うカードがありません。</div>';
+    el.innerHTML = `<div class="empty-note">${(info && info.emptyHTML)
+      || "まだカードがありません。SlackやTeamsであなた宛ての感謝が見つかると、ここに並びます。"}</div>`;
+    foot.innerHTML = "";
     return;
   }
-  let last = null, n = 0;
-  list.forEach(d => {
-    if (d.month !== last) {
+  appendAlbumPage(el);
+}
+
+/** 続きを1ページぶん足す。すでに出ているカードは描き直さない（入場アニメが走り直すため） */
+function appendAlbumPage(el, focusNew) {
+  const list = el._list, opts = el._opts;
+  const from = el._shown, to = Math.min(list.length, from + ALBUM_PAGE);
+  let first = null;
+  for (let i = from; i < to; i++) {
+    const d = list[i];
+    if (d.month !== el._month) {
       const h = document.createElement("div");
       h.className = "month"; h.textContent = d.month;
-      el.appendChild(h); last = d.month;
+      el.appendChild(h); el._month = d.month;
     }
-    const card = buildCard(d, opts, n);
+    const card = buildCard(d, opts, i);
     el.appendChild(card);
-    card._m.enter(60 + n * 40);
-    n++;
-  });
+    card._m.enter(60 + (i - from) * 40);
+    if (!first) first = card;
+  }
+  el._shown = to;
+  renderAlbumFoot(el);
+  /* 続きを押した人の居場所を見失わせない。新しく出た先頭へ焦点を移す */
+  if (focusNew && first) first.focus({ preventScroll: false });
+}
+
+/** 「全◯通のうち 1〜30通目を表示しています」と、続きへの導線 */
+function renderAlbumFoot(el) {
+  const foot = albumFootOf(el);
+  const total = el._list.length, shown = el._shown, rest = total - shown;
+  const info = el._info || {};
+  const unit = info.unit || "通";
+  const all = info.totalAll;
+  /* 絞り込んでいるときは「絞り込み後の数」と「もとの総数」を並べて出す。
+     書き出し（CSV）が対象にするのも、この絞り込み後の数と同じ（A-08） */
+  const filtered = all != null && all !== total;
+  const head = filtered
+    ? (rest > 0
+        ? `絞り込み後 <b>${total}</b>${unit}${info.filterNote ? `（${info.filterNote}）` : ""} のうち <b>1〜${shown}</b>${unit}目を表示しています ／ 絞り込む前は全 <b>${all}</b>${unit}`
+        : `絞り込み後の <b>${total}</b>${unit}${info.filterNote ? `（${info.filterNote}）` : ""} をすべて表示しています ／ 絞り込む前は全 <b>${all}</b>${unit}`)
+    : (rest > 0
+        ? `全 <b>${total}</b>${unit} のうち <b>1〜${shown}</b>${unit}目を表示しています`
+        : `全 <b>${total}</b>${unit} をすべて表示しています`);
+  foot.innerHTML = `<p class="album-count">${head}</p>`
+    + (rest > 0 ? `<button class="btn" data-more>さらに読み込む（残り ${rest}${unit}）</button>` : "");
+  const b = foot.querySelector("[data-more]");
+  if (b) b.addEventListener("click", () => appendAlbumPage(el, true));
 }
 
 /* 本人のアルバム（S01） */
 const SELF_OPTS = { clickable: true, memo: true, del: true, report: true, fav: true, list: DATA };
-const filter = { tag: "", fav: false };
+const filter = { tag: "", fav: false, sort: "new" };
+
+/** いま画面に出ている（＝絞り込み・並び替え後の）カード。書き出しもこれを使う（A-08） */
+function visibleAlbum() {
+  const list = DATA.filter(d => (!filter.tag || d.tag === filter.tag) && (!filter.fav || d.fav));
+  /* 並び替えるのは時系列だけ。人どうしを並べて比べさせる表示はしない（原則6） */
+  return filter.sort === "old" ? list.slice().reverse() : list;
+}
+
+/** いまの絞り込みを一言で。書き出しの副題と件数表示の両方で使い、言い方をそろえる */
+function filterNote() {
+  const on = [];
+  if (filter.tag) on.push(`場面：${filter.tag}`);
+  if (filter.fav) on.push("お気に入りのみ");
+  return on.join(" ／ ");
+}
+
 function applyFilters() {
   filter.tag = $("tagFilter").value;
   filter.fav = $("favFilter").checked;
-  const list = DATA.filter(d => (!filter.tag || d.tag === filter.tag) && (!filter.fav || d.fav));
-  renderAlbumInto($("grid"), list, SELF_OPTS);
-  $("activeFilter").innerHTML = filter.tag
-    ? `<span class="filter-chip">${filter.tag} <button id="clearTag" aria-label="絞り込みを解除">✕</button></span>` : "";
-  const ct = $("clearTag");
-  if (ct) ct.onclick = () => { $("tagFilter").value = ""; applyFilters(); };
+  filter.sort = $("albumSort").value;
+  const list = visibleAlbum();
+  const note = filterNote();
+  /* 絞り込みの状態を出すのは select とチェックボックスの1か所だけにする。
+     以前あったチップは同じ状態の二重表示だったのでやめ、
+     代わりに「すべての条件をまとめて外す」ボタンだけを置く（A-41） */
+  $("clearFilter").classList.toggle("on", !!note);
+  /* 見出しの通数もここで出し直す。カードを削除したのに「533通」のまま、を防ぐ */
+  $("count").textContent = String(DATA.length);
+  renderAlbumInto($("grid"), list, SELF_OPTS, {
+    totalAll: DATA.length,
+    filterNote: note,
+    emptyHTML: note
+      ? `条件に合うカードがありません。<span class="empty-next">いまの絞り込みは「${note}」です。条件を変えるか、絞り込みを解除すると、ほかのカードが見られます。</span>`
+      : `まだカードがありません。<span class="empty-next">SlackやTeamsであなた宛ての感謝が見つかると、ここに自動で並びます。連携の状態は管理者メニューで確認できます。</span>`,
+  });
+}
+
+function clearAlbumFilter() {
+  $("tagFilter").value = "";
+  $("favFilter").checked = false;
+  applyFilters();
+  toast("絞り込みを解除しました");
 }
 function initTagFilter() {
   const tags = [...new Set(DATA.map(d => d.tag))];
@@ -1820,6 +2175,13 @@ function openThread(d, fromCard, opts) {
   if (favBtn) favBtn.addEventListener("click", () => {
     d.fav = !d.fav;
     favBtn.setAttribute("aria-pressed", String(d.fav));
+    /* カード表面の★を、その場で付け外しする（A-09）。
+       以前は内部の状態だけが変わり、表面は古いまま・絞り込むと急に現れていた。
+       全体を描き直すと入場アニメが走り直すので、触るのはこの1枚だけ。
+       裏返って飛んでいる複製にも同じことをして、戻ったときに食い違わないようにする。
+       ★はお気に入り済みの目印のままで、押す操作は拡大詳細の中だけ（原則4）。 */
+    syncFavSeal(fromCard, d);
+    syncFavSeal(ov.querySelector(".f-front"), d);
     toast(d.fav ? "お気に入りに登録しました" : "お気に入りを外しました");
   });
 
@@ -1990,16 +2352,23 @@ function openFlight(ov, card) {
 /* =========================================================================
    6. 書き出し（F13・年間アルバム）
    ========================================================================= */
+/* 書き出しは「いま見えているもの」を対象にする（要件F13／A-08）。
+   以前は DATA を直に見ていたため、3件に絞っていても「12件」と出て、
+   絞り込みを無視して全部書き出すように見えていた */
 function openCsvDialog() {
-  const rows = DATA.slice(0, 4).map(d =>
+  const list = visibleAlbum();
+  const note = filterNote();
+  const rows = list.slice(0, 4).map(d =>
     `${d.time.replace(/\s/g, "_")},${d.who},${d.tag},${d.src},"${String(d.msg || "").replace(/<br>/g, "").slice(0, 18)}…"`).join("\n");
   openDialog({
-    title: "CSVで書き出す", sub: `アルバム ${DATA.length}件 ／ じぶんのメモは含めません`,
-    body: `<p class="dlg-text">受け取った日・送り主・場面タグ・出典・本文を書き出します。じぶんのメモは、あなただけのものなので含めません。</p>
-      <div class="prev"><pre>受取日,送り主,場面タグ,出典,本文
+    title: "CSVで書き出す",
+    sub: `アルバム ${list.length}件${note ? `（絞り込み：${note}）` : "（絞り込みなし・全件）"} ／ じぶんのメモは含めません`,
+    body: `<p class="dlg-text">いま画面に出ている ${list.length}件を、受け取った日・送り主・場面タグ・出典・本文の順で書き出します。${note ? `絞り込み（${note}）はそのまま引き継ぎます。` : ""}じぶんのメモは、あなただけのものなので含めません。</p>
+      ${list.length ? `<div class="prev"><pre>受取日,送り主,場面タグ,出典,本文
 ${esc(rows)}
-…（ほか ${Math.max(0, DATA.length - 4)}件）</pre></div>`,
-    actions: [{ label: "閉じる" }, { label: "書き出す", primary: true, run: () => toast("CSVを書き出しました（モック）") }],
+…（ほか ${Math.max(0, list.length - 4)}件）</pre></div>` : '<p class="dlg-text">いま書き出せるカードがありません。絞り込みを外してからお試しください。</p>'}`,
+    actions: [{ label: "閉じる" },
+      { label: "書き出す", primary: true, run: () => toast(`${list.length}件を書き出しました（モック）`) }],
   });
 }
 
@@ -2133,16 +2502,18 @@ function chartWidget(mount, shape, defaultPeriod = "1y") {
 function tagBars(S, cmp) {
   const max = Math.max(...S.tags.map(t => t[1]));
   const past = cmp && S.past && S.past[cmp] ? S.past[cmp].tags : null;
+  /* 数には単位（通）を、バーには基準（いちばん多い場面＝100%）を添える（A-47） */
   return S.tags.map(([n, c]) => {
     const p = past ? (past[n] || 0) : null;
+    const diff = p !== null ? c - p : null;
     return `
-    <div class="bar-row" style="--cc:${tagColor(n)}">
+    <div class="bar-row" style="--cc:${tagColor(n)}" title="${n}：${c}通${p !== null ? `（${S.past[cmp].label}は ${p}通）` : ""}">
       <div class="bar-label">${n}</div>
       <div class="bar-track">
         <div class="bar-fill" style="width:${Math.round(c / max * 100)}%"></div>
-        ${p !== null ? `<div class="bar-mark" style="left:${Math.round(p / max * 100)}%" title="${S.past[cmp].label}：${p}"></div>` : ""}
+        ${p !== null ? `<div class="bar-mark" style="left:${Math.round(p / max * 100)}%" title="${S.past[cmp].label}：${p}通"></div>` : ""}
       </div>
-      <div class="bar-count">${c}${p !== null ? `<small>+${c - p}</small>` : ""}</div>
+      <div class="bar-count">${c}<span class="bar-unit">通</span>${diff !== null ? `<small>${diff >= 0 ? "+" : ""}${diff}</small>` : ""}</div>
     </div>`;
   }).join("");
 }
@@ -2156,7 +2527,7 @@ function renderShapeInto(el, S, allowJump) {
       <div class="top-rank">${i + 1}</div>
       <div class="top-title">${t.title}</div>
       <div class="top-quote">${t.quote}</div>
-      <div class="top-count">${t.count}回のありがとう</div>
+      <div class="top-count">${t.count}通のありがとう</div>
       ${allowJump ? '<span class="top-go">アルバムで見る</span>' : ""}
     </${allowJump ? "button" : "div"}>`).join("");
 
@@ -2166,7 +2537,7 @@ function renderShapeInto(el, S, allowJump) {
     <div class="two-col">
       <div class="panel">
         <h2>感謝された場面</h2>
-        <div class="panel-sub">タグは現在 ${S.tags.length}つ。感謝の内容から自動で生まれ、増えていきます</div>
+        <div class="panel-sub">タグは現在 ${S.tags.length}つ（${ALBUM_PERIOD}・合計 ${S.tags.reduce((a, t) => a + t[1], 0)}通）。数字は届いた通数、バーの長さはいちばん多い場面を100%としたときの割合です。タグは感謝の内容から自動で生まれ、増えていきます</div>
         ${S.past ? `<div class="cmp-row">
           <span>過去のじぶんと重ねる</span>
           <div class="seg" data-cmp-seg>
@@ -2215,10 +2586,10 @@ function renderShapeInto(el, S, allowJump) {
 
     <div class="panel">
       <h2>ありがとうの広がり</h2>
-      <div class="panel-sub">どこから届いているか</div>
+      <div class="panel-sub">どこから届いているか（${ALBUM_PERIOD}・送り主ごとの通数）</div>
       <div class="map-groups">${S.groups.map(g => `
         <div class="map-group"><h3>${g.dept}</h3><div class="map-people">
-          ${g.people.map(([ini, name, c]) => `<span class="chip"><span class="ava-x">${ini}</span>${name}<small>（${c}）</small></span>`).join("")}
+          ${g.people.map(([ini, name, c]) => `<span class="chip"><span class="ava-x">${ini}</span>${name}<small>（${c}通）</small></span>`).join("")}
         </div></div>`).join("")}
       </div>
     </div>`;
@@ -2321,6 +2692,12 @@ function periodSum(shape, months) {
     s: shape.monthly.sent.slice(-months).reduce((a, b) => a + b, 0),
   };
 }
+/* いま選んでいる期間の言い方。一覧・詳細ヘッダー・注記で同じ言葉を使い、
+   「今月」「直近1か月」が混ざって別の数に見えることを防ぐ（A-20） */
+function teamPeriodLabel() {
+  const m = parseInt($("teamPeriod").value, 10);
+  return m === 1 ? "直近1か月" : m === 3 ? "直近3か月" : "直近1年";
+}
 function sparkline(shape, w = 130, h = 34) {
   const hist = slice(shape.monthly, 6);
   const max = Math.max(...hist.recv, ...hist.sent) || 1;
@@ -2342,6 +2719,10 @@ function renderMembers() {
   if (sortKey === "sent") rows.sort((a, b) => (a.s - b.s) * sortDir);
   $("sortRecv").textContent = sortKey === "recv" ? (sortDir < 0 ? "▼" : "▲") : "";
   $("sortSent").textContent = sortKey === "sent" ? (sortDir < 0 ? "▼" : "▲") : "";
+  /* 何の数か・どのものさしかを書く（A-47）。スパークラインは行ごとに縦の目盛が違う */
+  $("teamBasis").textContent =
+    `数字は${teamPeriodLabel()}（${SERIES_END.y}年${SERIES_END.m}月まで）に届いた／おくった通数です。`
+    + "推移は直近6か月の形で、縦の目盛は行ごとに違います（行の中での増減を見るためのもので、行どうしの高さは比べられません）。";
   $("memberRows").innerHTML = rows.map(x => `
     <tr class="clickable" tabindex="0" data-mi="${x.i}">
       <td><div class="mt-name"><div class="ava-s">${x.m.ini}</div><div>${x.m.name}${x.m.alert ? ' <span class="alert-chip">要確認</span>' : ""}<small>${x.m.role}</small></div></div></td>
@@ -2366,11 +2747,14 @@ const STATIC_OPTS = { clickable: false, memo: false, del: false, report: false, 
 function openMember(i) {
   const m = MEMBERS[i];
   currentMember = m;
-  const p = periodSum(m.shape, 1);
+  /* 一覧と同じ期間・同じ計算で出す。以前は一覧が期間つき・ここが「今月」で、
+     同じ人なのに画面ごとに数が違って見えていた（A-20） */
+  const span = parseInt($("teamPeriod").value, 10);
+  const p = periodSum(m.shape, span);
   $("detailHead").innerHTML = `
     <div class="ava-l">${m.ini}</div>
     <div><div class="detail-name">${m.name}</div>
-    <div class="detail-sub">${m.role} ・ 今月：もらった ${p.r}通 ／ おくった ${p.s}通</div></div>`;
+    <div class="detail-sub">${m.role} ・ ${teamPeriodLabel()}：もらった ${p.r}通 ／ おくった ${p.s}通（メンバー一覧と同じ期間・同じ数え方です）</div></div>`;
   const months = Object.keys(m.reports);
   $("reportList").innerHTML = months.map((mo, j) =>
     `<button class="report-item" data-rep="${mo}">${mo} のレポート<small>${j === 0 ? "最新" : ""}</small></button>`).join("")
@@ -2390,30 +2774,39 @@ function openMember(i) {
 function showMemberSub(name) {
   document.querySelectorAll("#memberSubTabs .sub-tab").forEach(t => t.classList.toggle("active", t.dataset.s === name));
   const m = currentMember, el = $("memberSub");
+  /* アルバムの通数は、一覧・詳細ヘッダー・レポートと同じ推移データから作ってある。
+     どの期間ぶんを見ているのかを添える（A-06／A-20／A-47） */
+  const albumInfo = { emptyHTML: `${m.name}のアルバムには、まだカードがありません。<span class="empty-next">連携したチャンネルで感謝が見つかると、ここに並びます。</span>` };
   if (name === "album") {
-    el.innerHTML = '<div class="grid"></div>';
-    if (m.key === "yuki") renderAlbumInto(el.firstChild, DATA.filter(d => !d.isNew), BOSS_OPTS);
-    else renderAlbumInto(el.firstChild, MEMBER_CARDS[m.key] || [], STATIC_OPTS);
+    el.innerHTML = `<div class="mini-note">${ALBUM_PERIOD} に届いたぶんです。</div><div class="grid"></div>`;
+    const g = el.querySelector(".grid");
+    if (m.key === "yuki") renderAlbumInto(g, DATA.filter(d => !d.isNew), BOSS_OPTS, albumInfo);
+    else renderAlbumInto(g, MEMBER_CARDS[m.key] || [], STATIC_OPTS, albumInfo);
   } else if (name === "shape") {
     el.innerHTML = "<div></div>";
     renderShapeInto(el.firstChild, m.shape, false);
   } else {
-    el.innerHTML = '<div class="grid"></div>';
-    if (m.key === "yuki") renderAlbumInto(el.firstChild, SENT, BOSS_OPTS);
-    else el.innerHTML = '<div class="hero-note">まだ記録がありません。</div>';
+    el.innerHTML = `<div class="mini-note">${ALBUM_PERIOD} におくったぶんです。</div><div class="grid"></div>`;
+    const g = el.querySelector(".grid");
+    renderAlbumInto(g, m.key === "yuki" ? SENT : (MEMBER_SENT[m.key] || []),
+      m.key === "yuki" ? BOSS_OPTS : STATIC_OPTS,
+      { emptyHTML: "まだ記録がありません。<span class=\"empty-next\">本人が感謝を伝えると、ここに残ります。</span>" });
   }
 }
 
 function openReport(m, month) {
   const r = m.reports[month];
+  /* 通数は推移データ（monthly）から引く。以前はレポートだけ別の数字を持っていたため、
+     同じ人の同じ月なのに一覧・詳細・レポートで数が食い違っていた（A-20） */
+  const d = monthlyAt(m.shape, month) || { r: r.digest.recv, s: r.digest.sent };
   openDialog({
-    title: `1on1の準備メモ ― ${m.name}`, sub: `${month} ・ 5分で読めるようにまとめています`,
+    title: `1on1の準備メモ ― ${m.name}`, sub: `${month}（1か月ぶん） ・ 5分で読めるようにまとめています`,
     cls: "wide",
     body: `
       <div class="r-sec"><h3>① 今月のようす</h3>
         <div class="digest-row">
-          <div class="digest-item"><b>${r.digest.recv}通</b>もらった</div>
-          <div class="digest-item"><b>${r.digest.sent}通</b>おくった</div>
+          <div class="digest-item"><b>${d.r}通</b>${month}にもらった</div>
+          <div class="digest-item"><b>${d.s}通</b>${month}におくった</div>
           ${r.digest.newSenders.length ? `<div class="digest-item"><b>${r.digest.newSenders.join("・")}</b>新しい送り主</div>` : ""}
           ${r.digest.upTag ? `<div class="digest-item"><b>${r.digest.upTag}</b>増えている場面</div>` : ""}
         </div>
@@ -2586,14 +2979,16 @@ ${esc(ADMIN.audit.slice(0, 4).map(a => `${a.t},${a.who},${a.op},${a.target}`).jo
    ========================================================================= */
 function playDemo() {
   const first = $("grid").querySelector('.card[data-id="0"]');
-  $("count").textContent = "264";
+  /* 数字は決め打ちにせず、いまアルバムが持っている通数から出す（A-06／A-20） */
+  const total = DATA.length;
+  $("count").textContent = String(total - 1);
   $("count").classList.remove("pop");
   if (!first || !first._m) return;
   first._m.op.jump(0); first._m.ty.jump(28); kick();
   setTimeout(() => {
     first._m.enter(0);
     setTimeout(() => {
-      $("count").textContent = "265";
+      $("count").textContent = String(total);
       $("count").classList.add("pop");
       setTimeout(() => $("count").classList.remove("pop"), 400);
     }, 320);
@@ -2603,10 +2998,22 @@ function playDemo() {
 /* =========================================================================
    14. 起動
    ========================================================================= */
+/* 画面の見出しに出る数は、すべてカードの実体から出す（A-06／A-20／A-47）。
+   以前は 264／265／12 と、同じものを指すはずの数が3つ食い違っていた */
+$("sentCount").textContent = String(SENT.length);
+$("albumLead").textContent =
+  `Slack・Teams のやり取りから、あなた宛ての感謝を自動で見つけて集めています（${ALBUM_PERIOD}に届いたぶん）。`
+  + "カードを押すと、その言葉が生まれた経緯が見られます。";
+$("sentLead").textContent = `あなたが伝えた感謝も、ここに残しています（${ALBUM_PERIOD}におくったぶん）。`;
+$("shapeLead").textContent =
+  `${ALBUM_PERIOD}に届いた${DATA.length}通の言葉を、オブリエが読み解いて分類しています。`
+  + "場面タグは感謝の内容から自動で生まれ、増えていきます。";
+
 initTagFilter();
 applyFilters();
 renderMilestones();
-renderAlbumInto($("sentGrid"), SENT, { clickable: true, memo: false, del: false, report: false, fav: false });
+renderAlbumInto($("sentGrid"), SENT, { clickable: true, memo: false, del: false, report: false, fav: false },
+  { emptyHTML: "まだ記録がありません。<span class=\"empty-next\">あなたが感謝を伝えると、ここに残ります。</span>" });
 renderShapeInto($("myShape"), MY_SHAPE, true);
 
 document.querySelectorAll("#personTabs .tab").forEach(t =>
@@ -2617,6 +3024,8 @@ $("roleSeg").addEventListener("click", e => {
 });
 $("tagFilter").addEventListener("change", applyFilters);
 $("favFilter").addEventListener("change", applyFilters);
+$("albumSort").addEventListener("change", applyFilters);
+$("clearFilter").addEventListener("click", clearAlbumFilter);
 $("btnCsv").addEventListener("click", openCsvDialog);
 $("btnYear").addEventListener("click", openAnnualDialog);
 $("teamPeriod").addEventListener("change", renderMembers);
