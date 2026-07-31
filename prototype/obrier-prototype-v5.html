@@ -740,14 +740,14 @@
     background: var(--panel-bg); border: 1px solid var(--panel-line); border-radius: 14px;
     padding: 26px 24px;
   }
-  .state-box h3 { font-size: var(--fs-lead); font-weight: 800; color: var(--stage-ink); margin-bottom: 8px; }
+  .state-box h2 { font-size: var(--fs-lead); font-weight: 800; color: var(--stage-ink); margin-bottom: 8px; }
   .state-box p { font-size: var(--fs-ui); line-height: 1.9; color: var(--stage-ink-soft); }
   .state-box .state-count { font-size: var(--fs-cap); color: var(--stage-ink-soft); margin-top: 10px; font-variant-numeric: tabular-nums; }
   .state-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 16px; }
   /* 0件のときの箱。失敗ではないので、赤にも警告色にもしない */
   .state-box.empty-state { background: #fff; }
   .state-box.is-fail { background: #fdeceb; border-color: #eccfca; }
-  .state-box.is-fail h3, .state-box.is-fail p { color: #8c3a2c; }
+  .state-box.is-fail h2, .state-box.is-fail p { color: #8c3a2c; }
 
   /* 画面の中に差し込む一行の知らせ（連携の失効・書き出しの失敗など） */
   .state-note {
@@ -1064,7 +1064,7 @@
   .count-wrap { width: fit-content; max-width: 100%; }
   .lead-line { font-size: var(--fs-h2); }
   .panel h2 { font-size: var(--fs-h2); }
-  .state-box h3 { font-size: var(--fs-body); }
+  .state-box h2 { font-size: var(--fs-body); }
   /* ダイアログ・拡大詳細の題も見出しにする（中の ①〜⑤ が h3 なので、その親が要る） */
   .sheet-head h2 { font-size: var(--fs-h2); font-weight: 700; letter-spacing: inherit; }
   /* 題が20pxになったぶん、狭い画面では 送り主名・時刻・✕ が1行に収まらず、
@@ -1220,6 +1220,68 @@
       width: 100%; max-width: 620px;
       border-radius: 12px 12px 0 0; border-bottom: none;
       box-shadow: 0 -8px 22px rgba(61, 50, 41, .16);
+    }
+  }
+
+  /* ========================================================================
+     ---- 最終監査の残り ----
+     N3-3 節目の帯（744〜899px）／N3-5 状態表示の見出しの飛び／
+     N3-6 見出しの階層が見た目で分からない。
+     既存の値を変えているのは h3 の寸法だけで、それ以外はここに足している。
+     ======================================================================== */
+
+  /* ---- N3-6 見出しの階層を、大きさでも読み取れるようにする ----
+     h3 は 13.5〜14px で、本文（16px）より小さかった。カタチ画面の「企画チーム」、
+     1on1準備メモの ①〜⑤ が、見出しなのに本文より細く小さく見える。
+     h1 24 ＞ h2 20 ＞ h3 17.5 ＞ 本文 16 の順に並べ直す。
+     大きくするのは h3 だけで、上の2つは触らない（D-51 の寸法をそのまま使う）。
+     h3 の役目（小見出し）は letter-spacing と太さで引き続き示す */
+  .map-group h3, .r-sec > h3 { font-size: var(--fs-lead); }
+
+  /* スマホでは h1 も h2 も 20px で、大きさでは区別がつかなかった。
+     h2 を下げる道は無い——20px は本文16pxのちょうど1.25倍で、
+     ここを割ると「見出しが本文の1.25倍以上」（VD-1）を満たせなくなる。
+     そこで h1 を 22px に上げる。ただし**アルバムの見出しだけは 20px のまま**。
+     アルバムは「あなたに届いたありがとう」と「533通」を1行に並べており
+     （#viewAlbum .hero、560px以下）、見出しに使える幅は264pxしかない。
+     21px以上にすると折り返し、そのぶん主役のカードが30px下へ押し出される
+     （D-51 の実測。初画面の2枚目が 47px → 19px）。
+     数と1行に置いていない他の画面（カタチ・おくった・チーム・管理者・
+     メンバー詳細）には、この制約が無いので h1 22px ＞ h2 20px が成り立つ。
+     アルバムでは見出しの右に数が並ぶため、h1 と h2 が隣り合って見える場面は無い */
+  @media (max-width: 640px) {
+    :root { --fs-h1: 22px; }
+  }
+  @media (max-width: 560px) {
+    #viewAlbum .hero h1 { font-size: 20px; }
+  }
+
+  /* ---- N3-5 状態表示で見出しが飛ぶ ----
+     0件・読込失敗・権限なしの3状態で h1 → h3 と飛んでいた。h2 に改めた（上の .state-box）。
+     h2 になったからには本文の1.25倍（20px）で組む——16px のままだと、
+     こんどは「h2 なのに本文と同じ大きさ」という別の食い違いになる */
+  .state-box h2 { font-size: var(--fs-h2); }
+
+  /* ---- N3-3 節目の帯が、744〜899px でカード本文に掛かる ----
+     D-50 で「900px以上＝見出しの右の余白／900px未満＝画面の下端」と分けたが、
+     900px という区切りは帯の幅（420px）を基準に置いた大まかな線で、
+     実際にどこまで右の余白が残っているかは測っていなかった。
+     測ると 744px でもまだ余白はある——見出し「あなたに届いたありがとう」は
+     24px×12字で約300px、その右は空いている。
+     帯を 360px に細めれば 744px まで「何も無い場所」に置ける（実測で重なり0）。
+     744px 未満は下端のまま（D-50）。320px は基準の対象幅外（D-49・N-07）で、
+     ここだけ別の置き場を作ると帯の置き方が3通りになるため、現状のままとする */
+  @media (min-width: 744px) and (max-width: 899px) {
+    .ms-host {
+      top: var(--ms-top, 0); bottom: auto;
+      padding: 8px 20px; justify-content: flex-end;
+      transform: translateY(-101%);
+    }
+    .ms-host.is-in { transform: none; }
+    .ms-host .ms {
+      width: auto; max-width: 360px;
+      border-radius: 8px; border-bottom: 1px solid rgba(61, 50, 41, .2);
+      box-shadow: 0 10px 26px rgba(61, 50, 41, .16);
     }
   }
 </style>
@@ -1743,7 +1805,7 @@ const DENIED_TEXT = ["この画面を見る権限がありません",
 
 function stateBoxHTML(kind, cls, head, note, btn) {
   const inner = `<div class="state-box ${cls}"${cls === "is-fail" ? ' role="alert"' : ""}>
-      <h3>${head}</h3><p>${note}</p>
+      <h2>${head}</h2><p>${note}</p>
       ${btn ? `<div class="state-actions"><button class="btn" data-retry>${btn}</button></div>` : ""}
     </div>`;
   return kind === "rows" ? `<tr><td colspan="4">${inner}</td></tr>` : inner;
@@ -2594,6 +2656,58 @@ function syncFavSeal(cardEl, d) {
   }
 }
 
+/* ---- 目に見える印と読み上げ名を、いつも同じ条件で作る（最終監査 N3-2） ----
+   ★・付箋・読み上げ名は、**同じ opts** から作る。この3つを別々の場所で
+   組み立てると、どれか1つだけ更新し忘れる（実際そうなっていた）。
+   opts.fav / opts.memo は本人ビューでしか真にならないので、
+   上司・管理者には★も付箋も出ず、読み上げ名にも「じぶんのメモあり」の語が
+   生成されない——原則8は、この1本の条件だけで守られる。
+   ここを分岐で書き足すことは、絶対にしないこと。
+   ------------------------------------------------------------------------ */
+
+/** カードの読み上げ名。画面に出ている印と同じものを、同じ順で並べる（D-54） */
+function cardLabel(d, opts) {
+  const marks = [
+    d.isNew ? "新着" : "",
+    (opts.fav && d.fav) ? "お気に入り" : "",
+    (opts.memo && d.myMemo) ? "じぶんのメモあり" : "",
+  ].filter(Boolean);
+  return `${d.who}からの「${String(d.msg).replace(/<br>/g, "")}」`
+    + `。場面：${d.tag}、${d.time}`
+    + (marks.length ? `、${marks.join("、")}` : "")
+    + "。詳細を開く";
+}
+
+/** じぶんのメモの付箋を、いまの状態に合わせる。★と同じく position:absolute で、
+    レイアウトを動かさないので裏返りの着地位置には影響しない */
+function syncMemoDot(cardEl, d, opts) {
+  if (!cardEl) return;
+  const face = cardEl.querySelector(".front");
+  if (!face) return;
+  const cur = face.querySelector(".memo-dot");
+  const want = !!(opts.memo && d.myMemo);
+  if (want && !cur) {
+    const s = document.createElement("div");
+    s.className = "memo-dot";
+    s.title = "じぶんのメモあり";
+    face.appendChild(s);
+  } else if (!want && cur) {
+    cur.remove();
+  }
+}
+
+/** ★・付箋・読み上げ名をまとめて今の状態に合わせる。
+    拡大詳細でお気に入りを切り替えたとき・メモを保存したときに呼ぶ。
+    飛んでいる複製（.f-front）にも同じことをする——複製は aria-hidden なので
+    名前は持たず、見た目だけがそろえばよい */
+function syncCardMarks(el, d, opts) {
+  if (!el) return;
+  syncFavSeal(el, d);
+  syncMemoDot(el, d, opts);
+  if (el.classList.contains("card") && el.getAttribute("role") === "button")
+    el.setAttribute("aria-label", cardLabel(d, opts));
+}
+
 function buildCard(d, opts, idx) {
   const root = document.createElement("div");
   root.className = "card " + cardKind(d) + (opts.clickable ? "" : " static");
@@ -2608,17 +2722,10 @@ function buildCard(d, opts, idx) {
        ここは長くしすぎると一覧を送るときに邪魔になるので、
        画面に出ている印と同じものだけを、同じ順で並べる。
        ★と付箋は opts で描き分けているので、名前も同じ条件で作る
-       ——上司には、じぶんのメモがあること自体を伝えない（原則8） */
-    const marks = [
-      d.isNew ? "新着" : "",
-      (opts.fav && d.fav) ? "お気に入り" : "",
-      (opts.memo && d.myMemo) ? "じぶんのメモあり" : "",
-    ].filter(Boolean);
-    root.setAttribute("aria-label",
-      `${d.who}からの「${String(d.msg).replace(/<br>/g, "")}」`
-      + `。場面：${d.tag}、${d.time}`
-      + (marks.length ? `、${marks.join("、")}` : "")
-      + "。詳細を開く");
+       ——上司には、じぶんのメモがあること自体を伝えない（原則8）。
+       名前の組み立ては cardLabel() に置き、★を付けたとき・メモを保存したときに
+       同じ関数で作り直す（最終監査 N3-2）。ここで文言を作り足さないこと */
+    root.setAttribute("aria-label", cardLabel(d, opts));
   }
   root.style.setProperty("--cc", tagColor(d.tag));
   root.style.setProperty("--ci", tagInk(d.tag));
@@ -2663,27 +2770,27 @@ function emptyStateHTML(kind, info = {}) {
   if (kind === "self") {
     const note = filterNote();
     if (note) return `<div class="state-box empty-state">
-        <h3>条件に合うカードがありません</h3>
+        <h2>条件に合うカードがありません</h2>
         <p>いまの絞り込みは「${note}」です。条件を変えるか、絞り込みを解除すると、これまでに届いたカードが並びます。</p>
         <p class="state-count">表示中：0通 ／ 絞り込む前は全 ${total}通</p>
         <div class="state-actions"><button class="btn" data-clear-filters>絞り込みを解除する</button></div>
       </div>`;
     return `<div class="state-box empty-state">
-        <h3>まだカードがありません</h3>
+        <h2>まだカードがありません</h2>
         <p>Slack・Teams のやり取りから、あなた宛ての感謝が見つかると、ここに自動で並びます。連携の状態は、管理者メニューで確認できます。</p>
         <p class="state-count">表示中：0通 ／ 全 ${total}通</p>
       </div>`;
   }
   if (kind === "sent") return `<div class="state-box empty-state">
-      <h3>まだ記録がありません</h3>
+      <h2>まだ記録がありません</h2>
       <p>あなたが Slack・Teams でおくった感謝が見つかると、ここに新しい順で並びます。書き方や宛先の決まりはありません。</p>
     </div>`;
   if (kind === "member-sent") return `<div class="state-box empty-state">
-      <h3>まだ記録がありません</h3>
+      <h2>まだ記録がありません</h2>
       <p>本人が感謝を伝えると、ここに残ります。記録が無いことは、評価には使いません。</p>
     </div>`;
   return `<div class="state-box empty-state">
-      <h3>${info.name ? esc(info.name) + "の" : "この期間の"}アルバムには、まだカードがありません</h3>
+      <h2>${info.name ? esc(info.name) + "の" : "この期間の"}アルバムには、まだカードがありません</h2>
       <p>連携したチャンネルで感謝が見つかると、ここに並びます。期間を変えると、ほかの月のぶんを見られます。カードが無いことは、評価には使いません。</p>
     </div>`;
 }
@@ -3070,9 +3177,13 @@ function syncScrollLock() {
 
    外し方は `inert`。焦点も、押すことも、支援技術の読み上げも、まとめて
    止まる（aria-hidden を別に足すと、焦点が当たったまま隠す事故が起きる）。
-   付けるのは body の直下の兄弟のうち、いま開いている器（.overlay）以外。
-   入れ子（詳細の上に削除の確認）でも、幕がDOMに1つでもあれば付けたまま、
-   1つも無くなったら外す——ここは syncScrollLock と同じ判断でよい。
+   付けるのは body の直下の兄弟のうち、**いちばん上の器（.overlay）以外すべて**。
+
+   入れ子（詳細の上に削除の確認）のとき、下段の拡大詳細も外す（最終監査 N3-4）。
+   以前は「幕がDOMに1つでもあれば、最初に外した顔ぶれのまま」だったので、
+   確認を開いている間も下の拡大詳細（312文字）が仮想カーソルで読めていた。
+   見えている面と読める面が食い違う点は、背景のカード533枚と同じである。
+   Tab は元から下段へ落ちないので、変わるのは読み上げの範囲だけ。
 
    知らせの器（.toast-live / .toast）だけは外さない。ダイアログの中の操作でも
    トーストは出るので、ここを inert にすると読み上げに届かなくなる。
@@ -3080,20 +3191,31 @@ function syncScrollLock() {
    焦点を中へ移したあとに呼ばれる（pushModalFocus → syncScrollLock）ので、
    焦点が背景に残ったまま inert になることはない。
    Tab の閉じ込め（keydown の capture）はそのまま効く。
+
+   閉じるときの順（積みから外す → 器を取り除く）は変えていない。
+   下段が inert のまま焦点を返そうとする瞬間があるが、popModalFocus は
+   「戻し先が [inert] の中にある間は待つ」ので、器が消えて inert が外れた
+   次のコマで戻る（N3-1 の直しと噛み合っている）。
    ------------------------------------------------------------------------ */
 let inertedEls = [];
 function syncBackgroundInert() {
-  const on = !!document.querySelector(".overlay");
-  if (on) {
-    if (inertedEls.length) return;              // 入れ子。すでに外してある
-    inertedEls = [...document.body.children].filter(el =>
-      !el.classList.contains("overlay") && !el.classList.contains("toast-live")
-      && !el.classList.contains("toast") && !el.inert);
-    inertedEls.forEach(el => { el.inert = true; });
-  } else if (inertedEls.length) {
-    inertedEls.forEach(el => { el.inert = false; });
-    inertedEls = [];
+  const ovs = document.querySelectorAll(".overlay");
+  const top = ovs.length ? ovs[ovs.length - 1] : null;   // 最後の1つがいちばん上
+  const want = top ? [...document.body.children].filter(el =>
+    el !== top && !el.classList.contains("toast-live") && !el.classList.contains("toast")) : [];
+  /* 自分で付けたものだけを外す（他所で inert になっているものには触れない） */
+  const keep = [];
+  for (const el of inertedEls) {
+    if (want.includes(el)) keep.push(el);
+    else el.inert = false;
   }
+  for (const el of want) {
+    if (keep.includes(el)) continue;
+    if (el.inert) continue;                              // すでに他所で外してある
+    el.inert = true;
+    keep.push(el);
+  }
+  inertedEls = keep;
 }
 
 /** 開いた直後に呼ぶ。焦点を中へ移し、閉じ込めの対象として積む */
@@ -3352,9 +3474,11 @@ function openThread(d, fromCard, opts) {
        以前は内部の状態だけが変わり、表面は古いまま・絞り込むと急に現れていた。
        全体を描き直すと入場アニメが走り直すので、触るのはこの1枚だけ。
        裏返って飛んでいる複製にも同じことをして、戻ったときに食い違わないようにする。
-       ★はお気に入り済みの目印のままで、押す操作は拡大詳細の中だけ（原則4）。 */
-    syncFavSeal(fromCard, d);
-    syncFavSeal(ov.querySelector(".f-front"), d);
+       ★はお気に入り済みの目印のままで、押す操作は拡大詳細の中だけ（原則4）。
+       読み上げ名も同時に作り直す（最終監査 N3-2）——見えている印と
+       読み上げで違うことを言うのは、何も言わないより困る */
+    syncCardMarks(fromCard, d, opts);
+    syncCardMarks(ov.querySelector(".f-front"), d, opts);
     toast(d.fav ? "このカードをお気に入りに登録しました" : "このカードのお気に入りを外しました");
   });
 
@@ -3383,6 +3507,11 @@ function openThread(d, fromCard, opts) {
     const v = memoTa.value.trim();
     if (v === (d.myMemo || "")) return false;
     d.myMemo = v;
+    /* 保存した瞬間に、カード表面の付箋と読み上げ名もそろえる（最終監査 N3-2）。
+       これまでは内部の値だけが変わり、付箋は次に絞り込むまで出ていなかった。
+       飛んでいる複製にも同じことをして、戻ったときに食い違わないようにする */
+    syncCardMarks(fromCard, d, opts);
+    syncCardMarks(ov.querySelector(".f-front"), d, opts);
     setMemoState(`保存しました ・ ${hhmm()}`, "");
     return true;
   };
