@@ -456,7 +456,22 @@ for (const [w, h, label, need] of [[1280, 900, 'PC', 24], [390, 844, 'スマホ'
   await card.focus();
   await p.keyboard.press('Enter');
   await p.waitForTimeout(700);
-  const opened = await p.locator('.f-back, .sheet').count() > 0;
+  /* 「ある」ではなく「見えている」で判定する。
+     裏面は rotateY(180deg) と backface-visibility:hidden を持つので、
+     要素の数だけ見ていると、裏を向いて何も描かれていない状態を
+     合格と誤って言ってしまう（実際に見逃していた）。
+     画面の中央あたりの画素を読んで、暗幕の色でないことを確かめる */
+  const opened = await p.evaluate(() => {
+    const el = document.querySelector('.f-back, .sheet');
+    if (!el) return false;
+    const r = el.getBoundingClientRect();
+    if (r.width < 50 || r.height < 50) return false;
+    const cs = getComputedStyle(el);
+    if (cs.visibility === 'hidden' || parseFloat(cs.opacity) === 0) return false;
+    // 中央に実際にこの要素が来ているか（裏を向いていると手前に出てこない）
+    const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    return !!(hit && (el === hit || el.contains(hit)));
+  });
   await p.keyboard.press('Escape');
   await p.waitForTimeout(800);
   const back = await p.evaluate(() => /card/.test(String(document.activeElement?.className || '')));
@@ -537,7 +552,22 @@ for (const [vw, vh, wlabel] of [[1280, 900, 'PC'], [390, 844, 'スマホ']]) {
   await p.waitForTimeout(2000);
   await p.locator('#grid .card').nth(1).click();
   await p.waitForTimeout(600);
-  const opened = await p.locator('.f-back, .sheet').count() > 0;
+  /* 「ある」ではなく「見えている」で判定する。
+     裏面は rotateY(180deg) と backface-visibility:hidden を持つので、
+     要素の数だけ見ていると、裏を向いて何も描かれていない状態を
+     合格と誤って言ってしまう（実際に見逃していた）。
+     画面の中央あたりの画素を読んで、暗幕の色でないことを確かめる */
+  const opened = await p.evaluate(() => {
+    const el = document.querySelector('.f-back, .sheet');
+    if (!el) return false;
+    const r = el.getBoundingClientRect();
+    if (r.width < 50 || r.height < 50) return false;
+    const cs = getComputedStyle(el);
+    if (cs.visibility === 'hidden' || parseFloat(cs.opacity) === 0) return false;
+    // 中央に実際にこの要素が来ているか（裏を向いていると手前に出てこない）
+    const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    return !!(hit && (el === hit || el.contains(hit)));
+  });
   check('動きを減らす設定でも詳細が開ける', opened && errs.length === 0, errs[0] || '');
   await p.close();
 }

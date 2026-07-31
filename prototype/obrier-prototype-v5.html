@@ -3623,7 +3623,15 @@ function openFlight(ov, card) {
   const front = ov.querySelector(".f-front");
   const back  = ov.querySelector(".f-back");
   if (REDUCED || !card) {
-    if (wrap) { wrap.style.transform = "none"; if (front) front.style.display = "none"; }
+    /* 動きを減らす設定では裏返さず、詳細をそのまま出す。
+       このとき外側の変形を消すだけでは足りない。裏面は rotateY(180deg) と
+       backface-visibility:hidden を持っていて、回さない以上ずっと裏を向いたまま
+       ——暗幕だけが出て中身が描かれない状態になっていた。裏面の変形も戻す */
+    if (wrap) {
+      wrap.style.transform = "none";
+      if (front) front.style.display = "none";
+      if (back) { back.style.transform = "none"; back.style.backfaceVisibility = "visible"; }
+    }
     return { close: () => { ov.remove(); syncScrollLock(); } };
   }
 
