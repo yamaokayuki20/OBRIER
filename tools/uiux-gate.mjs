@@ -184,8 +184,10 @@ async function visitAll(p, collect) {
 const browser = await chromium.launch();
 
 /* ---- コントラスト比 -------------------------------------------------- */
-{
-  const p = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+/* 幅で色は変わらないが、幅で「出る要素」が変わる。
+   スマホでしか出ないもの・PCでしか出ないものがあるので両方まわる */
+for (const [vw, vh, wlabel] of [[1280, 900, 'PC'], [390, 844, 'スマホ']]) {
+  const p = await browser.newPage({ viewport: { width: vw, height: vh } });
   await p.goto(URL);
   await p.waitForTimeout(2200);
   await p.addScriptTag({ content: TOOLS });
@@ -216,7 +218,7 @@ const browser = await chromium.launch();
   const all = await visitAll(p, scan);
   // 同じ見た目のものは1件にまとめる
   const uniq = [...new Map(all.map(x => [x.cls + x.r, x])).values()].sort((a, b) => a.r - b.r);
-  check('文字のコントラスト比が基準を満たす（本文4.5:1／大きな文字3:1）',
+  check(`${wlabel}: 文字のコントラスト比が基準を満たす（本文4.5:1／大きな文字3:1）`,
     uniq.length === 0,
     uniq.slice(0, 6).map(x => `[${x.screen}] ${x.cls} ${x.r}:1(要${x.need}) ${x.size}px`).join(' / ')
     + (uniq.length > 6 ? ` ほか${uniq.length - 6}件` : ''));
@@ -371,6 +373,98 @@ for (const [w, h, label, need] of [[1280, 900, 'PC', 24], [390, 844, 'スマホ'
   await p.close();
 }
 
+/* ---- 閉じたら焦点が戻るか（全てのダイアログで） ----------------------
+   拡大詳細だけ見ていて、他の6種のダイアログで焦点が body に落ちているのを
+   見逃していた。開く口が違えば戻り方も別の道を通るので、全部通す。
+   合わせて、開いている間に背景が読み上げから外れているか（inert）も見る。
+   ここを測っていなかったために、inert を入れた変更が焦点の復帰を壊したのに
+   合格が出ていた */
+{
+  const p = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+  await p.goto(URL);
+  await p.waitForTimeout(2200);
+
+  const opens = [
+    ['CSVで書き出す', 'CSV'],
+    ['年間アルバム', '年間アルバム'],
+    ['これまでの節目', '節目一覧'],
+  ];
+  const backBad = [], inertBad = [];
+
+  for (const [label, name] of opens) {
+    let btn;
+    try { btn = p.locator('button', { hasText: label }).first(); await btn.waitFor({ timeout: 2500 }); }
+    catch { continue; }
+    const mark = await btn.evaluate(el => { el.dataset.gateMark = '1'; return true; }).catch(() => false);
+    if (!mark) continue;
+    await btn.focus();
+    await btn.click();
+    await p.waitForTimeout(800);
+    if (await p.locator('.overlay').count() === 0) continue;
+
+    // 開いている間、背景は読み上げから外れているか
+    const bgOpen = await p.evaluate(() => {
+      const bad = [];
+      for (const el of document.body.children) {
+        if (el.classList?.contains('overlay') || el.classList?.contains('toast')
+            || el.id === 'toastLive' || el.classList?.contains('toast-live')) continue;
+        if (el.offsetParent === null && el.tagName !== 'HEADER') continue;
+        if (!el.hasAttribute('inert') && el.getAttribute('aria-hidden') !== 'true')
+          bad.push(el.tagName.toLowerCase() + (el.id ? '#' + el.id : ''));
+      }
+      return bad;
+    });
+    if (bgOpen.length) inertBad.push(`${name}: ${bgOpen.join(',')}`);
+
+    await p.keyboard.press('Escape');
+    await p.waitForTimeout(900);
+    const back = await p.evaluate(() => document.activeElement?.dataset?.gateMark === '1');
+    if (!back) backBad.push(name + '（' + await p.evaluate(() =>
+      (document.activeElement?.tagName || '') + '.' + String(document.activeElement?.className || '').split(' ')[0]) + '）');
+    await p.evaluate(() => document.querySelectorAll('[data-gate-mark]').forEach(e => delete e.dataset.gateMark));
+    await p.waitForTimeout(200);
+  }
+
+  // 拡大詳細（通常）
+  {
+    const card = p.locator('#grid .card').nth(1);
+    await card.scrollIntoViewIfNeeded();
+    await card.focus();
+    await p.keyboard.press('Enter');
+    await p.waitForTimeout(900);
+    await p.keyboard.press('Escape');
+    await p.waitForTimeout(900);
+    const ok = await p.evaluate(() => /card/.test(String(document.activeElement?.className || '')));
+    if (!ok) backBad.push('拡大詳細');
+  }
+
+  check('どのダイアログも、閉じたら焦点が開いた場所へ戻る', backBad.length === 0, backBad.join(' / '));
+  check('開いている間、背景が読み上げから外れている（inert）', inertBad.length === 0, inertBad.join(' / '));
+  await p.close();
+}
+
+/* ---- 動きを減らす設定でも、開けて閉じて焦点が戻るか -------------------
+   「開けるか」だけを見ていたので、その先で焦点が戻らないのを見逃していた */
+{
+  const p = await browser.newPage({ viewport: { width: 1280, height: 900 }, reducedMotion: 'reduce' });
+  const errs = [];
+  p.on('pageerror', e => errs.push(e.message));
+  await p.goto(URL);
+  await p.waitForTimeout(2000);
+  const card = p.locator('#grid .card').nth(1);
+  await card.scrollIntoViewIfNeeded();
+  await card.focus();
+  await p.keyboard.press('Enter');
+  await p.waitForTimeout(700);
+  const opened = await p.locator('.f-back, .sheet').count() > 0;
+  await p.keyboard.press('Escape');
+  await p.waitForTimeout(800);
+  const back = await p.evaluate(() => /card/.test(String(document.activeElement?.className || '')));
+  check('動きを減らす設定でも、開いて閉じて焦点が戻る', opened && back && errs.length === 0,
+    errs[0] || (!opened ? '開けない' : !back ? '焦点が戻らない' : ''));
+  await p.close();
+}
+
 /* ---- 状態の網羅 ------------------------------------------------------ */
 {
   const p = await browser.newPage({ viewport: { width: 1280, height: 900 } });
@@ -406,8 +500,8 @@ for (const [w, h, label, need] of [[1280, 900, 'PC', 24], [390, 844, 'スマホ'
 }
 
 /* ---- 見出しの階層 ---------------------------------------------------- */
-{
-  const p = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+for (const [vw, vh, wlabel] of [[1280, 900, 'PC'], [390, 844, 'スマホ']]) {
+  const p = await browser.newPage({ viewport: { width: vw, height: vh } });
   await p.goto(URL);
   await p.waitForTimeout(2200);
   const scanH = () => p.evaluate(() => {
@@ -429,7 +523,7 @@ for (const [w, h, label, need] of [[1280, 900, 'PC', 24], [390, 844, 'スマホ'
   });
   const all = await visitAll(p, scanH);
   const uniq = [...new Set(all.map(x => `[${x.screen}] ${x.msg}`))];
-  check('見出しの階層が成立している（h1が1つ・飛びなし・本文の1.25倍以上）',
+  check(`${wlabel}: 見出しの階層が成立している（h1が1つ・飛びなし・本文の1.25倍以上）`,
     uniq.length === 0, uniq.slice(0, 6).join(' / ') + (uniq.length > 6 ? ` ほか${uniq.length - 6}件` : ''));
   await p.close();
 }
