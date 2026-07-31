@@ -787,6 +787,68 @@
     .sk-bar, .sk-card, .spinner { animation: none; }
     .prog > i { transition: none; }
   }
+
+  /* ---- チャートと表（イシュー#13） --------------------------------------
+     チャートの数と表の並び替えが、マウスを持っている人にしか届いていなかった。
+     直す向きは「見た目を足す」ではなく「到達手段を増やす」。
+       ・チャートの数：なぞる（指でも可）に加えて、同じ数を表でも出す（A-04）
+       ・当月は集計中：破線・中空の点・注記の3つで示す（A-07）
+       ・年：月次の軸を2段にして下段に年を置く（A-24）
+       ・並び替え：見出しの中を button にし、3状態を矢印と aria-sort で示す（A-05）
+       ・横スクロール：はみ出しているときだけ焦点を受ける（A-32）
+     色・文字サイズは既にある変数をそのまま借り、既存ルールの値は変えない。
+     ---------------------------------------------------------------------- */
+
+  /* 軸の下段に置く年（A-24）。月より控えめにして、月の読み取りを邪魔しない */
+  .axis-year { font-size: var(--fs-note); fill: var(--stage-ink-soft); }
+
+  /* 当月＝集計中の区間（A-07）。線は破線、点は中空。
+     色は本線と同じままにして、別の系列に見えないようにする */
+  .line-partial { stroke-dasharray: 3 4; }
+  .pt-partial { fill: #fff; stroke-width: 2; }
+  .pt-recv { stroke: var(--line-recv); }
+  .pt-sent { stroke: var(--line-sent); }
+
+  /* チャートの下の注記。事実でない下落を、言葉のほうでも打ち消す */
+  .chart-note { font-size: var(--fs-cap); color: var(--stage-ink-soft); line-height: 1.8; margin-top: 8px; }
+  .chart-note[hidden] { display: none; }
+
+  /* 「表で見る」（A-04）。押すまでは閉じているので、ふだんの見え方は変わらない */
+  .chart-alt { margin-top: 10px; }
+  .chart-alt-btn { font-size: var(--fs-cap); }
+  .chart-table-wrap { margin-top: 10px; max-height: 300px; overflow: auto; }
+  .chart-table { font-variant-numeric: tabular-nums; }
+  .chart-table caption {
+    caption-side: top; text-align: left; padding: 10px 14px 0;
+    font-size: var(--fs-cap); color: var(--stage-ink-soft); line-height: 1.8;
+  }
+  .chart-table th[scope="col"] { position: sticky; top: 0; z-index: 1; }
+  /* 「2026年7月」は途中で折らない。折るなら「集計中」との間で折る
+     （スマホの狭い幅でも、表の中で横スクロールさせずに読み切れるように） */
+  .chart-table th[scope="row"] { font-weight: 600; white-space: normal; }
+  .chart-table .pt-name { white-space: nowrap; }
+  .chart-table td { text-align: right; font-size: var(--fs-ui); }
+  .chart-table td small, .chart-table th small { font-size: var(--fs-note); color: var(--stage-ink-soft); margin-left: 2px; }
+  .cell-partial {
+    display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px;
+    background: var(--navy-bg); color: var(--navy-soft); font-size: var(--fs-note); font-weight: 700;
+  }
+
+  /* 並び替えの見出し（A-05）。th の内側いっぱいに button を敷く。
+     見出しの余白は button 側へ移すだけで、見た目の寸法は今までと同じ */
+  .tbl th.sortable { padding: 0; }
+  .th-sort {
+    display: flex; align-items: center; gap: 6px; width: 100%; min-height: 44px;
+    padding: 11px 14px; background: none; border: 0; cursor: pointer;
+    font: inherit; color: inherit; letter-spacing: inherit; white-space: nowrap; text-align: left;
+  }
+  .sort-mark { font-size: var(--fs-note); color: var(--navy-soft); }
+  .tbl th.sortable[aria-sort="none"] .sort-mark { color: var(--stage-ink-soft); font-weight: 400; }
+  .sort-state { margin-bottom: 8px; }
+
+  /* はみ出している領域が焦点を受けたときの見え方（A-32）。
+     枠の外側に出すので、中身の位置は動かない */
+  [data-scroll-region]:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; border-radius: 4px; }
 </style>
 </head>
 <body>
@@ -899,12 +961,19 @@
   <!-- 数の基準を書いておく（A-47）。スパークラインの縦の目盛は行ごとに違うため、
        行をまたいで高さを比べると読み違える -->
   <div class="mini-note" id="teamBasis"></div>
-  <div class="table-scroll">
+  <!-- いまどう並んでいるかを言葉でも出す（A-05）。並び替えは見出しの
+       矢印だけでは伝わらず、読み上げでは何も起きていないのと同じだった -->
+  <div class="mini-note sort-state" id="sortState" role="status" aria-live="polite"></div>
+  <div class="table-scroll" data-scroll-region="メンバー一覧の表">
     <table class="tbl wide">
       <thead><tr>
         <th>メンバー</th>
-        <th class="sortable" data-sort="recv">もらった <span id="sortRecv"></span></th>
-        <th class="sortable" data-sort="sent">おくった <span id="sortSent"></span></th>
+        <!-- 見出しの中を button にして、キーボードでも並び替えられるようにする（A-05）。
+             並び順は th の aria-sort と、ボタンの中の矢印の両方で示す -->
+        <th class="sortable" data-sort="recv" aria-sort="none">
+          <button type="button" class="th-sort" data-sort="recv">もらった <span class="sort-mark" id="sortRecv" aria-hidden="true">⇅</span></button></th>
+        <th class="sortable" data-sort="sent" aria-sort="none">
+          <button type="button" class="th-sort" data-sort="sent">おくった <span class="sort-mark" id="sortSent" aria-hidden="true">⇅</span></button></th>
         <th>推移（直近6か月）</th>
       </tr></thead>
       <tbody id="memberRows"></tbody>
@@ -988,17 +1057,23 @@ const tagInk = tag => `var(${tagVar(tag).replace("--c-", "--i-")})`;
 /* 疑似乱数（決定的）／推移データ生成：v4 と同一 */
 function seeded(seed) { let s = seed; return () => { s = (s * 9301 + 49297) % 233280; return s / 233280; }; }
 function genMonthly(seed, base, slope, amp, sentBase, sentSlope) {
-  const r = seeded(seed); const labels = [], recv = [], sent = [];
+  const r = seeded(seed); const labels = [], recv = [], sent = [], years = [], months = [];
   const names = ["1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"];
   let y = 2021, mIdx = 7;
   for (let i = 0; i < 60; i++) {
     labels.push((mIdx === 0 ? `${y}年` : '') + names[mIdx]);
+    /* 何年の何月の点なのかを、ラベル文字列とは別に持っておく（A-24）。
+       ラベルは1月にしか年が入っておらず、間引くと年が消えてしまう。
+       チャートの軸・表・読み上げは、この years / months から年を組み立てる */
+    years.push(y); months.push(mIdx + 1);
     recv.push(Math.max(0, Math.round(base + i * slope + Math.sin(i * .8 + seed) * amp + r() * 3)));
     sent.push(Math.max(0, Math.round(sentBase + i * sentSlope + Math.sin(i * .6 + seed) * 1.2 + r() * 2)));
     mIdx++; if (mIdx > 11) { mIdx = 0; y++; }
   }
   recv[59] = Math.round(recv[58] * .25); sent[59] = Math.round(sent[58] * .3); // 当月は集計中
-  return { labels, recv, sent };
+  /* 最後の点＝当月は、まだ月の途中までしか数えていない。
+     これを黙って線で結ぶと「急に減った」に見えるので、印を付けて渡す（A-07） */
+  return { labels, recv, sent, years, months, partialLast: true };
 }
 function genDaily(seed, level) {
   const r = seeded(seed); const labels = [], recv = [], sent = [];
@@ -1008,9 +1083,56 @@ function genDaily(seed, level) {
     recv.push(Math.round(r() * level));
     sent.push(Math.round(r() * level * .4));
   }
-  return { labels, recv, sent };
+  return { labels, recv, sent, partialLast: false };
 }
-const slice = (h, n) => ({ labels: h.labels.slice(-n), recv: h.recv.slice(-n), sent: h.sent.slice(-n) });
+const slice = (h, n) => ({
+  labels: h.labels.slice(-n), recv: h.recv.slice(-n), sent: h.sent.slice(-n),
+  years: h.years ? h.years.slice(-n) : null, months: h.months ? h.months.slice(-n) : null,
+  partialLast: !!h.partialLast,
+});
+
+/* =========================================================================
+   横スクロールする領域をキーボードで動かせるようにする（A-32／イシュー#13）
+
+   チャート（3年・5年）とスマホの表は、はみ出したぶんを横スクロールで読む。
+   ところが、中に押せるものが無い領域（表のヘッダーや軸ラベル）は Tab の
+   止まり先が無く、マウスやスワイプを持っていないと最後まで読めなかった。
+
+   定石どおり tabindex="0" + role="region" + aria-label を付ける。ただし
+   **はみ出しているときだけ**付ける。はみ出していない領域にまで止まり先を
+   増やすと、キーボード利用者は「押せもしないし動きもしない場所」を何度も
+   通ることになり、かえって遠回りになるため。
+
+   data-scroll-region="◯◯" を書いた要素が対象。判定は画面幅や中身が
+   変わるたびにやり直す（MutationObserver ＋ resize）。
+   ========================================================================= */
+function refreshScrollRegions() {
+  for (const el of document.querySelectorAll("[data-scroll-region]")) {
+    const overX = el.scrollWidth - el.clientWidth > 2;
+    const overY = el.scrollHeight - el.clientHeight > 2;
+    if (overX || overY) {
+      const how = overX && overY ? "上下左右" : overX ? "左右" : "上下";
+      el.setAttribute("tabindex", "0");
+      el.setAttribute("role", "region");
+      el.setAttribute("aria-label", `${el.dataset.scrollRegion}（矢印キーで${how}にスクロールできます）`);
+    } else {
+      el.removeAttribute("tabindex");
+      el.removeAttribute("role");
+      el.removeAttribute("aria-label");
+    }
+  }
+}
+{
+  let queued = false;
+  const later = () => {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(() => { queued = false; refreshScrollRegions(); });
+  };
+  window.addEventListener("resize", later);
+  document.addEventListener("DOMContentLoaded", later);
+  new MutationObserver(later).observe(document.documentElement, { childList: true, subtree: true });
+}
 
 /* =========================================================================
    自己診断：閉じる動作がカクついていないかを、この画面自身で判定する
@@ -2801,65 +2923,180 @@ function openAnnualDialog() {
 }
 
 /* =========================================================================
-   7. 推移チャート（期間タブ・横スクロール・ホバーでクロスヘア＋数値）
+   7. 推移チャート（期間タブ・横スクロール・なぞるとクロスヘア＋数値）
+
+   イシュー#13 で直したこと
+   -----------------------------------------------------------------------
+   A-04 数値がホバー限定だった。マウスを持っていない人（スマホ・キーボード・
+        読み上げ）は推移の数を一つも読めなかった。
+        **「表で見る」の切り替えを置き、同じ数を <table> でも出す**方式にした。
+        「各点にフォーカスできるようにする」案を採らなかった理由：
+          ・5年＝60点。Tab の止まり先が60個増え、キーボード利用者にとっては
+            チャートを通り抜けるだけで一苦労になる（矢印キー移動にしても、
+            60回押して読む体験は数を「読めた」とは言いがたい）
+          ・読み上げでは、点を1つずつ聞くより表を行として聞くほうが速く、
+            前後の月と比べられる。表なら並びも単位も一度に伝わる
+          ・表はスマホでもそのまま使える。ホバーの代わりを増やすのではなく、
+            ホバーを必要としない読み方を1つ用意するほうが確実
+        あわせて、なぞる操作を mousemove から pointermove ＋ pointerdown に
+        変え、指でも数が出るようにした（表と併用。表だけに頼らせない）。
+        「通常時は数値ラベルを出さない」方針は変えていない。チャートの上に
+        数字を印字するのではなく、数への**到達手段を増やした**。
+   A-07 最後の点＝当月は集計途中。線を実線でつなぐと「急に減った」に見える。
+        最後のひと区切りだけ破線＋中空の点にし、下に「◯月は集計中です」と書く。
+        ツールチップと表にも「集計中」を出す。
+   A-24 年が出ないまま5年ぶんを横スクロールしていた。月次の期間では軸を2段に
+        し、下段に年を出す。スクロールする期間（3年・5年）は目盛ごとに毎回、
+        スクロールしない1年は年が変わったところで出す。
+   A-32 横スクロールできる領域がキーボードで動かせなかった → registerScrollRegion。
    ========================================================================= */
 const PERIODS = [["1w","1週間"],["1m","1か月"],["1y","1年"],["3y","3年"],["5y","5年"]];
+const PERIOD_LABEL = Object.fromEntries(PERIODS);
+let chartSeq = 0;
 function chartWidget(mount, shape, defaultPeriod = "1y") {
   const el = typeof mount === "string" ? $(mount) : mount;
+  const cid = "chart" + (++chartSeq);
   let period = defaultPeriod;
   el.innerHTML = `
     <div class="chart-tabs">${PERIODS.map(([k, l]) =>
       `<button class="chart-tab ${k === period ? "active" : ""}" data-p="${k}">${l}</button>`).join("")}</div>
     <div class="chart-legend"><span class="lg-recv">もらった</span><span class="lg-sent">おくった</span></div>
-    <div class="chart-scroll"><div class="chart-inner">
+    <div class="chart-scroll" data-scroll-region="チャート"><div class="chart-inner">
       <div class="cross-line"></div><div class="chart-tip"></div>
       <div class="chart-svg"></div>
-    </div></div>`;
+    </div></div>
+    <p class="chart-note" data-note></p>
+    <div class="chart-alt">
+      <button class="btn chart-alt-btn" type="button" data-alt aria-expanded="false" aria-controls="${cid}_tbl">表で見る</button>
+    </div>
+    <div class="chart-table-wrap" id="${cid}_tbl" data-tbl data-scroll-region="推移の数の表" hidden></div>`;
   const tabs = el.querySelectorAll(".chart-tab");
   tabs.forEach(t => t.onclick = () => {
     period = t.dataset.p;
     tabs.forEach(x => x.classList.toggle("active", x === t));
+    hideTip();
     draw();
   });
 
   function dataFor() {
     if (period === "1w") return { d: slice(shape.daily30, 7) };
-    if (period === "1m") return { d: shape.daily30 };
+    if (period === "1m") return { d: slice(shape.daily30, 30) };
     if (period === "1y") return { d: slice(shape.monthly, 12) };
     if (period === "3y") return { d: slice(shape.monthly, 36) };
-    return { d: shape.monthly };
+    return { d: slice(shape.monthly, 60) };
   }
+  /* その点を言葉にしたもの。表・ツールチップ・読み上げで同じ言い方をそろえる。
+     月次は年から書き起こす（ラベル文字列は1月にしか年が入っていないため） */
+  function pointName(d, i) {
+    if (d.years && d.months) return `${d.years[i]}年${d.months[i]}月`;
+    return d.labels[i];
+  }
+  const isPartial = (d, i) => !!d.partialLast && i === d.labels.length - 1;
+
   let geo = null;
   function draw() {
     const { d } = dataFor();
     const n = d.labels.length;
+    const monthly = !!(d.years && d.months);
     const px = n <= 12 ? 0 : (n <= 36 ? 30 : 26);   // 3年以上は横スクロール
     const contW = el.querySelector(".chart-scroll").clientWidth || 500;
     const w = px === 0 ? contW : Math.max(contW, n * px);
-    const h = 210, padL = 8, padR = 8, padT = 8, padB = 24;
+    /* 月次は軸を2段（上＝月・下＝年）にするぶんだけ背を伸ばす。
+       padB も同じだけ増やすので、線が描かれる範囲の高さ（178px）は今までと同じ */
+    const h = monthly ? 226 : 210, padL = 8, padR = 8, padT = 8, padB = monthly ? 40 : 24;
     const max = Math.max(...d.recv, ...d.sent) * 1.15 || 1;
     const x = i => padL + i * (w - padL - padR) / (n - 1);
     const y = v => h - padB - v / max * (h - padT - padB);
-    const pts = arr => arr.map((v, i) => `${x(i)},${y(v)}`).join(" ");
+    const pts = (arr, from, to) => {
+      const out = [];
+      for (let i = from; i <= to; i++) out.push(`${x(i)},${y(arr[i])}`);
+      return out.join(" ");
+    };
     const step = Math.ceil(n / 12);
-    const labels = d.labels.map((l, i) => i % step === 0
-      ? `<text class="axis-label" x="${x(i)}" y="${h - 6}" text-anchor="middle">${l}</text>` : "").join("");
+    /* 年の出し方（A-24）。横スクロールする期間は目盛ごとに毎回出す
+       （スクロールで年つきの目盛が視界の外へ出てしまうため）。
+       スクロールしない1年は、年が変わったところにだけ出す */
+    let lastYear = null;
+    const labels = d.labels.map((l, i) => {
+      if (i % step !== 0) return "";
+      /* 両端の目盛は真ん中ぞろえにすると文字が図の外へはみ出して切れる。
+         年を出すぶん文字が長くなるので、端だけ内側へ寄せる（A-24） */
+      const anchor = i === 0 ? "start" : (i === n - 1 ? "end" : "middle");
+      const month = String(l).replace(/^\d{4}年/, "");
+      const t = [`<text class="axis-label" x="${x(i)}" y="${h - (monthly ? 22 : 6)}" text-anchor="${anchor}">${month}</text>`];
+      if (monthly) {
+        const yy = d.years[i];
+        if (px > 0 || yy !== lastYear) t.push(`<text class="axis-year" x="${x(i)}" y="${h - 5}" text-anchor="${anchor}">${yy}年</text>`);
+        lastYear = yy;
+      }
+      return t.join("");
+    }).join("");
     const gridY = [0.25, 0.5, 0.75, 1].map(f =>
       `<line class="line-grid" x1="${padL}" y1="${y(max * f / 1.15)}" x2="${w - padR}" y2="${y(max * f / 1.15)}"/>`).join("");
-    /* 通常時は数値ラベルを出さない。数値はホバーしたときだけ */
+    /* 当月（最後の点）は集計途中。そこへ向かうひと区切りだけ破線にし、
+       点は中空にして「まだ確定していない数」だと形で示す（A-07） */
+    const partial = !!d.partialLast && n >= 2;
+    const solidTo = partial ? n - 2 : n - 1;
+    const seriesSVG = [["recv", d.recv], ["sent", d.sent]].map(([k, arr]) => {
+      let s = `<polyline class="line-${k}" points="${pts(arr, 0, solidTo)}"/>`;
+      if (partial) s += `<polyline class="line-${k} line-partial" points="${pts(arr, n - 2, n - 1)}"/>`
+        + `<circle class="pt-partial pt-${k}" cx="${x(n - 1)}" cy="${y(arr[n - 1])}" r="3.6"/>`;
+      return s;
+    }).join("");
+    /* 通常時は数値ラベルを出さない。数はなぞったときと「表で見る」で読む */
     el.querySelector(".chart-svg").innerHTML =
-      `<svg width="${w}" height="${h}" role="img" aria-label="もらった・おくったの推移">${gridY}
-        <polyline class="line-recv" points="${pts(d.recv)}"/>
-        <polyline class="line-sent" points="${pts(d.sent)}"/>
+      `<svg width="${w}" height="${h}" role="img" aria-label="もらった・おくったの推移（${PERIOD_LABEL[period]}・${pointName(d, 0)}から${pointName(d, n - 1)}まで）。数は下の「表で見る」で読めます">${gridY}
+        ${seriesSVG}
         ${labels}</svg>`;
     geo = { d, n, w, x };
     el.querySelector(".chart-inner").style.width = w + "px";
     el.querySelector(".chart-scroll").scrollLeft = w;   // 最新側へ
+
+    /* 集計中の注記（A-07）。事実でない下落を、見た目だけでなく言葉でも打ち消す */
+    const note = el.querySelector("[data-note]");
+    note.textContent = partial
+      ? `いちばん右の ${pointName(d, n - 1)} は集計中です。月の途中までの数なので、これから増えます（破線と白丸の区間）。`
+      : "";
+    note.hidden = !partial;
+
+    renderAltTable(d, n);
+    refreshScrollRegions();
   }
+
+  /* ---- 表で見る（A-04）--------------------------------------------------
+     チャートと同じ数を、同じ並び・同じ単位で出す。列は「時点／もらった／
+     おくった」の3つだけにして、順位付けや合計は出さない（原則6） */
+  function renderAltTable(d, n) {
+    const wrap = el.querySelector("[data-tbl]");
+    const rows = [];
+    for (let i = n - 1; i >= 0; i--) {   // 新しいほうから。チャートの右端＝表の1行目
+      rows.push(`<tr>
+        <th scope="row"><span class="pt-name">${pointName(d, i)}</span>${isPartial(d, i) ? '<span class="cell-partial">集計中</span>' : ""}</th>
+        <td>${d.recv[i]}<small>通</small></td>
+        <td>${d.sent[i]}<small>通</small></td></tr>`);
+    }
+    wrap.innerHTML = `<table class="tbl chart-table">
+      <caption>ありがとうの推移（${PERIOD_LABEL[period]}）。新しい順に並べています</caption>
+      <thead><tr><th scope="col">時点</th><th scope="col">もらった</th><th scope="col">おくった</th></tr></thead>
+      <tbody>${rows.join("")}</tbody></table>`;
+  }
+  const altBtn = el.querySelector("[data-alt]");
+  altBtn.addEventListener("click", () => {
+    const wrap = el.querySelector("[data-tbl]");
+    const open = wrap.hidden;
+    wrap.hidden = !open;
+    altBtn.setAttribute("aria-expanded", String(open));
+    altBtn.textContent = open ? "表を閉じる" : "表で見る";
+    refreshScrollRegions();
+  });
+
   const inner = el.querySelector(".chart-inner");
   const cross = el.querySelector(".cross-line");
   const tip = el.querySelector(".chart-tip");
-  inner.addEventListener("mousemove", e => {
+  const hideTip = () => { cross.style.display = "none"; tip.style.display = "none"; };
+  /* 指・ペン・マウスをまとめて受ける（A-04）。指の場合は触れているあいだだけ
+     pointermove が届くので、押した瞬間の pointerdown も同じ処理に通す */
+  const scrub = e => {
     if (!geo) return;
     const rect = inner.getBoundingClientRect();
     const mx = e.clientX - rect.left;
@@ -2868,12 +3105,21 @@ function chartWidget(mount, shape, defaultPeriod = "1y") {
     const cx = geo.x(best);
     cross.style.display = "block"; cross.style.left = cx + "px";
     tip.style.display = "block";
-    tip.innerHTML = `${geo.d.labels[best]}<br><span class="tip-recv">もらった <b>${geo.d.recv[best]}</b></span>　<span class="tip-sent">おくった <b>${geo.d.sent[best]}</b></span>`;
+    tip.innerHTML = `${pointName(geo.d, best)}${isPartial(geo.d, best) ? "（集計中）" : ""}<br><span class="tip-recv">もらった <b>${geo.d.recv[best]}</b></span>　<span class="tip-sent">おくった <b>${geo.d.sent[best]}</b></span>`;
     const tw = tip.offsetWidth;
     tip.style.left = Math.min(Math.max(cx - tw / 2, 4), geo.w - tw - 4) + "px";
     tip.style.top = "14px";
-  });
-  inner.addEventListener("mouseleave", () => { cross.style.display = "none"; tip.style.display = "none"; });
+  };
+  inner.addEventListener("pointermove", scrub);
+  inner.addEventListener("pointerdown", scrub);
+  /* 指のときは消さない。指を離すと必ず pointerleave が来るので、そこで消すと
+     数が一瞬だけ出て消える（＝読めない）。指の場合はチャートの外を触るまで
+     出したままにする。クロスヘアもツールチップもチャートと一緒にスクロール
+     するので、置いたままでもズレない */
+  const leave = e => { if (e.pointerType !== "touch") hideTip(); };
+  inner.addEventListener("pointerleave", leave);
+  inner.addEventListener("pointercancel", leave);
+  document.addEventListener("pointerdown", e => { if (!inner.contains(e.target)) hideTip(); });
   draw();
   /* 非表示のタブ内で描くと幅が測れないため、表示された時点で描き直す */
   let lastW = el.querySelector(".chart-scroll").clientWidth;
@@ -2942,7 +3188,9 @@ function renderShapeInto(el, S, allowJump) {
       </div>
       <div class="panel">
         <h2>ありがとうの推移</h2>
-        <div class="panel-sub">チャートにマウスをのせると、その時点の数が見られます</div>
+        <!-- マウス前提の書き方をやめる（A-04）。指でなぞっても数は出るし、
+             数だけを読みたいときは下の「表で見る」で表にできる -->
+        <div class="panel-sub">チャートをなぞると、その時点の数が見られます。数をまとめて読みたいときは「表で見る」を押してください</div>
         <div id="${uid}"></div>
       </div>
     </div>
@@ -3070,10 +3318,43 @@ function setRole(role, quiet) {
 /* =========================================================================
    10. 上司：メンバー一覧（S06）
    ========================================================================= */
+/* 並び替えは 未ソート → 降順（多い順）→ 昇順（少ない順）→ 未ソート の3状態を
+   まわる（A-05）。3つめの「未ソート」に戻れないと、一度並べ替えたあと元の
+   並び（チームの名簿順）に戻す手段が画面から無くなる。
+   sortDir: -1 = 降順、1 = 昇順、0 = 未ソート */
 let sortKey = null, sortDir = -1;
 function setSort(key) {
-  if (sortKey === key) sortDir *= -1; else { sortKey = key; sortDir = -1; }
+  if (sortKey !== key) { sortKey = key; sortDir = -1; }
+  else if (sortDir === -1) sortDir = 1;
+  else { sortKey = null; sortDir = -1; }
   renderMembers();
+}
+/* 並び順の見せ方（A-05）。3つの状態を、矢印・aria-sort・言葉の3つで示す。
+   矢印だけだと読み上げに届かず、aria-sort だけだと目で見ている人が
+   「押すと次はどうなるのか」を分からないまま押すことになる */
+const SORT_NAME = { recv: "もらった", sent: "おくった" };
+function paintSortState() {
+  const state = k => sortKey !== k ? "none" : (sortDir < 0 ? "descending" : "ascending");
+  const mark = { none: "⇅", descending: "▼", ascending: "▲" };
+  const next = { none: "多い順に並べ替えます", descending: "少ない順に並べ替えます", ascending: "並べ替えをやめて名簿の順に戻します" };
+  for (const k of ["recv", "sent"]) {
+    const s = state(k);
+    const th = document.querySelector(`.tbl th.sortable[data-sort="${k}"]`);
+    if (th) th.setAttribute("aria-sort", s);
+    const span = $(k === "recv" ? "sortRecv" : "sortSent");
+    if (span) {
+      span.textContent = mark[s];
+      span.parentElement.setAttribute("aria-label", `${SORT_NAME[k]}：${
+        s === "none" ? "並べ替えていません" : s === "descending" ? "多い順に並べています" : "少ない順に並べています"}。押すと${next[s]}`);
+    }
+  }
+  const line = $("sortState");
+  if (!line) return;
+  const t = sortKey === null
+    ? "並び順：メンバーの名簿のとおり（並べ替えていません）"
+    : `並び順：${SORT_NAME[sortKey]}が${sortDir < 0 ? "多い" : "少ない"}順`;
+  /* 同じ文言を入れ直すと、読み上げが同じことを繰り返す。変わったときだけ書く */
+  if (line.textContent !== t) line.textContent = t;
 }
 function periodSum(shape, months) {
   return {
@@ -3093,16 +3374,29 @@ function sparkline(shape, w = 130, h = 34) {
   const n = hist.recv.length;
   const x = i => 3 + i * (w - 6) / (n - 1);
   const y = v => h - 4 - v / max * (h - 10);
-  const pts = arr => arr.map((v, i) => `${x(i)},${y(v)}`).join(" ");
+  const pts = (arr, from, to) => {
+    const out = [];
+    for (let i = from; i <= to; i++) out.push(`${x(i)},${y(arr[i])}`);
+    return out.join(" ");
+  };
+  /* 推移チャートと同じ扱いにする（A-07）。この小さな線でも最後の点は当月＝
+     集計途中で、実線でつなぐと6人ぶんの線がそろって落ちて見えていた。
+     上司が「チーム全体が落ちている」と読み違えるのを防ぐため、
+     ここでも最後のひと区切りだけ破線にする */
+  const partial = !!hist.partialLast && n >= 2;
+  const solidTo = partial ? n - 2 : n - 1;
+  const line = (k, arr) => `<polyline class="line-${k}" style="stroke-width:2" points="${pts(arr, 0, solidTo)}"/>`
+    + (partial ? `<polyline class="line-${k} line-partial" style="stroke-width:2" points="${pts(arr, n - 2, n - 1)}"/>` : "");
   return `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true">
-    <polyline class="line-recv" style="stroke-width:2" points="${pts(hist.recv)}"/>
-    <polyline class="line-sent" style="stroke-width:2" points="${pts(hist.sent)}"/></svg>`;
+    ${line("recv", hist.recv)}${line("sent", hist.sent)}</svg>`;
 }
 function renderMembers() {
   /* 読み込めていないときは表の代わりに状態を描く（イシュー#12）。
      数の基準の注記も消す。数が出ていないのに「数字は直近1か月の…」だけ
      残ると、読めない数について説明していることになる */
-  if (screenState($("memberRows"), "rows", renderMembers)) { $("teamBasis").textContent = ""; return; }
+  if (screenState($("memberRows"), "rows", renderMembers)) {
+    $("teamBasis").textContent = ""; $("sortState").textContent = ""; return;
+  }
   const months = parseInt($("teamPeriod").value, 10);
   const q = $("teamSearch").value.trim();
   const alertOnly = $("alertOnly").checked;
@@ -3110,11 +3404,13 @@ function renderMembers() {
     .filter(x => (!q || x.m.name.includes(q)) && (!alertOnly || x.m.alert));
   if (sortKey === "recv") rows.sort((a, b) => (a.r - b.r) * sortDir);
   if (sortKey === "sent") rows.sort((a, b) => (a.s - b.s) * sortDir);
-  $("sortRecv").textContent = sortKey === "recv" ? (sortDir < 0 ? "▼" : "▲") : "";
-  $("sortSent").textContent = sortKey === "sent" ? (sortDir < 0 ? "▼" : "▲") : "";
-  /* 何の数か・どのものさしかを書く（A-47）。スパークラインは行ごとに縦の目盛が違う */
+  paintSortState();
+  /* 何の数か・どのものさしかを書く（A-47）。スパークラインは行ごとに縦の目盛が違う。
+     いちばん新しい月がまだ途中だということも書く（A-07）。書かないと、
+     全員の推移がそろって落ちて見え、チーム全体が減っていると読まれてしまう */
   $("teamBasis").textContent =
     `数字は${teamPeriodLabel()}（${SERIES_END.y}年${SERIES_END.m}月まで）に届いた／おくった通数です。`
+    + `${SERIES_END.m}月は集計中で、月の途中までの数が入っています（推移の右端の破線の区間）。`
     + "推移は直近6か月の形で、縦の目盛は行ごとに違います（行の中での増減を見るためのもので、行どうしの高さは比べられません）。";
   $("memberRows").innerHTML = rows.map(x => `
     <tr class="clickable" tabindex="0" data-mi="${x.i}">
@@ -3368,7 +3664,7 @@ function showAdmin(tab) {
       <div class="panel">
         <h2>チーム／メンバー管理</h2>
         <div class="panel-sub">所属と上司の割当を変更できます。個人のアルバムの中身は、この画面からは見られません</div>
-        <div class="table-scroll">
+        <div class="table-scroll" data-scroll-region="メンバー管理の表">
           <table class="tbl wide">
             <thead><tr><th>メンバー</th><th>所属チーム</th><th>直属の上司</th><th>権限</th></tr></thead>
             <tbody>
@@ -3401,7 +3697,7 @@ function showAdmin(tab) {
       <div class="panel">
         <h2>監査ログ</h2>
         <div class="panel-sub">上司・管理者によるアルバム閲覧、レポート閲覧、書き出し、設定変更の記録です（保持期間1年）</div>
-        <div class="table-scroll">
+        <div class="table-scroll" data-scroll-region="監査ログの表">
           <table class="tbl wide">
             <thead><tr><th>日時</th><th>操作した人</th><th>操作</th><th>対象</th></tr></thead>
             <tbody>${ADMIN.audit.map(a => `
@@ -3560,8 +3856,11 @@ $("btnYear").addEventListener("click", openAnnualDialog);
 $("teamPeriod").addEventListener("change", renderMembers);
 $("teamSearch").addEventListener("input", renderMembers);
 $("alertOnly").addEventListener("change", renderMembers);
-document.querySelectorAll(".tbl th.sortable").forEach(th =>
-  th.addEventListener("click", () => setSort(th.dataset.sort)));
+/* 並び替えは th ではなく中のボタンに付ける。ボタンなら Tab で止まり、
+   Enter / Space でも押せる（A-05） */
+document.querySelectorAll(".tbl .th-sort").forEach(b =>
+  b.addEventListener("click", () => setSort(b.dataset.sort)));
+paintSortState();
 $("backToTeam").addEventListener("click", () => {
   hideAllViews(); $("viewTeam").classList.remove("hidden");
 });
