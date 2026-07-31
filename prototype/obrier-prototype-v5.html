@@ -3123,7 +3123,15 @@ function popModalFocus(entry) {
      カードを削除して閉じた場合は戻り先が無いので、そのまま何もしない */
   const tryFocus = (n = 0) => {
     if (!el.isConnected) return;
-    if (n < 45 && (el.offsetParent === null || getComputedStyle(el).visibility === "hidden"))
+    /* 幕がまだ残っている間は背景に inert が付いたままで、
+       その中の要素に focus() を呼んでも何も起きない（黙って無視される）。
+       閉じる処理は「積みから外す → 器を取り除く」の順なので、
+       ここへ来た時点ではまだ inert が外れていない。外れるまで待つ。
+       これを見ていなかったため、CSV・年間アルバム・節目一覧・
+       動きを減らす設定での拡大詳細で、焦点が body に落ちていた */
+    if (n < 45 && (el.offsetParent === null
+        || getComputedStyle(el).visibility === "hidden"
+        || el.closest("[inert]")))
       return requestAnimationFrame(() => tryFocus(n + 1));
     el.focus({ preventScroll: true });
   };
