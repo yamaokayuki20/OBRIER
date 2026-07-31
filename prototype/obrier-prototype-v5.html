@@ -130,7 +130,7 @@
   .diag { position: fixed; right: 16px; bottom: 16px; z-index: 90; width: min(360px, calc(100vw - 32px));
     background: #fff; border: 1px solid var(--panel-line); border-radius: 14px; box-shadow: 0 18px 40px rgba(20,26,40,.24);
     padding: 16px 18px; font-size: var(--fs-ui); line-height: 1.8; color: var(--navy); }
-  .diag h4 { font-size: var(--fs-ui); margin-bottom: 6px; }
+  .diag h2 { font-size: var(--fs-ui); margin-bottom: 6px; }
   .diag table { width: 100%; margin: 8px 0; font-variant-numeric: tabular-nums; }
   .diag td { padding: 2px 0; font-size: var(--fs-cap); }
   .diag td:last-child { text-align: right; font-weight: 700; }
@@ -585,7 +585,7 @@
   .dlg-actions { display: flex; gap: 10px; justify-content: flex-end; padding: 0 22px 22px; flex-wrap: wrap; }
   .book { background: var(--paper); border: 1px solid rgba(61,50,41,.12); border-radius: 10px; padding: 20px 22px; }
   .book-cover { text-align: center; padding: 16px 0 20px; border-bottom: 1px dashed rgba(61,50,41,.2); }
-  .book-cover h4 { font-size: var(--fs-head); letter-spacing: .16em; color: var(--ink); font-weight: 400; }
+  .book-title { font-size: var(--fs-head); letter-spacing: .16em; color: var(--ink); font-weight: 400; }
   .book-cover p { font-size: var(--fs-cap); color: var(--ink-soft); margin-top: 8px; letter-spacing: .1em; }
   .book-months { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 16px; }
   @media (max-width: 520px) { .book-months { grid-template-columns: repeat(2, 1fr); } }
@@ -945,9 +945,155 @@
   @media (max-width: 640px) {
     .toolbar .check { padding-top: 0; padding-bottom: 0; min-height: 44px; }
   }
+
+  /* ---- 残件（イシュー#14） -----------------------------------------------
+     UI/UX監査に残っていた Major / Minor をまとめて片づける。
+     A-13 暗幕／A-15 背景のスクロール／A-16 主要アクションの位置／
+     A-22 権限変更の確認／A-23 監査ログの絞り込み／A-28 半透明のヘッダー／
+     A-30 見出しの階層／A-31 ラベル／A-38 スキップリンク／A-42 完了の文言。
+     既存の値を変えているのはヘッダーの地色・見出しの寸法・スマホのヘッダー余白の
+     3つだけで、それ以外はここに新しく足している。
+     ------------------------------------------------------------------------ */
+
+  /* ---- A-38 本文へスキップ ----
+     ふだんは画面の外に置く。width:1px のような潰し方はしない
+     ——潰すと、焦点が当たったときにも押せる大きさに戻せているか分からなくなるうえ、
+     当たり判定の基準（スマホ44px）を機械で確かめられない。
+     位置だけを画面の外へ動かし、大きさは最初から本物のまま持たせる */
+  .skip-link {
+    position: absolute; top: 8px; left: -9999px; z-index: 100;
+    display: inline-flex; align-items: center; min-height: 44px; padding: 10px 18px;
+    background: var(--navy); color: #fff; border-radius: 0 0 10px 0;
+    font-size: var(--fs-ui); font-weight: 700; text-decoration: none;
+  }
+  .skip-link:focus { left: 0; outline: 3px solid var(--accent-deep); outline-offset: 2px; }
+  #mainContent:focus { outline: none; }
+
+  /* ---- A-28 ヘッダーが半透明で、下を通る本文と重なって両方とも読めない ----
+     rgba(255,255,255,.82) だったため、スクロールでヘッダーの裏を通る
+     月の見出し・カードの帯・アバターがタブの文字と重なっていた。
+     backdrop-filter でぼかす手もあるが、ぼかしは毎コマ背景を読み直すので
+     スクロール中ずっと描き直しが走る。ここは素直に不透明にする。
+     境界は 1px の線（既存）に、ごく薄い影を添えて浮きを示す */
+  header { background: var(--bg); box-shadow: 0 2px 6px rgba(44, 51, 69, .06); }
+
+  /* ---- A-15 モーダルを開いている間、背景を動かさない ----
+     overflow を切るとスクロールバーが消え、そのぶん（PCで15px）中身が右へ広がる。
+     消える幅はそのつどJSが測って --sbw に入れるので、同じ幅を余白で埋め合わせる。
+     こうすると本文の折り返しが1文字も変わらない。
+     スクロールバーを重ねて描くブラウザ（スマホなど）では --sbw が 0px になり、
+     余白は足されない——だから常時 scrollbar-gutter を確保する手は採らない
+     （あれは幅の狭い画面でも15px取られ、本文の行数が増えてしまう）。
+     幕（.overlay）も同じぶん右を詰めて、開く前後で中央の位置を変えない
+     ——ここがずれると、カードが元の位置へ戻る計算が閉じ際に狂う */
+  html.modal-open { overflow: hidden; padding-right: var(--sbw, 0px); }
+  html.modal-open .overlay { right: var(--sbw, 0px); }
+
+  /* ---- A-13 一般ダイアログにも暗幕 ----
+     .overlay-bg は既に定義済み（拡大詳細と同じ rgba(20,26,40,.52)）。
+     ダイアログ側では中身より下に敷きたいので、重なりの順だけ決める */
+  .overlay > .overlay-bg { z-index: 0; }
+  .overlay > .sheet { position: relative; z-index: 1; }
+
+  /* ---- A-16 1on1準備メモの主要アクションが画面の外にある ----
+     1280×900 で開くと「1on1メモを書く」「PDFで書き出す」が画面外にあり、
+     スクロールできることの示唆も無かった。ダイアログの下端に貼り付ける。
+     .sheet 自身がスクロールの器なので、その底に sticky で留まる */
+  .sheet .dlg-actions {
+    position: sticky; bottom: 0; z-index: 2;
+    background: #fff; border-top: 1px solid var(--navy-line);
+    padding-top: 14px; margin-top: 4px;
+    border-radius: 0 0 22px 22px;
+  }
+  /* 下に続きがあることを、アクションの上端のぼかしでも示す */
+  .sheet .dlg-actions::before {
+    content: ""; position: absolute; left: 0; right: 0; bottom: 100%; height: 20px;
+    background: linear-gradient(rgba(255,255,255,0), #fff); pointer-events: none;
+  }
+
+  /* ---- A-30 見出しの階層を、意味と見た目の両方で成り立たせる ----
+     h1 が16px（本文と同寸・3.92:1の薄いグレー）で、見出しに見えていた
+     .lead-line は22px の div だった。目に見える順と、支援技術に伝わる順が逆。
+     h1 20px（スマホ19px）＞ h2 17.5px ＞ h3 13.5〜16px と、
+     大きさと太さだけで階層を作る（薄い色では作らない）。
+     基本設計2.3.1で定義済みの --fs-head / --fs-lead を、ここで初めて使う */
+  .hero h1 { font-size: var(--fs-head); font-weight: 800; color: var(--stage-ink); letter-spacing: .04em; }
+  .lead-line { font-size: var(--fs-lead); }
+  .panel h2 { font-size: var(--fs-lead); }
+  .state-box h3 { font-size: var(--fs-body); }
+  /* ダイアログ・拡大詳細の題も見出しにする（中の ①〜⑤ が h3 なので、その親が要る） */
+  .sheet-head h2 { font-size: var(--fs-body); font-weight: 700; letter-spacing: inherit; }
+
+  /* ---- A-31 ラベルのない入力をなくす ----
+     .vh-label … 見えるラベルは select の中の接頭辞（「場面：」「並び順：」）が
+     受け持つので、こちらは同じ語を読み上げ名として渡すためだけに置く。
+     大きさを潰すのは、押す対象ではないラベルに限る（操作要素には使わない）。
+     .field … 接頭辞を置けない入力（検索欄・日付）には、見えるラベルを左に添える */
+  .vh-label {
+    position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+    overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
+  }
+  .field { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+  .field > label { font-size: var(--fs-cap); color: var(--stage-ink-soft); white-space: nowrap; }
+  .field > .search-input { min-width: 0; }
+  @media (max-width: 640px) {
+    .field { flex: 1 1 100%; }
+    .field > .search-input { flex: 1; }
+  }
+
+  /* ---- A-23 監査ログの絞り込みとページ送り ---- */
+  .audit-filter { margin: 4px 0 12px; }
+  .audit-filter input[type="date"] { width: auto; min-width: 150px; }
+  .au-pager { justify-content: center; margin-top: 12px; }
+  .au-pager .mini-note { font-variant-numeric: tabular-nums; }
+
+  /* ---- 節目の帯：背後の本文が透けて見えないようにする ----
+     帯そのものの地色（--paper）は元から不透明だが、幅が 620px までの
+     「浮いた紙」なので、その下端で本文が半分だけ覗き、文字が途中で切れて
+     見えていた（「あなたに届いたありがとう」「533」に重なる）。
+     直し方は、帯の置き場（.ms-host）ごと不透明の帯にして、画面の端から端まで
+     覆うこと。ヘッダーの直下に貼り付き、下の本文はきれいに隠れる。
+     出入りは transform だけで動かす（opacity で薄くしない）。
+     引っ込むときはヘッダー（z-index 30）の裏へ滑り込んで消える */
+  .ms-host {
+    background: var(--bg);
+    border-bottom: 1px solid color-mix(in srgb, var(--stage-ink) 10%, transparent);
+    box-shadow: 0 6px 14px rgba(44, 51, 69, .07);
+    padding: 10px 20px;
+    transform: translateY(-101%);
+    transition: transform .34s cubic-bezier(.2,.9,.3,1);
+  }
+  .ms-host.is-in { transform: none; }
+  /* 帯のすぐ下の1行が、帯の下端で真横に切られると「文字が透けている」ように見える。
+     地色から透明へのぼかしを24pxだけ足して、切るのではなく消えていく形にする。
+     帯が上にあることが、これで一目で分かる */
+  .ms-host::after {
+    content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 24px;
+    background: linear-gradient(var(--bg), color-mix(in srgb, var(--bg) 0%, transparent));
+    pointer-events: none;
+  }
+  /* 帯が1本も出ていないときは、置き場そのものを消す（空の白帯を残さない） */
+  .ms-host:empty { display: none; }
+  /* 置き場のほうを動かすので、中の紙は動かさない。影も置き場が持つ */
+  .ms-host .ms { transform: none; opacity: 1; transition: none; box-shadow: none; }
+  @media (prefers-reduced-motion: reduce) { .ms-host { transition: none; } }
+  @media (max-width: 640px) { .ms-host { padding: 8px 13px; } }
+
+  /* ---- スマホのヘッダーを詰める（A-28 の「高さを抑える」ぶん） ----
+     行数は減らせない。1段目（ロゴ・ロール切替）と2段目（画面のタブ3つ）は
+     どちらも当たり判定44pxの帯で、390px幅に横並びでは入らない。
+     減らせるのは余白だけなので、そこだけを詰める（118px → 110px） */
+  @media (max-width: 640px) {
+    .bar { padding: 8px 13px; gap: 6px 10px; }
+  }
 </style>
 </head>
 <body>
+
+<!-- 本文へスキップ（A-38）。ふだんは画面の外に置き、Tab で焦点が当たったときだけ現れる。
+     ここが無いと、キーボードだけの人はどの画面でも毎回ヘッダー（ロゴ・タブ3つ・
+     ロール切替3つ・自己診断）を通り抜けないと本文へ入れなかった -->
+<a class="skip-link" href="#mainContent">本文へスキップ</a>
 
 <header>
   <div class="bar">
@@ -988,7 +1134,7 @@
   </div>
 </header>
 
-<main>
+<main id="mainContent" tabindex="-1">
 
 <!-- ============ S01 本人：アルバム ============ -->
 <section id="viewAlbum">
@@ -1004,6 +1150,11 @@
        過去の節目はツールバーの「これまでの節目」から静かに見に行ける。 -->
   <div class="ms-wrap ms-host" id="msWrap" role="status" aria-live="polite"></div>
   <div class="toolbar">
+    <!-- 絞り込み・並び替えの入力には必ず label を紐づける（A-31）。
+         見えているラベルは select の中の「場面：すべて」「並び順：新しい順」で、
+         label はそれと同じ語を読み上げ名として渡す。画面の見た目は変えない
+         （見えるラベルを外に出すと、幅が増えてスマホでツールバーが1行増える） -->
+    <label class="vh-label" for="tagFilter">場面</label>
     <select class="select" id="tagFilter"><option value="">場面：すべて</option></select>
     <label class="check"><input type="checkbox" id="favFilter"> お気に入りのみ</label>
     <!-- 絞り込みの状態は select とチェックが持つ。ここは解除という「動作」だけ（A-41） -->
@@ -1018,7 +1169,8 @@
     <!-- 「新しい順」は以前ただの div で、押せそうに見えて押せなかった（A-40）。
          押せない見た目に落とすのではなく、期待どおり押せるようにした。
          並び替えるのは時系列だけで、人どうしの順位づけではないため原則6に反しない。 -->
-    <select class="select sort-select" id="albumSort" aria-label="カードの並び順">
+    <label class="vh-label" for="albumSort">並び順</label>
+    <select class="select sort-select" id="albumSort">
       <option value="new">並び順：新しい順</option>
       <option value="old">並び順：古い順</option>
     </select>
@@ -1030,7 +1182,7 @@
 <section id="viewShape" class="hidden">
   <div class="hero">
     <h1>あなたのカタチ</h1>
-    <div class="lead-line">もらったありがとうから見えてきた、あなたの得意</div>
+    <h2 class="lead-line">もらったありがとうから見えてきた、あなたの得意</h2>
   </div>
   <div class="hero-note" id="shapeLead"></div>
   <div id="myShape"></div>
@@ -1050,16 +1202,20 @@
 <section id="viewTeam" class="hidden">
   <div class="hero">
     <h1>チームのありがとう ― 企画部 第2チーム</h1>
-    <div class="lead-line">メンバーのようす</div>
+    <h2 class="lead-line">メンバーのようす</h2>
   </div>
   <div class="hero-note">行を押すと、メンバーの詳細と1on1の準備メモを見られます。順位はつけていません。</div>
   <div class="toolbar">
+    <label class="vh-label" for="teamPeriod">期間</label>
     <select class="select" id="teamPeriod">
       <option value="1">期間：1か月</option>
       <option value="3">期間：3か月</option>
       <option value="12">期間：1年</option>
     </select>
-    <input class="search-input" id="teamSearch" placeholder="名前でしぼり込み">
+    <!-- 検索欄には接頭辞を置けないので、ラベルを見えるかたちで左に置く（A-31）。
+         プレースホルダは例示に回し、ラベルの代わりには使わない -->
+    <span class="field"><label for="teamSearch">名前で絞り込む</label>
+      <input class="search-input" id="teamSearch" placeholder="例：高橋"></span>
     <label class="check"><input type="checkbox" id="alertOnly"> 要確認のみ</label>
   </div>
   <div class="chart-legend"><span class="lg-recv">もらった</span><span class="lg-sent">おくった</span></div>
@@ -1072,14 +1228,14 @@
   <div class="table-scroll" data-scroll-region="メンバー一覧の表">
     <table class="tbl wide">
       <thead><tr>
-        <th>メンバー</th>
+        <th scope="col">メンバー</th>
         <!-- 見出しの中を button にして、キーボードでも並び替えられるようにする（A-05）。
              並び順は th の aria-sort と、ボタンの中の矢印の両方で示す -->
-        <th class="sortable" data-sort="recv" aria-sort="none">
+        <th scope="col" class="sortable" data-sort="recv" aria-sort="none">
           <button type="button" class="th-sort" data-sort="recv">もらった <span class="sort-mark" id="sortRecv" aria-hidden="true">⇅</span></button></th>
-        <th class="sortable" data-sort="sent" aria-sort="none">
+        <th scope="col" class="sortable" data-sort="sent" aria-sort="none">
           <button type="button" class="th-sort" data-sort="sent">おくった <span class="sort-mark" id="sortSent" aria-hidden="true">⇅</span></button></th>
-        <th>推移（直近6か月）</th>
+        <th scope="col">推移（直近6か月）</th>
       </tr></thead>
       <tbody id="memberRows"></tbody>
     </table>
@@ -1095,7 +1251,7 @@
     <div class="boss-label">上司メニュー ― このパネルは本人には表示されません</div>
     <div class="boss-grid">
       <div>
-        <h2 style="font-size: var(--fs-ui); margin-bottom:10px;">1on1の準備メモ（月次）</h2>
+        <h2 style="margin-bottom:10px;">1on1の準備メモ（月次）</h2>
         <div class="report-list" id="reportList"></div>
       </div>
       <div id="detailAlert"></div>
@@ -1115,7 +1271,7 @@
 <section id="viewAdmin" class="hidden">
   <div class="hero">
     <h1>管理者メニュー ― 株式会社アクメ</h1>
-    <div class="lead-line">オブリエの設定と記録</div>
+    <h2 class="lead-line">オブリエの設定と記録</h2>
   </div>
   <div class="hero-note">連携設定・チーム管理・監査ログ・検出品質を管理します。個人の「じぶんのメモ」は、管理者からも参照できません。</div>
   <div class="sub-tabs" id="adminTabs">
@@ -1289,6 +1445,7 @@ async function diagOnce(waitMs) {
   await new Promise(r => setTimeout(r, 280));
   document.querySelectorAll(".overlay").forEach(o => o.remove());
   document.querySelectorAll(".card").forEach(c => (c.style.visibility = ""));
+  syncScrollLock();   // 器を直に取り除いたので、背景のスクロールも自分で戻す（A-15）
   return { frames: frames.slice(1), landing: +landing.toFixed(1) };
 }
 
@@ -1338,7 +1495,7 @@ async function runSelfTest(btn) {
   el.className = "diag";
   el.innerHTML = `
     <button class="x" aria-label="閉じる">✕</button>
-    <h4>自己診断：詳細を閉じるときのなめらかさ</h4>
+    <h2>自己診断：詳細を閉じるときのなめらかさ</h2>
     <table>
       <tr><td><b>着地ずれ（これで判定します）</b></td><td><b>${landing} px　${landOk ? "○" : "×"}</b></td></tr>
       <tr><td>参考：直後に閉じる　取りこぼし</td><td>${A.avg} ms</td></tr>
@@ -1391,6 +1548,14 @@ function toast(msg, opts = {}) {
     t.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200 }).onfinish = () => t.remove();
   }, ms);
 }
+
+/* モックの断り書きは1か所にまとめる（A-48）。
+   これまでは「（モック）」を11箇所のトーストに手で書いていたので、
+   実装のときに消し忘れると、そのまま本番の文言として出てしまう。
+   実装では mockToast の呼び出しを toast に替えるだけで済む。
+   文言そのものは A-42 の型（「◯◯を〜ました」）で書き、断り書きだけをここで足す */
+const MOCK_NOTE = "（モック）";
+const mockToast = (msg, opts) => toast(msg + MOCK_NOTE, opts);
 
 /* =========================================================================
    0-b. 状態の表示（イシュー#12）
@@ -1799,6 +1964,15 @@ const MEMBER_CARDS = {
   mori: [{ who:"渡辺さん", ini:"渡", ch:"問い合わせ対応", src:"Teams", month:"2026年 7月", msg:"参考資料のまとめ、わかりやすかったです！", tag:"資料品質", time:"7/2 11:30" }],
 };
 Object.values(MEMBER_CARDS).forEach(list => list.forEach((d, i) => { d.id = 800 + i; }));
+/* 上司がどのメンバーのカードも開けるようになった（A-19）ので、手書きの5枚にも
+   「オブリエのメモ」とやり取りの流れを持たせる。無くても1件のふきだしで開けるが、
+   1on1の準備という目的では、その言葉がどこから出てきたのかが読めることが要る。
+   ここはデモ用の作りなので、機械で作るカードと同じ形（summary / story）で足すだけにする */
+Object.values(MEMBER_CARDS).forEach(list => list.forEach(d => {
+  const day = (d.time || "").split(" ")[0];
+  d.summary = `${d.ch} でのやり取りから、「${d.tag}」の場面として ${d.who} からの感謝を見つけました。`;
+  d.story = [{ who: d.who, ini: d.ini, time: day, thanks: true, text: d.msg }];
+}));
 
 /* =========================================================================
    1-b. 数の出どころを1つにする（イシュー#11：A-06／A-20／A-47）
@@ -2038,6 +2212,35 @@ const ADMIN = {
   ],
   quality: { judged: 3482, carded: 412, threshold: 0.80, reports: 7, dist: [62, 27, 11] },
 };
+
+/* 監査ログは1年ぶん保持する（基本設計7章）。手で書いた5件だけだと、
+   絞り込みもページ送りも「あってもなくても同じ」ものになってしまうので、
+   過去のぶんを機械で用意しておく（A-23）。実装ではAPIの応答に置き換わる。
+   ここで作るのは「誰が・いつ・誰の何を見たか」だけで、
+   じぶんのメモはログにも残さない（原則8） */
+{
+  const rnd = seeded(97);
+  const ops = ["アルバム閲覧", "カタチ閲覧", "おくった閲覧", "カード詳細閲覧",
+    "1on1準備メモ閲覧", "レポートPDF書き出し", "監査ログ書き出し", "メンバー設定の変更", "連携設定の変更"];
+  const actors = ["上司さん（上司）", "管理者さん（管理者）", "部長（上司）"];
+  const targets = ADMIN.people.map(p => p.name);
+  const pad = n => String(n).padStart(2, "0");
+  const past = [];
+  let t = new Date(2026, 6, 1, 9, 0);          // 2026-07-01 から古い方へさかのぼる
+  for (let i = 0; i < 180; i++) {
+    t = new Date(t.getTime() - (2 + Math.floor(rnd() * 8)) * 3600 * 1000);
+    const op = ops[Math.floor(rnd() * ops.length)];
+    const who = actors[Math.floor(rnd() * actors.length)];
+    const target = op === "連携設定の変更" ? (rnd() < .5 ? "Slack 解析対象チャンネル" : "Microsoft Teams 再連携")
+      : op === "監査ログ書き出し" ? "監査ログ（全期間）"
+      : targets[Math.floor(rnd() * targets.length)];
+    past.push({
+      t: `${t.getFullYear()}-${pad(t.getMonth() + 1)}-${pad(t.getDate())} ${pad(t.getHours())}:${pad(t.getMinutes())}`,
+      who, op, target,
+    });
+  }
+  ADMIN.audit.push(...past);
+}
 
 /* =========================================================================
    2. カードのモーション（card-simple-v1 の実装をそのまま移植）
@@ -2343,6 +2546,9 @@ function emptyStateHTML(kind, info = {}) {
    30枚ずつ描き、下に「いま何通目まで見えているか」と続きの導線を置く。
    ========================================================================= */
 const ALBUM_PAGE = 30;
+/* 入場の遅れの上限（A-25）。枚数がいくつでも、最後の1枚はこの時刻には動き出す。
+   バネが落ち着くまでを足しても、要件の「初期表示1.5秒以内」に収まる値にしてある */
+const ENTER_MAX = 420;
 
 /** .grid のすぐ下に置く、件数と「さらに読み込む」の置き場 */
 function albumFootOf(el) {
@@ -2390,7 +2596,13 @@ function appendAlbumPage(el, focusNew) {
     }
     const card = buildCard(d, opts, i);
     el.appendChild(card);
-    card._m.enter(60 + (i - from) * 40);
+    /* 入場の遅れは枚数に比例させない（A-25）。
+       以前は 60 + n*40 で、120枚だと最後の1枚が動き出すのが 4,820ms。
+       非機能要件「アルバム一覧の初期表示1.5秒以内」を、枚数が増えるほど大きく割っていた。
+       上限（ENTER_MAX）を決めておけば、1ページ30枚でも1000枚でも
+       最後の1枚が動き出すのは ENTER_MAX ミリ秒後で、動き終わりも1.5秒に収まる。
+       順に出る見え方（先頭から流れるように現れる）は、上限に届くまでの間そのまま残る */
+    card._m.enter(Math.min(60 + (i - from) * 40, ENTER_MAX));
     if (!first) first = card;
   }
   el._shown = to;
@@ -2479,7 +2691,17 @@ function clearAlbumFilter() {
 }
 function initTagFilter() {
   const tags = [...new Set(DATA.map(d => d.tag))];
-  $("tagFilter").innerHTML = '<option value="">場面：すべて</option>' + tags.map(t => `<option value="${t}">${t}</option>`).join("");
+  const keep = $("tagFilter").value;
+  /* 選択肢ひとつひとつに「場面：」を足すことも試したが、select の幅は
+     いちばん長い選択肢で決まるため、スマホでツールバーが1行増えて
+     カードがさらに下へ押し出された（実測 152px → 205px）。
+     見えるラベルは既定の「場面：すべて」が担い、読み上げ名は
+     .vh-label（HTML側）が渡す。絞り込み中は「絞り込みを解除」が現れ、
+     アルバムの下の件数にも「（場面：後輩サポート）」と出るので、
+     何で絞っているかは画面から消えない */
+  $("tagFilter").innerHTML = '<option value="">場面：すべて</option>'
+    + tags.map(t => `<option value="${t}">${t}</option>`).join("");
+  if (keep && tags.includes(keep)) $("tagFilter").value = keep;
 }
 function gotoAlbumWithTag(tag) {
   showPersonView("album");
@@ -2531,6 +2753,7 @@ let msTimer = null;
 function renderMilestones() {
   const host = $("msWrap");
   host.innerHTML = "";
+  host.classList.remove("is-in");
   clearTimeout(msTimer);
 
   /* 入口はいつでも押せるようにしておく（節目が1つも無い人には出さない） */
@@ -2544,21 +2767,25 @@ function renderMilestones() {
   el.className = "ms";
   el.innerHTML = msHTML(next) + '<button class="ms-x" aria-label="この知らせを閉じる">✕</button>';
   host.appendChild(el);
-  /* ヘッダーは画面幅で高さが変わるので、その下端に合わせて置く */
-  host.style.top = (document.querySelector("header").getBoundingClientRect().bottom + 10) + "px";
+  /* ヘッダーは画面幅で高さが変わるので、その下端にぴったり貼り付ける（イシュー#14）。
+     以前は 10px 浮かせていたので、帯の下端で本文が半分だけ覗いて、
+     文字が途中で切れたまま透けて見えていた。
+     いまは置き場（.ms-host）ごと画面幅の不透明な帯にして、下をきれいに隠す */
+  host.style.top = document.querySelector("header").getBoundingClientRect().bottom + "px";
 
   const retract = () => {
     clearTimeout(msTimer);
     msMarkSeen(next.id);
-    el.classList.remove("is-in");
+    host.classList.remove("is-in");
     if (REDUCED) return el.remove();
     setTimeout(() => el.remove(), 360);
   };
   el.querySelector(".ms-x").addEventListener("click", retract);
 
   /* 降りてきて、読み終わるくらいの間だけ居て、静かに引っ込む。
-     ただし読んでいる途中（触れている・焦点が中にある）なら引っ込めない */
-  requestAnimationFrame(() => el.classList.add("is-in"));
+     ただし読んでいる途中（触れている・焦点が中にある）なら引っ込めない。
+     動かすのは置き場のほう。ヘッダー（z-index 30）の裏へ滑り込んで消える */
+  requestAnimationFrame(() => host.classList.add("is-in"));
   const hold = () => { msTimer = setTimeout(retract, 5500); };
   hold();
   el.addEventListener("pointerenter", () => clearTimeout(msTimer));
@@ -2653,6 +2880,35 @@ const modalStack = [];
 /** その器の中で、いま実際に焦点を取れるもの（隠れているものは除く） */
 const focusablesIn = root => [...root.querySelectorAll(FOCUS_SEL)].filter(el => el.offsetParent !== null);
 
+/* ---- 背景のスクロールを止める（A-15） ---------------------------------
+   詳細やダイアログを開いたままホイールを回すと、実測で window.scrollY が
+   1388 → 1478 まで動き、背後のアルバムが流れていった。読んでいる面と
+   動く面が食い違うので、「開いているのに下が動く」という不整合になる。
+
+   止め方は `html { overflow: hidden }` にする。よくある
+   `body { position: fixed; top: -scrollY }` は使わない。あれは body を
+   流れから外すので、幅の計算がやり直しになってカードが組み直される。
+   カードが元の位置へ戻る計算（openFlight の delta）はその位置を実測しており、
+   1pxでも動けば着地の瞬間に跳ねる。overflow を切るだけならレイアウトは動かない。
+
+   ただし overflow を切るとスクロールバーが消え、そのぶん（PCで15px）
+   中身が右へ広がってしまう。消える幅をその場で測り、同じ幅の余白で
+   埋め合わせる（CSS側の --sbw）。スクロールバーを重ねて描くブラウザでは
+   0px になるので、狭い画面が痩せることもない。
+
+   入れ子（詳細の上に削除の確認）があるので、判断はDOMに幕が残っているかで行う。
+   閉じるときの裏返りは幕を消さずに380msかけて戻るので、その間も止めたままにする
+   ——途中で解くと幕の幅が変わり、戻っているカードが横へ飛ぶ。
+   ------------------------------------------------------------------------ */
+function syncScrollLock() {
+  while (modalStack.length && !modalStack[modalStack.length - 1].ov.isConnected) modalStack.pop();
+  const root = document.documentElement;
+  const on = !!document.querySelector(".overlay");
+  if (on === root.classList.contains("modal-open")) return;
+  if (on) root.style.setProperty("--sbw", (window.innerWidth - root.clientWidth) + "px");
+  root.classList.toggle("modal-open", on);
+}
+
 /** 開いた直後に呼ぶ。焦点を中へ移し、閉じ込めの対象として積む */
 function pushModalFocus(ov) {
   const panel = ov.querySelector('[role="dialog"]') || ov;
@@ -2662,6 +2918,7 @@ function pushModalFocus(ov) {
   modalStack.push(entry);
   // 最初の焦点は閉じるボタン。無ければ中の最初の操作要素、それも無ければ器そのもの
   (panel.querySelector(".sheet-close") || focusablesIn(panel)[0] || panel).focus({ preventScroll: true });
+  syncScrollLock();
   return entry;
 }
 
@@ -2670,6 +2927,7 @@ function popModalFocus(entry) {
   const i = modalStack.indexOf(entry);
   if (i < 0) return;
   modalStack.splice(i, 1);
+  syncScrollLock();
   const el = entry.prev;
   if (!el) return;
   /* 元のカードは裏返りが戻り切るまで visibility:hidden で置かれており、
@@ -2711,7 +2969,7 @@ document.addEventListener("keydown", e => {
    積み（modalStack）の先頭かどうかを見てから閉じる。
    自己診断はオーバーレイを直に取り除くので、外れた器は先に捨てる */
 function isTopModal(ov) {
-  while (modalStack.length && !modalStack[modalStack.length - 1].ov.isConnected) modalStack.pop();
+  syncScrollLock();
   return !modalStack.length || modalStack[modalStack.length - 1].ov === ov;
 }
 
@@ -2719,10 +2977,17 @@ function isTopModal(ov) {
 function openDialog({ title, sub, body, actions = [], cls = "" }) {
   const ov = document.createElement("div");
   ov.className = "overlay";
+  /* 暗幕（A-13）。これまで暗幕を持っていたのは拡大詳細だけで、CSV書き出し・
+     年間アルバム・STAR・削除確認・1on1準備メモ・監査ログCSVの6種は、
+     背後の画面がくっきり見えたまま浮いていた。どちらが手前かが読めず、
+     1on1準備メモでは背後のメンバー詳細が全部読める状態で重なっていた。
+     濃さ・出方は拡大詳細とそろえる（52%・200msのフェード）。
+     背景を押して閉じる当たり判定も、この幕が受け持つ */
   ov.innerHTML = `
+    <div class="overlay-bg"></div>
     <div class="sheet ${cls}" role="dialog" aria-modal="true" aria-label="${title}">
       <div class="sheet-head">
-        <div><b>${title}</b><small>${sub || ""}</small></div>
+        <div><h2>${title}</h2><small>${sub || ""}</small></div>
         <button class="sheet-close" aria-label="閉じる">✕</button>
       </div>
       <div class="dlg-body">${body}</div>
@@ -2731,10 +2996,13 @@ function openDialog({ title, sub, body, actions = [], cls = "" }) {
     </div>`;
   document.body.appendChild(ov);
   const sheet = ov.querySelector(".sheet");
-  if (!REDUCED) sheet.animate([{ opacity: 0, transform: "translateY(14px) scale(.98)" }, { opacity: 1, transform: "none" }],
-    { duration: 220, easing: "cubic-bezier(.2,.9,.3,1.1)" });
+  if (!REDUCED) {
+    sheet.animate([{ opacity: 0, transform: "translateY(14px) scale(.98)" }, { opacity: 1, transform: "none" }],
+      { duration: 220, easing: "cubic-bezier(.2,.9,.3,1.1)" });
+    ov.querySelector(".overlay-bg").animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, easing: "ease-out" });
+  }
   const focusEntry = pushModalFocus(ov);
-  const close = () => { document.removeEventListener("keydown", onEsc); popModalFocus(focusEntry); ov.remove(); };
+  const close = () => { document.removeEventListener("keydown", onEsc); popModalFocus(focusEntry); ov.remove(); syncScrollLock(); };
   const onEsc = e => { if (e.key === "Escape" && isTopModal(ov)) close(); };
   document.addEventListener("keydown", onEsc);
   ov.addEventListener("click", e => { if (e.target === ov || e.target.classList.contains("overlay-bg") || e.target.closest(".sheet-close")) close(); });
@@ -2774,20 +3042,33 @@ function openDialog({ title, sub, body, actions = [], cls = "" }) {
    A-14：何を消すのかが書かれていないと、開いたまま別のカードを消す事故が起きる。
    対象（送り主・日時・本文）をこの場に再掲し、疑問形のタイトルで確認する。
    取り消し（Undo）やアーカイブは、未決のため提案しない（decision-log 追加対応_v4 No.18） */
-function confirmDialog(title, message, okLabel, onOk, target) {
+function confirmDialog(title, message, okLabel, onOk, target, onCancel) {
   const targetHTML = target ? `<div class="confirm-target">
       <div class="ct-head">${esc(target.who)} ・ ${esc(target.time)}</div>
       <p class="ct-quote">「${esc(String(target.msg || "").replace(/<br>/g, " "))}」</p>
     </div>` : "";
-  openDialog({
+  let decided = false;
+  const dlg = openDialog({
     title, sub: "",
     cls: "narrow",
     body: targetHTML + `<p class="dlg-text">${message}</p>`,
     actions: [
       { label: "やめる" },
-      { label: okLabel, danger: true, run: onOk },
+      { label: okLabel, danger: true, run: () => { decided = true; onOk(); } },
     ],
   });
+  /* やめたときに元へ戻す必要がある呼び出し（A-22 の権限変更など）のための道。
+     「やめる」だけでなく、✕・Escape・背景を押して閉じたときも取り消しなので、
+     器がDOMから外れた時点で、決めていなければ取り消しとして扱う */
+  if (onCancel) {
+    const mo = new MutationObserver(() => {
+      if (dlg.ov.isConnected) return;
+      mo.disconnect();
+      if (!decided) onCancel();
+    });
+    mo.observe(document.body, { childList: true });
+  }
+  return dlg;
 }
 
 function openThread(d, fromCard, opts) {
@@ -2830,7 +3111,7 @@ function openThread(d, fromCard, opts) {
       <div class="f-back sheet" role="dialog" aria-modal="true" aria-label="${d.who}からの「ありがとう」の詳細">
       <div class="sheet-head">
         <div class="ava">${d.ini}</div>
-        <div><b>${d.who}</b><small>${d.ch}</small></div>
+        <div><h2>${d.who}</h2><small>${d.ch}</small></div>
         <span class="sheet-time">${d.time}</span>
         <button class="sheet-close" aria-label="閉じる">✕</button>
       </div>
@@ -2866,7 +3147,7 @@ function openThread(d, fromCard, opts) {
      「開く前にいた場所」を取り損ねて、閉じたときに戻れなくなる */
   const focusEntry = pushModalFocus(ov);
 
-  ov.querySelector("[data-open-src]").addEventListener("click", () => toast("元のメッセージを開きます（モック）"));
+  ov.querySelector("[data-open-src]").addEventListener("click", () => mockToast("元のメッセージを開きます"));
 
   const favBtn = ov.querySelector("[data-fav]");
   if (favBtn) favBtn.addEventListener("click", () => {
@@ -2879,7 +3160,7 @@ function openThread(d, fromCard, opts) {
        ★はお気に入り済みの目印のままで、押す操作は拡大詳細の中だけ（原則4）。 */
     syncFavSeal(fromCard, d);
     syncFavSeal(ov.querySelector(".f-front"), d);
-    toast(d.fav ? "お気に入りに登録しました" : "お気に入りを外しました");
+    toast(d.fav ? "このカードをお気に入りに登録しました" : "このカードのお気に入りを外しました");
   });
 
   /* ---- じぶんのメモ：自動保存（A-10） -----------------------------------
@@ -2946,7 +3227,7 @@ function openThread(d, fromCard, opts) {
         if (i >= 0) DATA.splice(i, 1);
         close();
         initTagFilter(); applyFilters();
-        toast("カードを削除しました", { alert: true });
+        toast("このカードを削除しました", { alert: true });
       },
       d);
   });
@@ -2961,7 +3242,7 @@ function openThread(d, fromCard, opts) {
         if (i >= 0) DATA.splice(i, 1);
         close();
         initTagFilter(); applyFilters();
-        toast("報告を受け取りました。このカードを外しました", { alert: true });
+        toast("このカードを、感謝ではないと報告しました", { alert: true });
       },
       d);
   });
@@ -3019,7 +3300,7 @@ function openFlight(ov, card) {
   const back  = ov.querySelector(".f-back");
   if (REDUCED || !card) {
     if (wrap) { wrap.style.transform = "none"; if (front) front.style.display = "none"; }
-    return { close: () => ov.remove() };
+    return { close: () => { ov.remove(); syncScrollLock(); } };
   }
 
   // 表はカードの実寸、裏は詳細の実寸。どちらも大きさを変えないので、
@@ -3091,7 +3372,7 @@ function openFlight(ov, card) {
        スクロールバーの幅は scrollbar-gutter で常に確保してあるので、触る必要がない */
     play(true).onfinish = () => {
       // 片付けは次のフレームに回す。最後のコマとDOMの破棄が重ならないようにする
-      requestAnimationFrame(() => { card.style.visibility = ""; ov.remove(); });
+      requestAnimationFrame(() => { card.style.visibility = ""; ov.remove(); syncScrollLock(); });
     };
     bg.animate([{ opacity: 1 }, { opacity: 0 }], { duration: FLIP_MS, easing: "ease-in", fill: "forwards" });
   };
@@ -3119,7 +3400,7 @@ ${esc(rows)}
     actions: [{ label: "閉じる" }, {
       label: "書き出す", primary: true, task: true, busy: "書き出しています…",
       failHead: "CSVを書き出せませんでした", failWhy: "書き出しの途中で通信が途切れたためです。",
-      run: () => toast(`${list.length}件を書き出しました（モック）`),
+      run: () => mockToast(`カードを${list.length}件、CSVに書き出しました`),
     }],
   });
 }
@@ -3143,7 +3424,7 @@ Result     ${esc(t2.quote)}</pre></div>`,
     actions: [{ label: "閉じる" }, {
       label: "書き出す", primary: true, task: true, busy: "書き出しています…",
       failHead: "実績シートを書き出せませんでした", failWhy: "書き出しの途中で通信が途切れたためです。",
-      run: () => toast("実績シートを書き出しました（モック）"),
+      run: () => mockToast("実績シートを書き出しました"),
     }],
   });
 }
@@ -3155,7 +3436,8 @@ function openAnnualDialog() {
     cls: "wide",
     body: `<div class="book">
         <div class="book-cover">
-          <h4>${ANNUAL.title}</h4>
+          <!-- PDFの表紙の見立て。画面の見出し階層には入れない（A-30） -->
+          <p class="book-title">${ANNUAL.title}</p>
           <p>${ANNUAL.sub}　／　全 ${total} 通</p>
         </div>
         <div class="book-months">
@@ -3167,7 +3449,7 @@ function openAnnualDialog() {
     actions: [{ label: "閉じる" }, {
       label: "PDFで書き出す", primary: true, task: true, busy: "PDFを作っています…", ms: 2400,
       failHead: "年間アルバムを書き出せませんでした", failWhy: "PDFを作っている途中で処理が止まったためです。",
-      run: () => toast("年間アルバムを書き出しました（モック）"),
+      run: () => mockToast("年間アルバムを書き出しました"),
     }],
   });
 }
@@ -3466,7 +3748,9 @@ function renderShapeInto(el, S, allowJump) {
       <h2>今月のカタチレポート</h2>
       <div class="panel-sub">カタチの変化と、その月を代表するエピソードをオブリエが言葉にしています</div>
       <div class="toolbar" style="margin-bottom:12px;">
-        <select class="select" id="${uid}_repsel">${rep.map(m => `<option value="${m}">${m}</option>`).join("")}</select>
+        <!-- 月の選択にもラベルを紐づける（A-31）。ここは幅に余裕があるので見えるラベルにする -->
+        <span class="field"><label for="${uid}_repsel">表示する月</label>
+          <select class="select" id="${uid}_repsel">${rep.map(m => `<option value="${m}">${m}</option>`).join("")}</select></span>
       </div>
       <div id="${uid}_rep"></div>
     </div>` : ""}
@@ -3680,8 +3964,10 @@ function renderMembers() {
    11. 上司：メンバー詳細（S07）／1on1準備メモ（S08）
    ========================================================================= */
 let currentMember = null;
+/* 上司が見るカード（A-19）。押して経緯を読めるが、じぶんのメモ・削除・
+   誤検出報告・お気に入りは持たない。じぶんのメモの欄には代わりに
+   「本人だけのものです。上司・管理者には表示されません」が出る（原則8） */
 const BOSS_OPTS = { clickable: true, memo: false, del: false, report: false, fav: false };
-const STATIC_OPTS = { clickable: false, memo: false, del: false, report: false, fav: false };
 
 function openMember(i) {
   const m = MEMBERS[i];
@@ -3703,14 +3989,21 @@ function openMember(i) {
   $("detailAlert").innerHTML = m.alert
     ? '<span class="alert-chip">最新レポートに、気にかけたいサインがあります</span><div class="mini-note" style="margin-top:8px;">受け取りまたはおくりが前月比50%以上減った月が2か月続いています。本人には通知していません。</div>'
     : '<div class="mini-note">気にかけたいサインは出ていません。</div>';
-  showMemberSub("album");
+  showMemberSub("album", true);
   hideAllViews();
   $("viewMember").classList.remove("hidden");
   window.scrollTo({ top: 0 });
   logAudit("アルバム閲覧", m.name);
 }
 
-function showMemberSub(name) {
+/* サブタブごとの、監査ログに残す操作名（A-46）。
+   これまで記録していたのはメンバー詳細を開いた瞬間だけで、そのあと
+   カタチ・おくったへ切り替えても何も残らなかった。監査ログのサンプルには
+   「カタチ閲覧」の行があるので、仕様としては最初から想定されている。
+   誰が・いつ・誰の何を見たかを、実際の操作と1対1で残す */
+const SUB_AUDIT = { album: "アルバム閲覧", shape: "カタチ閲覧", sent: "おくった閲覧" };
+
+function showMemberSub(name, quiet) {
   document.querySelectorAll("#memberSubTabs .sub-tab").forEach(t => t.classList.toggle("active", t.dataset.s === name));
   const m = currentMember, el = $("memberSub");
   /* アルバムの通数は、一覧・詳細ヘッダー・レポートと同じ推移データから作ってある。
@@ -3719,8 +4012,14 @@ function showMemberSub(name) {
   if (name === "album") {
     el.innerHTML = `<div class="mini-note">${ALBUM_PERIOD} に届いたぶんです。</div><div class="grid"></div>`;
     const g = el.querySelector(".grid");
-    if (m.key === "yuki") renderAlbumInto(g, DATA.filter(d => !d.isNew), BOSS_OPTS, albumInfo);
-    else renderAlbumInto(g, MEMBER_CARDS[m.key] || [], STATIC_OPTS, albumInfo);
+    /* どのメンバーのカードも、本人と同じように押して経緯を読めるようにする（A-19）。
+       要件F16・画面一覧S05 は拡大詳細を「本人／上司」と定めており、経緯が読めないと
+       1on1の準備という上司ビューの目的そのものが果たせなかった。
+       開けるのは BOSS_OPTS ＝ じぶんのメモ・削除・誤検出報告・お気に入りを持たない形で、
+       じぶんのメモの代わりに「本人だけのものです」と書かれた断りが出る（原則8）。
+       開いた記録は openThread の中で監査ログに残る */
+    renderAlbumInto(g, m.key === "yuki" ? DATA.filter(d => !d.isNew) : (MEMBER_CARDS[m.key] || []),
+      BOSS_OPTS, albumInfo);
   } else if (name === "shape") {
     el.innerHTML = "<div></div>";
     renderShapeInto(el.firstChild, m.shape, false);
@@ -3728,9 +4027,10 @@ function showMemberSub(name) {
     el.innerHTML = `<div class="mini-note">${ALBUM_PERIOD} におくったぶんです。</div><div class="grid"></div>`;
     const g = el.querySelector(".grid");
     renderAlbumInto(g, m.key === "yuki" ? SENT : (MEMBER_SENT[m.key] || []),
-      m.key === "yuki" ? BOSS_OPTS : STATIC_OPTS,
-      { empty: "member-sent" });
+      BOSS_OPTS, { empty: "member-sent" });
   }
+  /* 詳細を開いた1回目は openMember 側で記録しているので、ここでは二重に書かない */
+  if (!quiet && m) logAudit(SUB_AUDIT[name] || "アルバム閲覧", m.name);
 }
 
 function openReport(m, month) {
@@ -3770,11 +4070,11 @@ function openReport(m, month) {
         <div class="carry-box">${r.carry}</div>
       </div>`,
     actions: [
-      { label: "1on1メモを書く", run: () => toast("1on1メモを保存しました（モック）") },
+      { label: "1on1メモを書く", run: () => mockToast("1on1メモを保存しました") },
       {
         label: "PDFで書き出す", primary: true, task: true, busy: "PDFを作っています…", ms: 2400,
         failHead: "レポートを書き出せませんでした", failWhy: "PDFを作っている途中で処理が止まったためです。",
-        run: () => { logAudit("レポートPDF書き出し", `${m.name}・${month}`); toast("レポートを書き出しました（モック）"); },
+        run: () => { logAudit("レポートPDF書き出し", `${m.name}・${month}`); mockToast(`${m.name}の${month}のレポートを書き出しました`); },
       },
     ],
   });
@@ -3811,6 +4111,45 @@ const CONN_VIEW = {
     body: "連携トークンの有効期限が切れたためです。再連携すると、止まっていた期間のぶんもさかのぼって取り込みます。" },
 };
 
+/* チーム／メンバー管理の3つの列（A-22）。
+   何を変えると誰に何が見えるようになるのかを、確認の文にそのまま出す。
+   読み上げ用の名前（aria-label）も、ここの label から組む */
+const ADM_FIELDS = [
+  { key: "team", label: "所属チーム", opts: () => ADMIN.teams,
+    impact: (p, v) => `${v}の上司が、${p.name}のアルバムと月次レポートを閲覧できるようになります。もとのチームの上司からは見えなくなります。` },
+  { key: "boss", label: "直属の上司", opts: () => ADMIN.bosses,
+    impact: (p, v) => v === "―"
+      ? `${p.name}のアルバムと月次レポートを見られる上司がいなくなります。`
+      : `${v}は、${p.name}のアルバムと月次レポートを閲覧できるようになります。じぶんのメモは、この変更後も表示されません。` },
+  { key: "role", label: "権限", opts: () => ADMIN.roles,
+    impact: (p, v) => v === "管理者"
+      ? `${p.name}は、連携設定・メンバー管理・監査ログを操作できるようになります。ほかの人のじぶんのメモは、管理者からも参照できません。`
+      : v === "上司"
+        ? `${p.name}は、部下のアルバムと月次レポートを閲覧できるようになります。閲覧はすべて監査ログに残ります。`
+        : `${p.name}は、ほかの人のアルバムとレポートを閲覧できなくなります。` },
+];
+
+/* 監査ログの絞り込みとページ送り（A-23）。
+   1年ぶんの記録を、絞り込みもページも無しに上から流し見ることは実運用では無理。
+   条件は4つ（期間・操作した人・操作の種類・対象）、1ページ50件。
+   CSVの書き出しも、いま絞り込んでいる範囲に合わせる（A-08と同じ考え方） */
+const AUDIT_PAGE = 50;
+const auditFilter = { from: "", to: "", who: "", op: "", target: "", page: 0 };
+const auditRows = () => ADMIN.audit.filter(a =>
+  (!auditFilter.from || a.t.slice(0, 10) >= auditFilter.from)
+  && (!auditFilter.to || a.t.slice(0, 10) <= auditFilter.to)
+  && (!auditFilter.who || a.who === auditFilter.who)
+  && (!auditFilter.op || a.op === auditFilter.op)
+  && (!auditFilter.target || a.target.includes(auditFilter.target)));
+const auditNote = () => {
+  const on = [];
+  if (auditFilter.from || auditFilter.to) on.push(`期間：${auditFilter.from || "最初"} 〜 ${auditFilter.to || "最新"}`);
+  if (auditFilter.who) on.push(`操作した人：${auditFilter.who}`);
+  if (auditFilter.op) on.push(`操作：${auditFilter.op}`);
+  if (auditFilter.target) on.push(`対象：${auditFilter.target}`);
+  return on.join(" ／ ");
+};
+
 let fetchTimer = null;
 /** 過去ログの取り込みを進める（モック）。画面を離れても値は進める */
 function runFetchJob() {
@@ -3832,7 +4171,7 @@ function runFetchJob() {
     if (j.pct >= stopAt) {
       clearInterval(fetchTimer);
       j.state = MOCK.result === "fail" ? "fail" : "done";
-      if (j.state === "done") { j.note = `過去1年分・${nowStamp().slice(0, 10)}`; toast("過去ログの取り込みが終わりました"); }
+      if (j.state === "done") { j.note = `過去1年分・${nowStamp().slice(0, 10)}`; toast("過去ログを取り込みました"); }
       else toast("過去ログを取り込めませんでした", { alert: true });
       if (ROLE === "admin" && currentAdminTab === "conn") showAdmin("conn");
     }
@@ -3891,18 +4230,18 @@ function showAdmin(tab) {
         stop();
         if (MOCK.result === "fail") {
           note.innerHTML = `<div class="state-note is-fail" role="alert"><b>再連携できませんでした</b>${c.name} から応答がなかったためです。少し時間をおいて、もう一度お試しください。</div>`;
-          toast(`${c.name} を再連携できませんでした`, { alert: true });
+          toast(`${c.name}を再連携できませんでした`, { alert: true });
           return;
         }
         c.status = "ok";
         c.token = "有効（次回更新 2026-10-29）";
         logAudit("連携設定の変更", `${c.name} 再連携`);
-        toast(`${c.name} を再連携しました`);
+        toast(`${c.name}を再連携しました`);
         showAdmin("conn");
       }, 1600);
     }));
     el.querySelectorAll("[data-editch]").forEach(b => b.addEventListener("click", () =>
-      toast("解析対象チャンネルの編集（モック）")));
+      mockToast(`${ADMIN.conns[b.dataset.editch].name}の解析対象を編集します`)));
     el.querySelector("[data-refetch]").addEventListener("click", () => {
       ADMIN.job = { state: "running", pct: 0, note: ADMIN.job.note };
       showAdmin("conn");
@@ -3916,14 +4255,17 @@ function showAdmin(tab) {
         <div class="panel-sub">所属と上司の割当を変更できます。個人のアルバムの中身は、この画面からは見られません</div>
         <div class="table-scroll" data-scroll-region="メンバー管理の表">
           <table class="tbl wide">
-            <thead><tr><th>メンバー</th><th>所属チーム</th><th>直属の上司</th><th>権限</th></tr></thead>
+            <!-- 列の見出しであることを scope で示す（A-22）。
+                 これが無いと、読み上げで各セルがどの列のものか分からない -->
+            <thead><tr><th scope="col">メンバー</th><th scope="col">所属チーム</th><th scope="col">直属の上司</th><th scope="col">権限</th></tr></thead>
             <tbody>
               ${ADMIN.people.map((p, i) => `
               <tr>
                 <td><div class="mt-name"><div class="ava-s">${p.ini}</div>${p.name}</div></td>
-                <td><select class="adm-select" data-p="${i}" data-f="team">${ADMIN.teams.map(t => `<option ${t === p.team ? "selected" : ""}>${t}</option>`).join("")}</select></td>
-                <td><select class="adm-select" data-p="${i}" data-f="boss">${ADMIN.bosses.map(t => `<option ${t === p.boss ? "selected" : ""}>${t}</option>`).join("")}</select></td>
-                <td><select class="adm-select" data-p="${i}" data-f="role">${ADMIN.roles.map(t => `<option ${t === p.role ? "selected" : ""}>${t}</option>`).join("")}</select></td>
+                ${ADM_FIELDS.map(f => `
+                <td><select class="adm-select" data-p="${i}" data-f="${f.key}"
+                      aria-label="${p.name}の${f.label}">${
+                  f.opts().map(t => `<option ${t === p[f.key] ? "selected" : ""}>${t}</option>`).join("")}</select></td>`).join("")}
               </tr>`).join("")}
             </tbody>
           </table>
@@ -3934,37 +4276,118 @@ function showAdmin(tab) {
         </div>
         <div class="lock-note"><span>■</span><div>上司を割り当てると、その上司はチームメンバーのアルバムと月次レポートを閲覧できるようになります。閲覧は監査ログに記録されます。</div></div>
       </div>`;
-    el.querySelectorAll(".adm-select").forEach(s => s.addEventListener("change", () => {
-      const p = ADMIN.people[s.dataset.p]; p[s.dataset.f] = s.value;
-      logAudit("メンバー設定の変更", `${p.name}・${s.dataset.f}`);
-      toast("保存しました");
-    }));
-    el.querySelector("[data-addm]").addEventListener("click", () => toast("メンバーの追加（モック）"));
-    el.querySelector("[data-addt]").addEventListener("click", () => toast("チームの追加（モック）"));
+    /* 上司の割当と権限は、変えた瞬間ではなく確認を経てから保存する（A-22）。
+       これまでは select を動かした瞬間に反映され、監査ログにも書かれ、
+       「保存しました」とだけ出ていた。「本人」を「管理者」に変えても
+       何も聞かれず、誰の何がどう変わったのかも文字に残らなかった。
+       ここで聞くのは「その変更で誰が何を見られるようになるか」まで。
+       やめたときは、元の値へ戻す（画面と中身が食い違ったままにしない） */
+    el.querySelectorAll(".adm-select").forEach(s => {
+      s.dataset.prev = s.value;
+      s.addEventListener("change", () => {
+        const p = ADMIN.people[s.dataset.p];
+        const f = ADM_FIELDS.find(x => x.key === s.dataset.f);
+        const before = s.dataset.prev, after = s.value;
+        const apply = () => {
+          p[f.key] = after;
+          s.dataset.prev = after;
+          logAudit("メンバー設定の変更", `${p.name}・${f.label}：${before} → ${after}`);
+          toast(`${p.name}の${f.label}を保存しました`);
+        };
+        const revert = () => { s.value = before; };
+        confirmDialog(`${p.name}の${f.label}を変更しますか？`,
+          `${f.label}を「${before}」から「${after}」に変えます。${f.impact(p, after)}この変更は監査ログに残ります。`,
+          "変更する", apply, null, revert);
+      });
+    });
+    el.querySelector("[data-addm]").addEventListener("click", () => mockToast("メンバーを追加します"));
+    el.querySelector("[data-addt]").addEventListener("click", () => mockToast("チームを追加します"));
 
   } else if (tab === "audit") {
+    /* 絞り込み → ページ送り → 表、の順に組む（A-23）。
+       選べる語（操作した人・操作）は、いま記録に入っているものだけを並べる。
+       「該当なし」を選べても、押した先に何も無いだけで意味がない */
+    const all = ADMIN.audit;
+    const rows = auditRows();
+    const pages = Math.max(1, Math.ceil(rows.length / AUDIT_PAGE));
+    if (auditFilter.page >= pages) auditFilter.page = pages - 1;
+    const from = auditFilter.page * AUDIT_PAGE;
+    const page = rows.slice(from, from + AUDIT_PAGE);
+    const uniq = k => [...new Set(all.map(a => a[k]))].sort();
+    const opt = (v, label, now) => `<option value="${esc(v)}" ${v === now ? "selected" : ""}>${esc(label)}</option>`;
+    const note = auditNote();
     el.innerHTML = `
       <div class="panel">
         <h2>監査ログ</h2>
         <div class="panel-sub">上司・管理者によるアルバム閲覧、レポート閲覧、書き出し、設定変更の記録です（保持期間1年）</div>
+        <!-- 絞り込み。入力にはすべて label を紐づける（A-31） -->
+        <div class="toolbar audit-filter">
+          <span class="field"><label for="auFrom">開始日</label>
+            <input class="search-input" type="date" id="auFrom" value="${auditFilter.from}"></span>
+          <span class="field"><label for="auTo">終了日</label>
+            <input class="search-input" type="date" id="auTo" value="${auditFilter.to}"></span>
+          <label class="vh-label" for="auWho">操作した人</label>
+          <select class="select" id="auWho">${opt("", "操作した人：すべて", auditFilter.who)}${
+            uniq("who").map(v => opt(v, `操作した人：${v}`, auditFilter.who)).join("")}</select>
+          <label class="vh-label" for="auOp">操作</label>
+          <select class="select" id="auOp">${opt("", "操作：すべて", auditFilter.op)}${
+            uniq("op").map(v => opt(v, `操作：${v}`, auditFilter.op)).join("")}</select>
+          <span class="field"><label for="auTarget">対象で絞り込む</label>
+            <input class="search-input" id="auTarget" value="${esc(auditFilter.target)}" placeholder="例：高橋"></span>
+          <button class="btn" data-auclear ${note ? "" : "disabled"}>絞り込みを解除</button>
+        </div>
+        <!-- 何件のうち何件目を見ているかを、表の前に必ず出す（A-23） -->
+        <p class="album-count" role="status" aria-live="polite">${
+          rows.length
+            ? `全 <b>${all.length.toLocaleString()}</b>件${note ? `のうち、絞り込み後 <b>${rows.length.toLocaleString()}</b>件（${esc(note)}）` : ""} 中 <b>${(from + 1).toLocaleString()}〜${(from + page.length).toLocaleString()}</b>件目を表示しています`
+            : `全 <b>${all.length.toLocaleString()}</b>件のうち、この条件（${esc(note)}）に合う記録はありません`}</p>
+        ${rows.length ? `
         <div class="table-scroll" data-scroll-region="監査ログの表">
           <table class="tbl wide">
-            <thead><tr><th>日時</th><th>操作した人</th><th>操作</th><th>対象</th></tr></thead>
-            <tbody>${ADMIN.audit.map(a => `
-              <tr><td style="white-space:nowrap;font-family:'Courier New',monospace;">${a.t}</td>
+            <thead><tr><th scope="col">日時</th><th scope="col">操作した人</th><th scope="col">操作</th><th scope="col">対象</th></tr></thead>
+            <tbody>${page.map(a => `
+              <tr>
+                <td style="white-space:nowrap;font-family:'Courier New',monospace;">${a.t}${
+                  /* この場で追記された行が、どれなのか分かるようにする（A-44） */
+                  a.live ? '<span class="cell-partial">このセッション</span>' : ""}</td>
                   <td>${a.who}</td><td>${a.op}</td><td>${a.target}</td></tr>`).join("")}
             </tbody>
           </table>
         </div>
-        <div class="toolbar" style="margin-top:14px;"><button class="btn" data-auditcsv>CSVで書き出す</button></div>
-        <div class="lock-note"><span>■</span><div>記録するのは「誰が・いつ・誰のアルバムを見たか」までです。本人のじぶんのメモは、上司・管理者のいずれからも参照できず、ログにも残りません。<br>このプロトタイプでは、上司ビューでの閲覧操作がこの一覧に追記されます。</div></div>
+        ${pages > 1 ? `<div class="toolbar au-pager">
+          <button class="btn" data-aupage="${auditFilter.page - 1}" ${auditFilter.page === 0 ? "disabled" : ""}>← 前の50件</button>
+          <span class="mini-note">${auditFilter.page + 1} / ${pages} ページ</span>
+          <button class="btn" data-aupage="${auditFilter.page + 1}" ${auditFilter.page >= pages - 1 ? "disabled" : ""}>次の50件 →</button>
+        </div>` : ""}` : ""}
+        <div class="toolbar" style="margin-top:14px;"><button class="btn" data-auditcsv ${rows.length ? "" : "disabled"}>CSVで書き出す</button></div>
+        <div class="lock-note"><span>■</span><div>記録するのは「誰が・いつ・誰のアルバムを見たか」までです。本人のじぶんのメモは、上司・管理者のいずれからも参照できず、ログにも残りません。<br>CSVには、いま絞り込んでいる ${rows.length.toLocaleString()}件を書き出します。<br>このプロトタイプでは、上司ビューでの閲覧操作がこの一覧に追記されます。</div></div>
       </div>`;
+    const reload = () => showAdmin("audit");
+    const bind = (id, key, ev) => {
+      const e = $(id); if (!e) return;
+      e.addEventListener(ev, () => { auditFilter[key] = e.value; auditFilter.page = 0; reload();
+        const back = $(id); if (back) { back.focus(); if (back.setSelectionRange && back.type === "text") back.setSelectionRange(back.value.length, back.value.length); } });
+    };
+    bind("auFrom", "from", "change"); bind("auTo", "to", "change");
+    bind("auWho", "who", "change"); bind("auOp", "op", "change");
+    bind("auTarget", "target", "input");
+    el.querySelector("[data-auclear]").addEventListener("click", () => {
+      Object.assign(auditFilter, { from: "", to: "", who: "", op: "", target: "", page: 0 });
+      reload(); toast("絞り込みを解除しました");
+    });
+    el.querySelectorAll("[data-aupage]").forEach(b => b.addEventListener("click", () => {
+      auditFilter.page = +b.dataset.aupage; reload();
+      const t = $("adminBody").querySelector(".table-scroll");
+      if (t) t.scrollIntoView({ block: "start" });
+    }));
     el.querySelector("[data-auditcsv]").addEventListener("click", () => openDialog({
-      title: "監査ログをCSVで書き出す", sub: `${ADMIN.audit.length}件`,
-      body: `<div class="prev"><pre>日時,操作した人,操作,対象
-${esc(ADMIN.audit.slice(0, 4).map(a => `${a.t},${a.who},${a.op},${a.target}`).join("\n"))}
+      title: "監査ログをCSVで書き出す",
+      sub: `${rows.length.toLocaleString()}件${note ? `（${note}）` : "（全期間）"}`,
+      body: `<p class="dlg-text">いま絞り込んでいる ${rows.length.toLocaleString()}件を書き出します。</p>
+        <div class="prev"><pre>日時,操作した人,操作,対象
+${esc(rows.slice(0, 4).map(a => `${a.t},${a.who},${a.op},${a.target}`).join("\n"))}
 …</pre></div>`,
-      actions: [{ label: "閉じる" }, { label: "書き出す", primary: true, run: () => toast("監査ログを書き出しました（モック）") }],
+      actions: [{ label: "閉じる" }, { label: "書き出す", primary: true, run: () => mockToast(`監査ログ ${rows.length.toLocaleString()}件をCSVに書き出しました`) }],
     }));
 
   } else {
