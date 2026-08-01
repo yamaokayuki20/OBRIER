@@ -1798,6 +1798,163 @@
     input, select, textarea,
     .search-input, .memo-ta, .select, .adm-select { font-size: 16px; }
   }
+
+  /* ---- 上司ダッシュボード（イシュー#27） ----------------------------------
+     ここから下は上司ビュー専用。名前はすべて `net-` で始める。
+     以前 `.bub` が拡大詳細の吹き出しと衝突して上司ビューだけ壊れた（D-73）ので、
+     この作業で作った部品は接頭辞をそろえて、既存の名前とぶつけない。
+
+     ※ この節より上にある「スマホの入力欄は16px以上」の @media は、
+        入力欄の字の大きさを決める最後の指定であることに意味がある。
+        この節には input / select / textarea の font-size を書かない。 */
+
+  /* 段。パネルどうしの間隔を1か所で持つ（.panel + .panel は
+     .two-col をまたぐと効かないため、入れ物の側で持たせる） */
+  .net-stack > * + * { margin-top: 16px; }
+  .net-stack > .two-col { margin-bottom: 0; }
+
+  /* -- (A) チームの数 -- */
+  .net-tiles { display: flex; flex-wrap: wrap; gap: 10px; }
+  .net-tile {
+    flex: 1 1 168px; min-width: 0;
+    background: var(--panel-bg); border: 1px solid var(--panel-line);
+    border-radius: 14px; padding: 13px 16px;
+  }
+  .net-tile b {
+    display: block; font-size: 26px; font-weight: 800; color: var(--navy);
+    font-variant-numeric: tabular-nums; line-height: 1.3;
+  }
+  .net-tile b small { font-size: var(--fs-ui); font-weight: 400; color: var(--stage-ink-soft); margin-left: 3px; }
+  .net-tile span { display: block; font-size: var(--fs-cap); color: var(--stage-ink-soft); line-height: 1.7; }
+
+  /* -- (B) ネットワーク図 -- */
+  .net-legend {
+    display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 2px 0 12px;
+    font-size: var(--fs-cap); color: var(--stage-ink-soft); line-height: 1.7;
+  }
+  .net-lg { display: inline-flex; align-items: center; gap: 7px; }
+  .net-lg i { flex: none; display: inline-block; }
+  .net-lg-ball { width: 15px; height: 15px; border-radius: 50%; background: var(--navy); }
+  .net-lg-line { width: 26px; height: 5px; border-radius: 3px; background: var(--navy); opacity: .55; }
+  .net-lg-arrow {
+    width: 0; height: 0; border-left: 9px solid var(--navy);
+    border-top: 5px solid transparent; border-bottom: 5px solid transparent;
+  }
+
+  .net-stage {
+    position: relative; width: 100%; height: 420px;
+    background: #fff; border: 1px solid var(--panel-line); border-radius: 14px;
+    overflow: hidden;
+  }
+  .net-svg, .net-nodes { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .net-nodes { pointer-events: none; }
+
+  /* 玉。当たり判定は玉そのもの（下限 46px＝スマホ44px・PC24pxを満たす）。
+     名前は玉の外へ出す＝押せる範囲は増やさず、字は読める大きさを保つ */
+  .net-node {
+    position: absolute; padding: 0; border: none; background: none;
+    width: var(--d); height: var(--d); border-radius: 50%;
+    transform: translate(-50%, -50%); cursor: pointer; pointer-events: auto;
+    font-family: inherit;
+  }
+  .net-ball {
+    display: block; width: 100%; height: 100%; border-radius: 50%;
+    background: var(--fill); border: 2px solid #fff;
+    box-shadow: 0 2px 7px rgba(28,38,60,.18);
+    transition: transform .18s ease, box-shadow .18s ease;
+  }
+  .net-label {
+    position: absolute; left: 50%; top: calc(100% + 5px); transform: translateX(-50%);
+    white-space: nowrap; text-align: center; pointer-events: none;
+    background: rgba(255,255,255,.88); border-radius: 6px; padding: 1px 5px;
+  }
+  .net-label b { display: block; font-size: var(--fs-cap); font-weight: 800; color: var(--stage-ink); }
+  .net-label span { display: block; font-size: var(--fs-note); color: var(--stage-ink-soft); font-variant-numeric: tabular-nums; }
+  .net-node:hover .net-ball { transform: scale(1.07); box-shadow: 0 4px 12px rgba(28,38,60,.26); }
+  .net-node:focus-visible { outline: none; }
+  .net-node:focus-visible .net-ball { outline: 3px solid var(--navy); outline-offset: 3px; }
+  .net-node.is-on .net-ball { outline: 3px solid var(--accent-deep); outline-offset: 3px; }
+  /* 選んでいる間、関わりのない玉と線は控えめにする。
+     薄くするのは玉と線だけで、名前の字はそのまま（読めなくならないように） */
+  .net-stage.has-pick .net-node:not(.is-on):not(.is-link) .net-ball { opacity: .3; }
+  .net-edge { transition: stroke-opacity .18s ease; }
+  .net-stage.has-pick .net-edge:not(.is-link) { stroke-opacity: .07 !important; }
+  .net-stage.has-pick .net-head:not(.is-link) { fill-opacity: .07 !important; }
+
+  .net-pick {
+    margin-top: 12px; background: var(--navy-bg); border-radius: 12px;
+    padding: 12px 15px; font-size: var(--fs-ui); line-height: 1.85; color: var(--navy);
+    min-height: 62px;
+  }
+  .net-pick b { font-weight: 800; }
+  .net-pick .net-pick-hint { color: var(--navy-soft); }
+
+  .net-h3 { font-size: var(--fs-lead); font-weight: 800; color: var(--stage-ink); margin: 22px 0 6px; }
+  .net-list { margin-top: 10px; background: #fff; border: 1px solid var(--panel-line); border-radius: 14px; overflow: hidden; }
+  .net-row { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; padding: 12px 15px; border-bottom: 1px solid var(--panel-line); }
+  .net-row:last-child { border-bottom: none; }
+  .net-row-head { display: flex; align-items: center; gap: 9px; font-size: var(--fs-ui); font-weight: 700; color: var(--stage-ink); flex: none; }
+  .net-cnt { font-size: var(--fs-ui); font-weight: 800; color: var(--navy); font-variant-numeric: tabular-nums; }
+  .net-row-body { font-size: var(--fs-cap); color: var(--stage-ink-soft); line-height: 1.8; flex: 1 1 260px; min-width: 0; }
+
+  /* -- (C) 関係の変化 -- */
+  .net-ins { background: var(--navy-bg); border-radius: 12px; padding: 13px 16px; margin-bottom: 10px; }
+  .net-ins.is-good { background: #eef5f0; }
+  .net-ins-kind { font-size: var(--fs-note); font-weight: 800; letter-spacing: .08em; color: var(--navy-soft); margin-bottom: 5px; }
+  .net-ins.is-good .net-ins-kind { color: #3f6a4c; }
+  .net-ins-fact { font-size: var(--fs-body); line-height: 1.85; color: var(--navy); }
+  .net-ins.is-good .net-ins-fact { color: #2f5a3c; }
+  .net-ins-read { font-size: var(--fs-ui); line-height: 1.85; color: var(--navy-soft); margin-top: 4px; }
+  .net-ins.is-good .net-ins-read { color: #3f6a4c; }
+  .net-ins-q {
+    font-size: var(--fs-ui); line-height: 1.8; color: var(--navy);
+    background: #fff; border-left: 3px solid var(--navy); border-radius: 0 8px 8px 0;
+    padding: 8px 12px; margin-top: 9px;
+  }
+  .net-ins-q b { display: block; font-size: var(--fs-note); color: var(--navy-soft); letter-spacing: .08em; margin-bottom: 2px; }
+  .net-caveat { margin-top: 12px; }
+
+  /* -- (E) 気にかけたいサイン -- */
+  .net-sign { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; background: #fdeceb; border: 1px solid #eccfca; border-radius: 12px; padding: 12px 15px; margin-bottom: 10px; }
+  .net-sign-name { display: flex; align-items: center; gap: 9px; font-size: var(--fs-ui); font-weight: 800; color: #8c3a2c; flex: none; }
+  .net-sign-text { font-size: var(--fs-ui); line-height: 1.8; color: #8c3a2c; flex: 1 1 240px; min-width: 0; }
+  .net-sign-go { flex: none; }
+
+  /* -- メンバー詳細 -- */
+  .net-kv { display: flex; flex-wrap: wrap; gap: 10px; }
+  .net-kv > div { flex: 1 1 130px; min-width: 0; background: #fff; border: 1px solid var(--panel-line); border-radius: 12px; padding: 11px 14px; }
+  .net-kv b { display: block; font-size: 22px; font-weight: 800; color: var(--navy); font-variant-numeric: tabular-nums; line-height: 1.35; }
+  .net-kv b small { font-size: var(--fs-cap); font-weight: 400; color: var(--stage-ink-soft); margin-left: 3px; }
+  .net-kv span { display: block; font-size: var(--fs-cap); color: var(--stage-ink-soft); line-height: 1.7; }
+  .net-bar-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--panel-line); font-size: var(--fs-ui); }
+  .net-bar-row:last-child { border-bottom: none; }
+  .net-bar-name { flex: none; width: 96px; font-weight: 700; color: var(--stage-ink); }
+  .net-bar-track { flex: 1 1 auto; min-width: 60px; display: flex; flex-direction: column; gap: 3px; }
+  .net-bar { height: 9px; border-radius: 5px; background: var(--navy-line); position: relative; }
+  .net-bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 5px; display: block; }
+  .net-bar.is-recv i { background: var(--line-recv); }
+  .net-bar.is-sent i { background: var(--line-sent); }
+  .net-bar-num { flex: none; font-size: var(--fs-cap); color: var(--stage-ink-soft); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  @media (max-width: 860px) {
+    .net-stage { height: 400px; }
+  }
+  @media (max-width: 560px) {
+    /* 390px でも図として成立させる。横に置けないぶん縦に伸ばし、
+       名前は玉の外に出したまま（重なっても字は読める）。
+       数と相手の内訳は下の「つながりの一覧」に文章でも出してあるので、
+       図が読みにくいときはそちらだけでも用が足りる */
+    .net-stage { height: 470px; }
+    .net-label { padding: 0 3px; }
+    .net-label b { font-size: var(--fs-note); }
+    .net-tile { flex: 1 1 100%; }
+    .net-tile b { font-size: 24px; }
+    .net-bar-name { width: 78px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .net-ball, .net-edge { transition: none; }
+    .net-node:hover .net-ball { transform: none; }
+  }
 </style>
 </head>
 <body>
@@ -1909,53 +2066,124 @@
   <div class="grid" id="sentGrid"></div>
 </section>
 
-<!-- ============ S06 上司：メンバー一覧 ============ -->
+<!-- ============ S06 上司：チーム全体サマリ（イシュー#27） ============
+     上司ビューを2階層にした。ここは「チーム全体を1枚で見る」ダッシュボードで、
+     メンバー個人の詳細は S07 へ移した。
+     カード（ありがとうの現物）は上司ビューには置かない（イシュー#27／D-83）。 -->
 <section id="viewTeam" class="hidden">
   <div class="hero">
-    <h1>チームのありがとう ― 企画部 第2チーム</h1>
-    <h2 class="lead-line">メンバーのようす</h2>
+    <h1>チームのダッシュボード ― 企画部 第2チーム</h1>
+    <h2 class="lead-line">チーム全体のようす</h2>
   </div>
-  <div class="hero-note">行を押すと、メンバーの詳細と1on1の準備メモを見られます。順位はつけていません。</div>
+  <div class="hero-note">上司だけが見る画面です。本人には表示されません。じぶんのメモは、上司からも管理者からも見られません。</div>
+
   <div class="toolbar">
     <label class="vh-label" for="teamPeriod">期間</label>
     <select class="select" id="teamPeriod">
-      <option value="1">期間：1か月</option>
-      <option value="3">期間：3か月</option>
-      <option value="12">期間：1年</option>
+      <option value="3">期間：直近3か月</option>
+      <option value="6">期間：直近6か月</option>
+      <option value="12">期間：直近1年</option>
     </select>
-    <!-- 検索欄には接頭辞を置けないので、ラベルを見えるかたちで左に置く（A-31）。
-         プレースホルダは例示に回し、ラベルの代わりには使わない -->
-    <span class="field"><label for="teamSearch">名前で絞り込む</label>
-      <input class="search-input" id="teamSearch" placeholder="例：高橋"></span>
-    <label class="check"><input type="checkbox" id="alertOnly"> 要確認のみ</label>
   </div>
-  <div class="chart-legend"><span class="lg-recv">もらった</span><span class="lg-sent">おくった</span></div>
-  <!-- 数の基準を書いておく（A-47）。スパークラインの縦の目盛は行ごとに違うため、
-       行をまたいで高さを比べると読み違える -->
+  <!-- 数の基準を書いておく（A-47） -->
   <div class="mini-note" id="teamBasis"></div>
-  <!-- いまどう並んでいるかを言葉でも出す（A-05）。並び替えは見出しの
-       矢印だけでは伝わらず、読み上げでは何も起きていないのと同じだった -->
-  <div class="mini-note sort-state" id="sortState" role="status" aria-live="polite"></div>
-  <div class="table-scroll" data-scroll-region="メンバー一覧の表">
-    <table class="tbl wide">
-      <thead><tr>
-        <th scope="col">メンバー</th>
-        <!-- 見出しの中を button にして、キーボードでも並び替えられるようにする（A-05）。
-             並び順は th の aria-sort と、ボタンの中の矢印の両方で示す -->
-        <th scope="col" class="sortable" data-sort="recv" aria-sort="none">
-          <button type="button" class="th-sort" data-sort="recv">もらった <span class="sort-mark" id="sortRecv" aria-hidden="true">⇅</span></button></th>
-        <th scope="col" class="sortable" data-sort="sent" aria-sort="none">
-          <button type="button" class="th-sort" data-sort="sent">おくった <span class="sort-mark" id="sortSent" aria-hidden="true">⇅</span></button></th>
-        <th scope="col">推移（直近6か月）</th>
-      </tr></thead>
-      <tbody id="memberRows"></tbody>
-    </table>
+
+  <div class="net-stack">
+    <!-- (A) チームの数 -->
+    <div class="net-tiles" id="teamTiles"></div>
+
+    <!-- (B) 関係のネットワーク図 -->
+    <div class="panel">
+      <h2>だれから だれへ ― ありがとうのやり取り</h2>
+      <p class="panel-sub" id="netSub"></p>
+      <div class="net-legend">
+        <span class="net-lg"><i class="net-lg-ball"></i>玉が大きく濃いほど、チームの中でのやり取りが多い</span>
+        <span class="net-lg"><i class="net-lg-line"></i>線が太く濃いほど、その2人の間の通数が多い</span>
+        <span class="net-lg"><i class="net-lg-arrow"></i>矢印の向きは、ありがとうが届いた向き</span>
+      </div>
+      <div class="net-stage" id="netStage">
+        <!-- 図そのものは読み上げから外し、同じ内容を下の「つながりの一覧」と
+             玉のボタンの読み上げ名で届ける（ホバー限定にしない・A-04） -->
+        <svg class="net-svg" id="netSvg" aria-hidden="true" focusable="false"></svg>
+        <div class="net-nodes" id="netNodes"></div>
+      </div>
+      <div class="net-pick" id="netPick"></div>
+
+      <h3 class="net-h3">つながりの数（相手の少ない順）</h3>
+      <p class="mini-note">この期間に、チームの中でありがとうをやり取りした相手の人数です。チーム外とのやり取りはこの数に入りません。少ないことがそのまま問題だとは限りませんが、支援が要るかどうかは1on1で確かめてください。</p>
+      <div class="net-list" id="netList"></div>
+    </div>
+
+    <!-- (C) 関係の変化 -->
+    <div class="panel">
+      <h2>関係の変化</h2>
+      <p class="panel-sub" id="netChangeSub"></p>
+      <div id="netInsights"></div>
+      <p class="mini-note net-caveat">連携が止まっていた期間・長期の休み・チーム編成の変更があると、関係が減ったのと同じように見えます。まず、その事情が無かったかを確かめてください。</p>
+    </div>
+
+    <!-- (D) 場面とチーム全体の推移 -->
+    <div class="two-col">
+      <div class="panel">
+        <h2>チームで生まれている場面</h2>
+        <p class="panel-sub">チーム全員ぶんを合算した場面タグです。人ごとの内訳はメンバー詳細で見られます</p>
+        <div class="tag-bars" id="teamTags"></div>
+      </div>
+      <div class="panel">
+        <h2>チーム全体の推移</h2>
+        <p class="panel-sub">全員ぶんの合計です。誰か1人が落ちているとき、チーム全体も同じ時期に落ちているかを見分けるための線です</p>
+        <div id="teamChart"></div>
+      </div>
+    </div>
+
+    <!-- (E) 気にかけたいサイン -->
+    <div class="panel">
+      <h2>気にかけたいサイン</h2>
+      <p class="panel-sub">1on1の準備メモにサインが出ているメンバーです。本人には通知していません</p>
+      <div id="teamSigns"></div>
+    </div>
+
+    <!-- (F) メンバーごとに見る -->
+    <div class="panel">
+      <h2>メンバーごとに見る</h2>
+      <p class="panel-sub">行を押すと、そのメンバーの詳細と1on1の準備メモを開きます</p>
+      <div class="toolbar">
+        <!-- 検索欄には接頭辞を置けないので、ラベルを見えるかたちで左に置く（A-31）。
+             プレースホルダは例示に回し、ラベルの代わりには使わない -->
+        <span class="field"><label for="teamSearch">名前で絞り込む</label>
+          <input class="search-input" id="teamSearch" placeholder="例：高橋"></span>
+        <label class="check"><input type="checkbox" id="alertOnly"> 要確認のみ</label>
+      </div>
+      <div class="chart-legend"><span class="lg-recv">もらった</span><span class="lg-sent">おくった</span></div>
+      <!-- いまどう並んでいるかを言葉でも出す（A-05）。並び替えは見出しの
+           矢印だけでは伝わらず、読み上げでは何も起きていないのと同じだった -->
+      <div class="mini-note sort-state" id="sortState" role="status" aria-live="polite"></div>
+      <div class="table-scroll" data-scroll-region="メンバー一覧の表">
+        <table class="tbl wide member-tbl">
+          <thead><tr>
+            <th scope="col">メンバー</th>
+            <!-- 見出しの中を button にして、キーボードでも並び替えられるようにする（A-05）。
+                 並び順は th の aria-sort と、ボタンの中の矢印の両方で示す -->
+            <th scope="col" class="sortable" data-sort="recv" aria-sort="none">
+              <button type="button" class="th-sort" data-sort="recv">もらった <span class="sort-mark" id="sortRecv" aria-hidden="true">⇅</span></button></th>
+            <th scope="col" class="sortable" data-sort="sent" aria-sort="none">
+              <button type="button" class="th-sort" data-sort="sent">おくった <span class="sort-mark" id="sortSent" aria-hidden="true">⇅</span></button></th>
+            <th scope="col" class="sortable" data-sort="link" aria-sort="none">
+              <button type="button" class="th-sort" data-sort="link">つながり <span class="sort-mark" id="sortLink" aria-hidden="true">⇅</span></button></th>
+            <th scope="col">推移（直近6か月）</th>
+          </tr></thead>
+          <tbody id="memberRows"></tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </section>
 
-<!-- ============ S07 上司：メンバー詳細 ============ -->
+<!-- ============ S07 上司：メンバー詳細（イシュー#27で作り替え） ============
+     カードの一覧（アルバム／おくった）は置かない。1on1で使うのは
+     「引用＋事実＋伝え方例」の3点なので、それを文章として出す -->
 <section id="viewMember" class="hidden">
-  <button class="back-link" id="backToTeam">← メンバー一覧にもどる</button>
+  <button class="back-link" id="backToTeam">← チーム全体にもどる</button>
   <div class="detail-head" id="detailHead"></div>
 
   <div class="panel boss-panel">
@@ -1969,13 +2197,29 @@
     </div>
   </div>
 
-  <div class="same-note">ここから下は、本人が見ている画面と同じものです。ただし、じぶんのメモは本人だけのもので、ここには表示されません。</div>
-  <div class="sub-tabs" id="memberSubTabs">
-    <button class="sub-tab active" data-s="album">アルバム</button>
-    <button class="sub-tab" data-s="shape">カタチ</button>
-    <button class="sub-tab" data-s="sent">おくった</button>
+  <div class="net-stack">
+    <div class="two-col">
+      <div class="panel">
+        <h2>この期間のようす</h2>
+        <p class="panel-sub">チーム一覧と同じ期間・同じ数え方です</p>
+        <div id="memberNums"></div>
+      </div>
+      <div class="panel">
+        <h2>チームの中での関係</h2>
+        <p class="panel-sub">チームの中でやり取りした相手ごとの通数です。チーム外とのやり取りは入りません</p>
+        <div id="memberRel"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>1on1で使えるエピソード</h2>
+      <p class="panel-sub">最新の準備メモに引用したぶんです。ありがとうのカードそのものは本人のもので、ここには並べません</p>
+      <div id="memberEpisodes"></div>
+    </div>
+
+    <div class="same-note">ここから下は、本人が見ている「あなたのカタチ」と同じものです。じぶんのメモは本人だけのもので、ここには表示されません。</div>
+    <div id="memberSub"></div>
   </div>
-  <div id="memberSub"></div>
 </section>
 
 <!-- ============ 管理者 ============ -->
@@ -4888,6 +5132,395 @@ function renderShapeInto(el, S, allowJump) {
 }
 
 /* =========================================================================
+   8-b. チームの中のありがとうのやり取り（イシュー#27）
+
+   上司ダッシュボードの目玉。だれから だれへ ありがとうが流れているかを
+   ネットワーク図にする。
+
+   数の出どころ（D-34 を崩さない）
+   -----------------------------------------------------------------------
+   通数そのものは、これまでどおり **shape.monthly が唯一の出どころ**。
+   新しく持ったのは「その人がおくったぶんを、チームの誰にどれだけ配ったか」
+   という割合だけ（NET_SHARE）。辺の通数は
+
+       その人の おくった通数（shape.monthly.sent の期間合計） × 割合
+
+   で作る。だから期間を変えれば図の通数も一覧の通数と同じように動くし、
+   一覧の「おくった◯通」と図の合計が食い違うこともない。
+   割合の合計は 1 に満たない＝残りはチーム外へおくったぶんで、図には出ない。
+
+   辺は **おくった側から作る**（もらった側から作ると、同じ組み合わせに
+   2つの数ができてしまう）。そのため図に出る「もらった」は、その人が
+   チームの中で受け取ったぶんだけで、チーム外からのぶんは入らない。
+   画面にもそう書く。
+   ========================================================================= */
+/* おくったぶんの配り先。上段が直近の期間、下段がその前の期間。
+   2つ持っているのは「関係の変化」を出すため（前の期間と比べる）。 */
+const NET_SHARE = {
+  now: {
+    yuki:      { sato: .12, suzuki: .20, takahashi: .02, tanaka: .14, mori: .16 },
+    sato:      { yuki: .16, suzuki: .10, takahashi: .02, tanaka: .18, mori: .10 },
+    suzuki:    { yuki: .22, sato: .16, takahashi: .00, tanaka: .08, mori: .12 },
+    takahashi: { yuki: .00, sato: .05, suzuki: .00, tanaka: .12, mori: .00 },
+    tanaka:    { yuki: .14, sato: .16, suzuki: .10, takahashi: .05, mori: .10 },
+    mori:      { yuki: .20, sato: .12, suzuki: .14, takahashi: .00, tanaka: .01 },
+  },
+  prev: {
+    yuki:      { sato: .12, suzuki: .20, takahashi: .10, tanaka: .14, mori: .16 },
+    sato:      { yuki: .16, suzuki: .10, takahashi: .12, tanaka: .18, mori: .10 },
+    suzuki:    { yuki: .22, sato: .16, takahashi: .06, tanaka: .08, mori: .00 },
+    takahashi: { yuki: .10, sato: .12, suzuki: .04, tanaka: .16, mori: .04 },
+    tanaka:    { yuki: .14, sato: .16, suzuki: .10, takahashi: .14, mori: .10 },
+    mori:      { yuki: .20, sato: .12, suzuki: .00, takahashi: .00, tanaka: .10 },
+  },
+};
+const NET_KEYS = MEMBERS.map(m => m.key);
+const netMember = k => MEMBERS.find(m => m.key === k);
+
+/* チーム全体の推移。全員ぶんを足しただけで、出どころは shape.monthly のまま（D-34）。
+   ここに置くのは「誰か1人が落ちているとき、チームも同じ時期に落ちているか」を
+   見分けるため（signals-for-1on1 §3・§4-A の観測側の切り分け） */
+const TEAM_SHAPE = (() => {
+  const pick = which => {
+    const base = MEMBERS[0].shape[which];
+    const recv = base.recv.map(() => 0), sent = base.sent.map(() => 0);
+    for (const m of MEMBERS) {
+      const s = m.shape[which];
+      s.recv.forEach((v, i) => { if (i < recv.length) recv[i] += v; });
+      s.sent.forEach((v, i) => { if (i < sent.length) sent[i] += v; });
+    }
+    return { ...base, recv, sent };
+  };
+  return { monthly: pick("monthly"), daily30: pick("daily30") };
+})();
+/** 期間の合計。off か月ぶん手前へずらせる（off = months で「前の同じ長さ」） */
+function netSum(arr, months, off) {
+  const end = arr.length - off;
+  return arr.slice(Math.max(0, end - months), end).reduce((a, b) => a + b, 0);
+}
+const pairKey = (a, b) => (a < b ? a + "|" + b : b + "|" + a);
+
+/** その期間のやり取りを組み立てる。which は "now"（直近）か "prev"（その前） */
+function netFlow(months, which) {
+  const off = which === "prev" ? months : 0;
+  const share = NET_SHARE[which];
+  const edges = [];
+  for (const from of NET_KEYS) {
+    const sent = netSum(netMember(from).shape.monthly.sent, months, off);
+    for (const to in share[from] || {}) {
+      const c = Math.round(sent * share[from][to]);
+      if (c >= 1) edges.push({ from, to, c });
+    }
+  }
+  const by = {};
+  for (const k of NET_KEYS) {
+    const m = netMember(k);
+    by[k] = { key: k, name: m.name, ini: m.ini, role: m.role, in: 0, out: 0, partners: new Map() };
+  }
+  const touch = (self, other) => {
+    let p = by[self].partners.get(other);
+    if (!p) { p = { key: other, out: 0, in: 0 }; by[self].partners.set(other, p); }
+    return p;
+  };
+  for (const e of edges) {
+    by[e.from].out += e.c; by[e.to].in += e.c;
+    touch(e.from, e.to).out += e.c;
+    touch(e.to, e.from).in += e.c;
+  }
+  const pairs = new Set(edges.map(e => pairKey(e.from, e.to)));
+  const dir = new Set(edges.map(e => e.from + ">" + e.to));
+  return { edges, by, pairs, dir, total: edges.reduce((a, e) => a + e.c, 0) };
+}
+
+/* 玉の色。多いほど濃い。字を乗せないのでコントラストの制約は掛からない */
+function netFill(k) {
+  const a = [205, 215, 233], b = [58, 74, 102];
+  const t = 0.22 + 0.78 * k;
+  return `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * t)).join(",")})`;
+}
+
+/**
+ * 置き方（力学モデル）。
+ *
+ * **毎フレーム回さない。** 決まった回数だけ回して、そこで止めて位置を固定する。
+ * 初期位置は円周上＝乱数を使わないので、同じ幅なら毎回まったく同じ形になる。
+ * やり取りの多い人ほど中央へ引かれるので、「誰が中心か」がそのまま形に出る。
+ *
+ * 6人・26本で 260回まわしても 1万数千回の計算しかなく、実測 1ms 未満。
+ * 幅が変わったときだけ計算し直す（それ以外は一切動かない）。
+ */
+function netLayout(nodes, links, W, H) {
+  const n = nodes.length;
+  nodes.forEach((o, i) => {
+    const a = -Math.PI / 2 + i * 2 * Math.PI / n;
+    o.x = W / 2 + Math.cos(a) * Math.min(W, H) * 0.30;
+    o.y = H / 2 + Math.sin(a) * Math.min(W, H) * 0.30;
+  });
+  const K = Math.sqrt(W * H / n) * 0.66;
+  let temp = Math.min(W, H) * 0.12;
+  for (let step = 0; step < 260; step++) {
+    for (const o of nodes) { o.dx = 0; o.dy = 0; }
+    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+      const a = nodes[i], b = nodes[j];
+      const dx = a.x - b.x, dy = a.y - b.y;
+      const d = Math.hypot(dx, dy) || 0.01;
+      const minD = a.r + b.r + 30;
+      let f = K * K / d;
+      if (d < minD) f += (minD - d) * 3.4;      // 玉どうしは必ず離す
+      a.dx += dx / d * f; a.dy += dy / d * f;
+      b.dx -= dx / d * f; b.dy -= dy / d * f;
+    }
+    for (const l of links) {
+      const a = l.a, b = l.b;
+      const dx = a.x - b.x, dy = a.y - b.y;
+      const d = Math.hypot(dx, dy) || 0.01;
+      const f = d * d / K * l.w;               // 通数が多い組み合わせほど近づく
+      a.dx -= dx / d * f; a.dy -= dy / d * f;
+      b.dx += dx / d * f; b.dy += dy / d * f;
+    }
+    for (const o of nodes) {
+      /* やり取りの多い人ほど中央へ寄せる。中心にいるのが誰かを形で示す。
+         横は場が広いぶん引きを弱くし、場いっぱいに広がるようにする */
+      o.dx += (W / 2 - o.x) * 0.006 * (1 + o.core * 2.2);
+      o.dy += (H / 2 - o.y) * 0.016 * (1 + o.core * 2.2);
+      const m = Math.hypot(o.dx, o.dy) || 1;
+      const mv = Math.min(m, temp);
+      o.x += o.dx / m * mv;
+      o.y += o.dy / m * mv;
+      /* 名前は玉の下に出るので、下は名前2行ぶん（約36px）を空けておく */
+      const padX = Math.max(o.r + 6, 52);
+      o.x = Math.max(padX, Math.min(W - padX, o.x));
+      o.y = Math.max(o.r + 10, Math.min(H - o.r - 40, o.y));
+    }
+    temp *= 0.985;
+  }
+}
+
+let netNow = null, netPrev = null;      // いまの期間／その前の期間のやり取り
+let netPinned = null, netHover = null;  // 押して固定した玉／触れている玉
+let netGeomAt = "";                     // 置き直しの要否を測るための「幅×高さ」
+
+/** 図を描く。W×H が前と同じなら、置き直さずに描くだけ */
+function netDraw(force) {
+  const stage = $("netStage"), svg = $("netSvg"), host = $("netNodes");
+  if (!stage || !netNow) return;
+  const W = Math.round(stage.clientWidth), H = Math.round(stage.clientHeight);
+  if (W < 60 || H < 60) return;
+  const stamp = W + "x" + H + "@" + netNow.stampKey;
+  if (!force && netGeomAt === stamp) return;
+  netGeomAt = stamp;
+
+  const vals = NET_KEYS.map(k => netNow.by[k].in + netNow.by[k].out);
+  const vMax = Math.max(1, ...vals);
+  /* 玉の上限は場の広さで決める。下限は 23（＝直径46px）で動かさない——
+     ここを割ると当たり判定がスマホ44pxを下回る */
+  const rMax = W < 560 ? 32 : W < 900 ? 40 : 46;
+  const nodes = NET_KEYS.map(k => {
+    const d = netNow.by[k];
+    const v = d.in + d.out;
+    const kk = Math.sqrt(v / vMax);
+    return { key: k, d, v, core: kk, r: 23 + (rMax - 23) * kk, fill: netFill(kk) };
+  });
+  const byNode = Object.fromEntries(nodes.map(o => [o.key, o]));
+  const cMax = Math.max(1, ...netNow.edges.map(e => e.c));
+  const links = [];
+  for (const p of netNow.pairs) {
+    const [a, b] = p.split("|");
+    const c = netNow.edges.filter(e => pairKey(e.from, e.to) === p).reduce((s, e) => s + e.c, 0);
+    links.push({ a: byNode[a], b: byNode[b], w: Math.min(1, c / cMax) * 0.42 + 0.06 });
+  }
+
+  const t0 = performance.now();
+  netLayout(nodes, links, W, H);
+  window.__netLayoutMs = +(performance.now() - t0).toFixed(2);
+
+  /* 線と矢じり。矢じりは marker ではなく三角形で描く——marker だと
+     線ごとの濃さ（＝通数）を矢じりへ引き継げないため */
+  const paths = [];
+  for (const e of netNow.edges) {
+    const a = byNode[e.from], b = byNode[e.to];
+    const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 1;
+    const ux = dx / d, uy = dy / d, nx = -uy, ny = ux;
+    const k = Math.sqrt(e.c / cMax);
+    const wd = (1.1 + 6.2 * k).toFixed(2);
+    const op = (0.18 + 0.62 * k).toFixed(3);
+    const bow = Math.min(30, d * 0.17);
+    const headLen = 8 + 1.6 * (1.1 + 6.2 * k) / 2;
+    const sx = a.x + ux * (a.r + 2) + nx * bow * 0.34;
+    const sy = a.y + uy * (a.r + 2) + ny * bow * 0.34;
+    const ex = b.x - ux * (b.r + 3 + headLen) + nx * bow * 0.34;
+    const ey = b.y - uy * (b.r + 3 + headLen) + ny * bow * 0.34;
+    const cx = (a.x + b.x) / 2 + nx * bow, cy = (a.y + b.y) / 2 + ny * bow;
+    const tvx = ex - cx, tvy = ey - cy, tl = Math.hypot(tvx, tvy) || 1;
+    const tx = tvx / tl, ty = tvy / tl, px = -ty, py = tx;
+    const hw = 3.2 + 0.42 * (1.1 + 6.2 * k);
+    const tip = [ex + tx * headLen, ey + ty * headLen];
+    const tag = `data-f="${e.from}" data-t="${e.to}"`;
+    paths.push(`<path class="net-edge" ${tag} d="M${sx.toFixed(1)},${sy.toFixed(1)} Q${cx.toFixed(1)},${cy.toFixed(1)} ${ex.toFixed(1)},${ey.toFixed(1)}"
+      fill="none" stroke="#3A4A66" stroke-width="${wd}" stroke-opacity="${op}" stroke-linecap="round"/>`);
+    paths.push(`<polygon class="net-head" ${tag} fill="#3A4A66" fill-opacity="${op}"
+      points="${tip[0].toFixed(1)},${tip[1].toFixed(1)} ${(ex + px * hw).toFixed(1)},${(ey + py * hw).toFixed(1)} ${(ex - px * hw).toFixed(1)},${(ey - py * hw).toFixed(1)}"/>`);
+  }
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.innerHTML = paths.join("");
+
+  host.innerHTML = nodes.map(o => `
+    <button type="button" class="net-node" data-k="${o.key}"
+      style="--d:${(o.r * 2).toFixed(1)}px; --fill:${o.fill}; left:${o.x.toFixed(1)}px; top:${o.y.toFixed(1)}px"
+      aria-label="${netNodeLabel(o.key)}">
+      <span class="net-ball"></span>
+      <span class="net-label"><b>${o.d.name}</b><span>${o.d.partners.size}人・${o.v}通</span></span>
+    </button>`).join("");
+
+  host.querySelectorAll(".net-node").forEach(b => {
+    const k = b.dataset.k;
+    b.addEventListener("mouseenter", () => { netHover = k; netPaintPick(); });
+    b.addEventListener("mouseleave", () => { if (netHover === k) netHover = null; netPaintPick(); });
+    b.addEventListener("focus", () => { netHover = k; netPaintPick(); });
+    b.addEventListener("blur", () => { if (netHover === k) netHover = null; netPaintPick(); });
+    b.addEventListener("click", () => { netPinned = netPinned === k ? null : k; netPaintPick(); });
+  });
+  netPaintPick();
+}
+
+/** 玉の読み上げ名。図から読み取れることを、全部ことばにしておく（A-04） */
+function netNodeLabel(k) {
+  const d = netNow.by[k];
+  const parts = [...d.partners.values()].sort((a, b) => (b.in + b.out) - (a.in + a.out)).map(p => {
+    const bits = [];
+    if (p.out) bits.push(`${netNow.by[p.key].name}へおくった${p.out}通`);
+    if (p.in) bits.push(`${netNow.by[p.key].name}からもらった${p.in}通`);
+    return bits.join("、");
+  });
+  return `${d.name}。チームの中でやり取りのあった相手は${d.partners.size}人。`
+    + `チームの中でおくった${d.out}通、もらった${d.in}通。`
+    + (parts.length ? `内訳は、${parts.join("、")}。` : "この期間、チームの中でのやり取りは見えていません。");
+}
+
+/** 選ばれている玉に合わせて、線の強調と説明文を塗り直す */
+function netPaintPick() {
+  const stage = $("netStage"), box = $("netPick");
+  if (!stage || !box || !netNow) return;
+  const k = netHover || netPinned;
+  stage.classList.toggle("has-pick", !!k);
+  const linked = new Set();
+  if (k) {
+    linked.add(k);
+    netNow.by[k].partners.forEach(p => linked.add(p.key));
+  }
+  stage.querySelectorAll(".net-node").forEach(b => {
+    b.classList.toggle("is-on", b.dataset.k === netPinned);
+    b.classList.toggle("is-link", !!k && linked.has(b.dataset.k) && b.dataset.k !== k);
+  });
+  stage.querySelectorAll(".net-edge, .net-head").forEach(p =>
+    p.classList.toggle("is-link", !!k && (p.dataset.f === k || p.dataset.t === k)));
+  if (!k) {
+    box.innerHTML = '<span class="net-pick-hint">玉を押す（キーボードなら Tab で選んで Enter）と、その人が誰と、どれだけやり取りしているかがここに出ます。玉の下の数字は「やり取りのあった相手の人数・チームの中での通数」です。</span>';
+    return;
+  }
+  const d = netNow.by[k];
+  const list = [...d.partners.values()].sort((a, b) => (b.in + b.out) - (a.in + a.out)).map(p => {
+    const bits = [];
+    if (p.out) bits.push(`おくった${p.out}`);
+    if (p.in) bits.push(`もらった${p.in}`);
+    return `${netNow.by[p.key].name}（${bits.join("・")}）`;
+  });
+  box.innerHTML = `<b>${d.name}</b> ― やり取りのあった相手 ${d.partners.size}人 ／ `
+    + `チームの中でおくった ${d.out}通・もらった ${d.in}通<br>`
+    + (list.length ? `<span class="net-pick-hint">${list.join("、")}</span>`
+                   : '<span class="net-pick-hint">この期間、チームの中でのやり取りは見えていません。チーム外の仕事が中心なのかもしれません。</span>');
+}
+
+/**
+ * 関係の変化。前の同じ長さの期間と比べて、変わったところをことばにする。
+ * signals-for-1on1 §4-C にしたがって「事実」と「解釈」を分け、必ず問いを添える。
+ */
+function netInsights(label) {
+  const out = [];
+  const nm = k => netNow.by[k].name;
+  /* ① やり取りのあった相手の増減（B-1／F-1） */
+  for (const k of NET_KEYS) {
+    const a = netNow.by[k].partners.size, b = netPrev.by[k].partners.size;
+    if (b - a >= 2) out.push({
+      w: 100 + (b - a), kind: "つながりの数", who: [k],
+      fact: `${nm(k)}がチームの中でやり取りした相手は、前の${label}の${b}人から${a}人になっています。`,
+      read: "関わる相手が固まってきているのかもしれません。担当が変わっただけ、ということもあります。",
+      q: "最近、一緒に仕事をする相手は固定されていませんか。",
+    });
+    if (a - b >= 2) out.push({
+      w: 40 + (a - b), kind: "つながりの数", good: true, who: [k],
+      fact: `${nm(k)}がチームの中でやり取りした相手は、${b}人から${a}人に増えています。`,
+      read: "関わりが広がっているようです。",
+      q: "新しく組んだ人はいましたか。",
+    });
+  }
+  /* ② 組み合わせが消えた／生まれた（B-3／F-1） */
+  for (const p of netPrev.pairs) if (!netNow.pairs.has(p)) {
+    const [a, b] = p.split("|");
+    out.push({
+      w: 70, kind: "途切れた組み合わせ", who: [a, b],
+      fact: `前の${label}にあった${nm(a)}と${nm(b)}のやり取りは、この${label}には見えていません。`,
+      read: "担当が離れたのかもしれませんし、たまたま重なる仕事が無かっただけかもしれません。",
+      q: `${nm(a)}と${nm(b)}は、いま同じ仕事で重なることがありますか。`,
+    });
+  }
+  for (const p of netNow.pairs) if (!netPrev.pairs.has(p)) {
+    const [a, b] = p.split("|");
+    const c = netNow.edges.filter(e => pairKey(e.from, e.to) === p).reduce((s, e) => s + e.c, 0);
+    out.push({
+      w: 30, kind: "新しい組み合わせ", good: true, who: [a, b],
+      fact: `${nm(a)}と${nm(b)}の間で、この${label}に初めてありがとうが行き来しています（${c}通）。`,
+      read: "新しい組み合わせが動きはじめたようです。",
+      q: `${nm(a)}と${nm(b)}で組んだ仕事は、どうでしたか。`,
+    });
+  }
+  /* ③ 相互だったものが片方向になった（B-5） */
+  for (const p of netNow.pairs) {
+    if (!netPrev.pairs.has(p)) continue;
+    const [a, b] = p.split("|");
+    const wasBoth = netPrev.dir.has(a + ">" + b) && netPrev.dir.has(b + ">" + a);
+    const isAB = netNow.dir.has(a + ">" + b), isBA = netNow.dir.has(b + ">" + a);
+    if (!wasBoth || (isAB && isBA)) continue;
+    const from = isAB ? a : b, to = isAB ? b : a;
+    out.push({
+      w: 60, kind: "行き来のかたち", who: [from, to],
+      fact: `${nm(from)}から${nm(to)}へのありがとうは届いていますが、${nm(to)}から${nm(from)}へは、この${label}には見えていません。前の${label}は両方向にありました。`,
+      read: "助け合いが片方向になっているのかもしれません。",
+      q: `${nm(from)}と${nm(to)}は、お互いに助け合えている実感がありますか。`,
+    });
+  }
+  /* ④ 受け取りが1人に寄っている（B-2） */
+  for (const k of NET_KEYS) {
+    const d = netNow.by[k];
+    if (d.in < 4 || d.partners.size < 2) continue;
+    const top = [...d.partners.values()].sort((x, y) => y.in - x.in)[0];
+    if (top && top.in * 2 > d.in) out.push({
+      w: 50, kind: "受け取りの偏り", who: [k, top.key],
+      fact: `${nm(k)}がチームの中で受け取った${d.in}通のうち、${top.in}通は${nm(top.key)}からでした。`,
+      read: "特定の相手との関わりに寄っているのかもしれません。",
+      q: `${nm(k)}は、${nm(top.key)}以外の人との連携がいまどうなっていますか。`,
+    });
+  }
+  /* 同じ人の話が並ぶと読まれない（signals §4-B「1回に出すのは1〜2つ」）。
+     ・1人につき2件まで
+     ・「つながりの数」を出した人の「途切れた組み合わせ」は、同じことの言い換えなので出さない
+     ・全部で4件まで */
+  const picked = [], seen = {}, hadCount = new Set();
+  out.sort((a, b) => b.w - a.w);
+  for (const x of out) if (x.kind === "つながりの数") x.who.forEach(k => hadCount.add(k));
+  const canTake = x => !picked.includes(x)
+    && !(x.kind === "途切れた組み合わせ" && x.who.some(k => hadCount.has(k)))
+    && !x.who.some(k => (seen[k] || 0) >= 2);
+  const take = x => { x.who.forEach(k => { seen[k] = (seen[k] || 0) + 1; }); picked.push(x); };
+  for (const x of out) { if (picked.length >= 3) break; if (canTake(x)) take(x); }
+  /* ＋のサインも1つは載せる（signals §2 F系）。気になることばかり並べない */
+  const good = out.find(x => x.good && canTake(x));
+  if (good) take(good);
+  for (const x of out) { if (picked.length >= 4) break; if (canTake(x)) take(x); }
+  return picked;
+}
+
+/* =========================================================================
    9. ロール・画面切替
    ========================================================================= */
 let ROLE = "person";
@@ -4919,8 +5552,9 @@ function setRole(role, quiet) {
   if (role === "person") {
     if (!quiet) showPersonView("album"); else $("viewAlbum").classList.remove("hidden");
   } else if (role === "boss") {
-    renderMembers();
     $("viewTeam").classList.remove("hidden");
+    /* 図は幅を測ってから置くので、画面を出してから描く */
+    renderTeamSummary();
   } else {
     showAdmin(currentAdminTab);
     $("viewAdmin").classList.remove("hidden");
@@ -4929,7 +5563,7 @@ function setRole(role, quiet) {
 }
 
 /* =========================================================================
-   10. 上司：メンバー一覧（S06）
+   10. 上司：チーム全体サマリ（S06。イシュー#27で作り替え）
    ========================================================================= */
 /* 並び替えは 未ソート → 降順（多い順）→ 昇順（少ない順）→ 未ソート の3状態を
    まわる（A-05）。3つめの「未ソート」に戻れないと、一度並べ替えたあと元の
@@ -4945,12 +5579,12 @@ function setSort(key) {
 /* 並び順の見せ方（A-05）。3つの状態を、矢印・aria-sort・言葉の3つで示す。
    矢印だけだと読み上げに届かず、aria-sort だけだと目で見ている人が
    「押すと次はどうなるのか」を分からないまま押すことになる */
-const SORT_NAME = { recv: "もらった", sent: "おくった" };
+const SORT_NAME = { recv: "もらった", sent: "おくった", link: "つながり" };
 function paintSortState() {
   const state = k => sortKey !== k ? "none" : (sortDir < 0 ? "descending" : "ascending");
   const mark = { none: "⇅", descending: "▼", ascending: "▲" };
   const next = { none: "多い順に並べ替えます", descending: "少ない順に並べ替えます", ascending: "並べ替えをやめて名簿の順に戻します" };
-  for (const k of ["recv", "sent"]) {
+  for (const k of ["recv", "sent", "link"]) {
     const s = state(k);
     const th = document.querySelector(`.tbl th.sortable[data-sort="${k}"]`);
     if (th) th.setAttribute("aria-sort", s);
@@ -4975,12 +5609,22 @@ function periodSum(shape, months) {
     s: shape.monthly.sent.slice(-months).reduce((a, b) => a + b, 0),
   };
 }
-/* いま選んでいる期間の言い方。一覧・詳細ヘッダー・注記で同じ言葉を使い、
-   「今月」「直近1か月」が混ざって別の数に見えることを防ぐ（A-20） */
-function teamPeriodLabel() {
-  const m = parseInt($("teamPeriod").value, 10);
-  return m === 1 ? "直近1か月" : m === 3 ? "直近3か月" : "直近1年";
+/** 前の同じ長さの期間ぶん（比較用） */
+function periodSumPrev(shape, months) {
+  return {
+    r: netSum(shape.monthly.recv, months, months),
+    s: netSum(shape.monthly.sent, months, months),
+  };
 }
+/* いま選んでいる期間の言い方。サマリ・詳細ヘッダー・注記で同じ言葉を使い、
+   「今月」「直近1か月」が混ざって別の数に見えることを防ぐ（A-20）。
+   1か月は外した（イシュー#27）：当月は集計中で、組み合わせごとの通数が
+   ほとんど0になり、関係の図が形にならないため */
+const TEAM_PERIODS = { 3: "直近3か月", 6: "直近6か月", 12: "直近1年" };
+const teamMonths = () => parseInt($("teamPeriod").value, 10) || 3;
+function teamPeriodLabel() { return TEAM_PERIODS[teamMonths()] || "直近3か月"; }
+/** 「3か月」「1年」のように、期間の長さだけを言うとき */
+function teamSpanLabel() { return teamPeriodLabel().replace("直近", ""); }
 function sparkline(shape, w = 130, h = 34) {
   const hist = slice(shape.monthly, 6);
   const max = Math.max(...hist.recv, ...hist.sent) || 1;
@@ -5005,33 +5649,37 @@ function sparkline(shape, w = 130, h = 34) {
 }
 function renderMembers() {
   /* 読み込めていないときは表の代わりに状態を描く（イシュー#12）。
-     数の基準の注記も消す。数が出ていないのに「数字は直近1か月の…」だけ
+     数の基準の注記も消す。数が出ていないのに「数字は直近3か月の…」だけ
      残ると、読めない数について説明していることになる */
   if (screenState($("memberRows"), "rows", renderMembers)) {
     $("teamBasis").textContent = ""; $("sortState").textContent = ""; return;
   }
-  const months = parseInt($("teamPeriod").value, 10);
+  const months = teamMonths();
   const q = $("teamSearch").value.trim();
   const alertOnly = $("alertOnly").checked;
-  let rows = MEMBERS.map((m, i) => ({ m, i, ...periodSum(m.shape, months) }))
-    .filter(x => (!q || x.m.name.includes(q)) && (!alertOnly || x.m.alert));
+  let rows = MEMBERS.map((m, i) => ({
+    m, i, ...periodSum(m.shape, months),
+    link: netNow ? netNow.by[m.key].partners.size : 0,
+  })).filter(x => (!q || x.m.name.includes(q)) && (!alertOnly || x.m.alert));
   if (sortKey === "recv") rows.sort((a, b) => (a.r - b.r) * sortDir);
   if (sortKey === "sent") rows.sort((a, b) => (a.s - b.s) * sortDir);
+  if (sortKey === "link") rows.sort((a, b) => (a.link - b.link) * sortDir);
   paintSortState();
   /* 何の数か・どのものさしかを書く（A-47）。スパークラインは行ごとに縦の目盛が違う。
      いちばん新しい月がまだ途中だということも書く（A-07）。書かないと、
      全員の推移がそろって落ちて見え、チーム全体が減っていると読まれてしまう */
   $("teamBasis").textContent =
-    `数字は${teamPeriodLabel()}（${SERIES_END.y}年${SERIES_END.m}月まで）に届いた／おくった通数です。`
-    + `${SERIES_END.m}月は集計中で、月の途中までの数が入っています（推移の右端の破線の区間）。`
-    + "推移は直近6か月の形で、縦の目盛は行ごとに違います（行の中での増減を見るためのもので、行どうしの高さは比べられません）。";
+    `この画面の数字は${teamPeriodLabel()}（${SERIES_END.y}年${SERIES_END.m}月まで）に届いた／おくった通数です。`
+    + `${SERIES_END.m}月は集計中で、月の途中までの数が入っています。`
+    + "「つながり」は、チームの中でありがとうをやり取りした相手の人数です（チーム外とのやり取りは入りません）。";
   $("memberRows").innerHTML = rows.map(x => `
     <tr class="clickable" tabindex="0" data-mi="${x.i}">
       <td><div class="mt-name"><div class="ava-s">${x.m.ini}</div><div>${x.m.name}${x.m.alert ? ' <span class="alert-chip">要確認</span>' : ""}<small>${x.m.role}</small></div></div></td>
       <td><span class="mt-num">${x.r}<small>通</small></span></td>
       <td><span class="mt-num" style="color:var(--line-sent)">${x.s}<small>通</small></span></td>
+      <td><span class="mt-num">${x.link}<small>人</small></span></td>
       <td>${sparkline(x.m.shape)}</td>
-    </tr>`).join("") || '<tr><td colspan="4" style="text-align:center;color:var(--stage-ink-soft);">該当するメンバーがいません</td></tr>';
+    </tr>`).join("") || '<tr><td colspan="5" style="text-align:center;color:var(--stage-ink-soft);">該当するメンバーがいません</td></tr>';
   $("memberRows").querySelectorAll("tr[data-mi]").forEach(tr => {
     const open = () => openMember(+tr.dataset.mi);
     tr.addEventListener("click", open);
@@ -5039,26 +5687,146 @@ function renderMembers() {
   });
 }
 
+/* -------------------------------------------------------------------------
+   チーム全体サマリの組み立て
+
+   何をここに置いたか（仮おき。理由はコメントに残す）
+     ① チームの数        …… 期間の見当をつけるため。チーム全体の総量は
+                             「本人には出さない」と決めた話（対応表No.21）で、
+                             上司の画面はその対象外
+     ② 関係のネットワーク図 …… ユーザー指示の目玉
+     ③ 関係の変化         …… 図から読み取ったことを文字にする
+     ④ チームで生まれている場面 …… 何の仕事でありがとうが生まれているか
+     ⑤ チーム全体の推移    …… 誰か1人の減りが本人の変化か観測の変化かを
+                             切り分けるための基準線（signals §3・§4-A）
+     ⑥ 気にかけたいサイン  …… 準備メモに出ているサインへの近道
+     ⑦ メンバーごとに見る  …… メンバー詳細への入口
+   ------------------------------------------------------------------------- */
+let teamChartBuilt = false;
+
+function renderTeamSummary() {
+  const months = teamMonths();
+  netNow = netFlow(months, "now");
+  netPrev = netFlow(months, "prev");
+  netNow.stampKey = months;
+  netPinned = null; netHover = null;
+
+  const label = teamSpanLabel();
+  const recvAll = MEMBERS.reduce((a, m) => a + periodSum(m.shape, months).r, 0);
+  const newPairs = [...netNow.pairs].filter(p => !netPrev.pairs.has(p)).length;
+  const maxPairs = NET_KEYS.length * (NET_KEYS.length - 1) / 2;
+
+  $("teamTiles").innerHTML = `
+    <div class="net-tile"><b>${recvAll}<small>通</small></b><span>${teamPeriodLabel()}にチームへ届いたありがとう</span></div>
+    <div class="net-tile"><b>${netNow.total}<small>通</small></b><span>そのうち、チームの中で交わされたぶん</span></div>
+    <div class="net-tile"><b>${netNow.pairs.size}<small>／${maxPairs}組</small></b><span>やり取りのあった組み合わせ（前の${label}は${netPrev.pairs.size}組）</span></div>
+    <div class="net-tile"><b>${newPairs}<small>組</small></b><span>この${label}に初めてやり取りが生まれた組み合わせ</span></div>`;
+
+  $("netSub").textContent =
+    `${teamPeriodLabel()}に、チームの中でだれからだれへありがとうが届いたかです。`
+    + "おくった側の記録から作っているので、チーム外とのやり取りはこの図に出ません。";
+  $("netChangeSub").textContent = `前の${label}と比べて、関係の見え方が変わったところです。事実と、考えられる読み方を分けて書いています。`;
+
+  netGeomAt = "";
+  netDraw(true);
+  renderNetList();
+  renderNetInsights(label);
+  renderTeamTags();
+  renderTeamSigns();
+
+  if (!teamChartBuilt) { chartWidget("teamChart", TEAM_SHAPE); teamChartBuilt = true; }
+  renderMembers();
+}
+
+/** つながりの一覧。相手の少ない順＝支えが要りそうな人が上に来る */
+function renderNetList() {
+  const rows = NET_KEYS.map(k => netNow.by[k])
+    .sort((a, b) => (a.partners.size - b.partners.size) || (a.in + a.out) - (b.in + b.out));
+  $("netList").innerHTML = rows.map(d => {
+    const list = [...d.partners.values()].sort((x, y) => (y.in + y.out) - (x.in + x.out)).map(p => {
+      const bits = [];
+      if (p.out) bits.push(`おくった${p.out}`);
+      if (p.in) bits.push(`もらった${p.in}`);
+      return `${netNow.by[p.key].name}（${bits.join("・")}）`;
+    });
+    const prev = netPrev.by[d.key].partners.size;
+    const move = prev === d.partners.size ? "前の期間と同じ" : `前の期間は${prev}人`;
+    return `<div class="net-row">
+      <div class="net-row-head"><span class="ava-s">${d.ini}</span>${d.name}
+        <span class="net-cnt">${d.partners.size}人</span></div>
+      <div class="net-row-body">${list.length ? list.join("、") : "チームの中でのやり取りは見えていません"}<br>${move}</div>
+    </div>`;
+  }).join("");
+}
+
+function renderNetInsights(label) {
+  const list = netInsights(label);
+  $("netInsights").innerHTML = list.length ? list.map(x => `
+    <div class="net-ins${x.good ? " is-good" : ""}">
+      <div class="net-ins-kind">${x.kind}</div>
+      <p class="net-ins-fact">${x.fact}</p>
+      <p class="net-ins-read">${x.read}</p>
+      <p class="net-ins-q"><b>1on1で聞いてみたいこと</b>「${x.q}」</p>
+    </div>`).join("")
+    : '<div class="ok-box">前の期間と比べて、目立った変化は見あたりません。</div>';
+}
+
+/** チーム全員ぶんの場面タグを合算する（人ごとの内訳はメンバー詳細で見る） */
+function renderTeamTags() {
+  const sum = new Map();
+  for (const m of MEMBERS) for (const [n, c] of m.shape.tags) sum.set(n, (sum.get(n) || 0) + c);
+  const tags = [...sum].sort((a, b) => b[1] - a[1]).slice(0, 8);
+  $("teamTags").innerHTML = tagBars({ tags }, false);
+}
+
+/** 準備メモにサインが出ているメンバーへの近道 */
+function renderTeamSigns() {
+  const hit = MEMBERS.map((m, i) => ({ m, i })).filter(x => x.m.alert);
+  $("teamSigns").innerHTML = hit.length ? hit.map(x => `
+    <div class="net-sign">
+      <div class="net-sign-name"><span class="ava-s">${x.m.ini}</span>${x.m.name}</div>
+      <div class="net-sign-text">受け取りまたはおくりが前月比50%以上減った月が2か月続いています。断定ではなく、対話のきっかけとしてお使いください。</div>
+      <div class="net-sign-go"><button class="btn" type="button" data-sign="${x.i}">準備メモを見る</button></div>
+    </div>`).join("")
+    : '<div class="ok-box">いま、気にかけたいサインが出ているメンバーはいません。</div>';
+  $("teamSigns").querySelectorAll("[data-sign]").forEach(b =>
+    b.addEventListener("click", () => openMember(+b.dataset.sign)));
+}
+
 /* =========================================================================
    11. 上司：メンバー詳細（S07）／1on1準備メモ（S08）
    ========================================================================= */
 let currentMember = null;
-/* 上司が見るカード（A-19）。押して経緯を読めるが、じぶんのメモ・削除・
-   誤検出報告・お気に入りは持たない。じぶんのメモの欄には代わりに
-   「本人だけのものです。上司・管理者には表示されません」が出る（原則8） */
-const BOSS_OPTS = { clickable: true, memo: false, del: false, fav: false };
+
+/* カードの一覧（アルバム／おくった）は上司ビューから外した（イシュー#27・D-83）。
+   理由は3つ。
+     ① ユーザーの言葉「上司向けの導線は、カードとか画面で見せなくてもいい」
+     ② 1on1で要るのは「引用＋事実＋伝え方例」の3点で、それは準備メモが
+        文章として持っている。カードの拡大詳細（やり取りの流れ）まで開けると、
+        感謝カードの範囲を超えて会話のログを読む道具に近づく
+        （signals-for-1on1 §5「本人の発言内容そのものの提示」の隣）
+     ③ 何を見たかを監査ログで説明しやすくなる（サマリ／メンバー詳細／準備メモの3つ）
+   そのぶん、称賛の材料は「1on1で使えるエピソード」として画面に残している。
+   MEMBER_CARDS / MEMBER_SENT は残す——recountShape がそこから場面タグの
+   通数を作り直しており、消すとカタチの数が推移データと合わなくなるため。 */
 
 function openMember(i) {
   const m = MEMBERS[i];
   currentMember = m;
-  /* 一覧と同じ期間・同じ計算で出す。以前は一覧が期間つき・ここが「今月」で、
+  /* サマリと同じ期間・同じ計算で出す。以前は一覧が期間つき・ここが「今月」で、
      同じ人なのに画面ごとに数が違って見えていた（A-20） */
-  const span = parseInt($("teamPeriod").value, 10);
+  const span = teamMonths();
   const p = periodSum(m.shape, span);
+  const q = periodSumPrev(m.shape, span);
+  const label = teamSpanLabel();
+  const d = netNow ? netNow.by[m.key] : null;
+  const dPrev = netPrev ? netPrev.by[m.key] : null;
+
   $("detailHead").innerHTML = `
     <div class="ava-l">${m.ini}</div>
     <div><h1 class="detail-name">${m.name}</h1>
-    <div class="detail-sub">${m.role} ・ ${teamPeriodLabel()}：もらった ${p.r}通 ／ おくった ${p.s}通（メンバー一覧と同じ期間・同じ数え方です）</div></div>`;
+    <div class="detail-sub">${m.role} ・ ${teamPeriodLabel()}：もらった ${p.r}通 ／ おくった ${p.s}通（チーム全体の画面と同じ期間・同じ数え方です）</div></div>`;
+
   const months = Object.keys(m.reports);
   $("reportList").innerHTML = months.map((mo, j) =>
     `<button class="report-item" data-rep="${mo}">${mo} のレポート<small>${j === 0 ? "最新" : ""}</small></button>`).join("")
@@ -5068,48 +5836,51 @@ function openMember(i) {
   $("detailAlert").innerHTML = m.alert
     ? '<span class="alert-chip">最新レポートに、気にかけたいサインがあります</span><div class="mini-note" style="margin-top:8px;">受け取りまたはおくりが前月比50%以上減った月が2か月続いています。本人には通知していません。</div>'
     : '<div class="mini-note">気にかけたいサインは出ていません。</div>';
-  showMemberSub("album", true);
+
+  /* この期間のようす（チーム外も含む全体の数） */
+  $("memberNums").innerHTML = `
+    <div class="net-kv">
+      <div><b>${p.r}<small>通</small></b><span>もらった（前の${label}は${q.r}通）</span></div>
+      <div><b>${p.s}<small>通</small></b><span>おくった（前の${label}は${q.s}通）</span></div>
+      <div><b>${d ? d.partners.size : 0}<small>人</small></b><span>チームの中でやり取りした相手（前の${label}は${dPrev ? dPrev.partners.size : 0}人）</span></div>
+    </div>
+    <p class="mini-note" style="margin-top:10px;">もらった／おくったはチーム外とのやり取りも含みます。相手の人数はチームの中だけの数です。${SERIES_END.m}月は集計中で、月の途中までの数が入っています。</p>`;
+
+  /* チームの中での関係（相手ごとの内訳。多い順） */
+  const rel = d ? [...d.partners.values()].sort((a, b) => (b.in + b.out) - (a.in + a.out)) : [];
+  const relMax = Math.max(1, ...rel.map(x => Math.max(x.in, x.out)));
+  $("memberRel").innerHTML = rel.length ? `
+    <div class="chart-legend"><span class="lg-recv">もらった</span><span class="lg-sent">おくった</span></div>
+    ${rel.map(x => `
+      <div class="net-bar-row">
+        <span class="net-bar-name">${netNow.by[x.key].name}</span>
+        <span class="net-bar-track">
+          <span class="net-bar is-recv"><i style="width:${Math.round(x.in / relMax * 100)}%"></i></span>
+          <span class="net-bar is-sent"><i style="width:${Math.round(x.out / relMax * 100)}%"></i></span>
+        </span>
+        <span class="net-bar-num">もらった${x.in}・おくった${x.out}</span>
+      </div>`).join("")}`
+    : '<div class="ok-box">この期間、チームの中でのやり取りは見えていません。チーム外の仕事が中心なのかもしれません。1on1で確かめてください。</div>';
+
+  /* 1on1で使えるエピソード（カードそのものは出さない） */
+  const latest = months[0];
+  const r = latest ? m.reports[latest] : null;
+  $("memberEpisodes").innerHTML = (r && r.praises.length)
+    ? r.praises.map(x => `
+        <div class="praise">
+          <div class="praise-quote">「${x.quote}」</div>
+          <div class="praise-from">${x.from} ― ${x.fact}</div>
+          <div class="praise-say"><b>伝え方の例</b>${x.say}</div>
+        </div>`).join("")
+      + `<p class="mini-note">${latest}の準備メモから引用しています。全文は上の「1on1の準備メモ」で読めます。</p>`
+    : '<div class="ok-box">引用できるエピソードは、まだ集まっていません。</div>';
+
   hideAllViews();
   $("viewMember").classList.remove("hidden");
   window.scrollTo({ top: 0 });
-  logAudit("アルバム閲覧", m.name);
-}
-
-/* サブタブごとの、監査ログに残す操作名（A-46）。
-   これまで記録していたのはメンバー詳細を開いた瞬間だけで、そのあと
-   カタチ・おくったへ切り替えても何も残らなかった。監査ログのサンプルには
-   「カタチ閲覧」の行があるので、仕様としては最初から想定されている。
-   誰が・いつ・誰の何を見たかを、実際の操作と1対1で残す */
-const SUB_AUDIT = { album: "アルバム閲覧", shape: "カタチ閲覧", sent: "おくった閲覧" };
-
-function showMemberSub(name, quiet) {
-  document.querySelectorAll("#memberSubTabs .sub-tab").forEach(t => t.classList.toggle("active", t.dataset.s === name));
-  const m = currentMember, el = $("memberSub");
-  /* アルバムの通数は、一覧・詳細ヘッダー・レポートと同じ推移データから作ってある。
-     どの期間ぶんを見ているのかを添える（A-06／A-20／A-47） */
-  const albumInfo = { empty: "member", name: m.name };
-  if (name === "album") {
-    el.innerHTML = `<div class="mini-note">${ALBUM_PERIOD} に届いたぶんです。</div><div class="grid"></div>`;
-    const g = el.querySelector(".grid");
-    /* どのメンバーのカードも、本人と同じように押して経緯を読めるようにする（A-19）。
-       要件F16・画面一覧S05 は拡大詳細を「本人／上司」と定めており、経緯が読めないと
-       1on1の準備という上司ビューの目的そのものが果たせなかった。
-       開けるのは BOSS_OPTS ＝ じぶんのメモ・削除・お気に入りを持たない形で、
-       じぶんのメモの代わりに「本人だけのものです」と書かれた断りが出る（原則8）。
-       開いた記録は openThread の中で監査ログに残る */
-    renderAlbumInto(g, m.key === "yuki" ? DATA.filter(d => !d.isNew) : (MEMBER_CARDS[m.key] || []),
-      BOSS_OPTS, albumInfo);
-  } else if (name === "shape") {
-    el.innerHTML = "<div></div>";
-    renderShapeInto(el.firstChild, m.shape, false);
-  } else {
-    el.innerHTML = `<div class="mini-note">${ALBUM_PERIOD} におくったぶんです。</div><div class="grid"></div>`;
-    const g = el.querySelector(".grid");
-    renderAlbumInto(g, m.key === "yuki" ? SENT : (MEMBER_SENT[m.key] || []),
-      BOSS_OPTS, { empty: "member-sent" });
-  }
-  /* 詳細を開いた1回目は openMember 側で記録しているので、ここでは二重に書かない */
-  if (!quiet && m) logAudit(SUB_AUDIT[name] || "アルバム閲覧", m.name);
+  /* カタチは幅を測ってから描くので、画面を出したあとに描く */
+  renderShapeInto($("memberSub"), m.shape, false);
+  logAudit("メンバー詳細閲覧", m.name);
 }
 
 function openReport(m, month) {
@@ -5533,7 +6304,7 @@ const STATE_DEMO = [
 
 function redrawCurrentScreen() {
   if (ROLE === "admin") showAdmin(currentAdminTab);
-  else if (ROLE === "boss") renderMembers();
+  else if (ROLE === "boss") renderTeamSummary();
   else { applyFilters(); renderSent(); }
 }
 
@@ -5606,9 +6377,21 @@ $("favFilter").addEventListener("change", applyFilters);
 $("albumSort").addEventListener("change", applyFilters);
 $("clearFilter").addEventListener("click", clearAlbumFilter);
 $("btnCsv").addEventListener("click", openCsvDialog);
-$("teamPeriod").addEventListener("change", renderMembers);
+$("teamPeriod").addEventListener("change", renderTeamSummary);
 $("teamSearch").addEventListener("input", renderMembers);
 $("alertOnly").addEventListener("change", renderMembers);
+/* 関係の図は幅が変わったときだけ置き直す（ふだんは一切動かない）。
+   同じ幅で呼ばれたら netDraw の中で何もせずに戻る */
+{
+  let pending = 0;
+  const again = () => {
+    if (ROLE !== "boss" || $("viewTeam").classList.contains("hidden")) return;
+    cancelAnimationFrame(pending);
+    pending = requestAnimationFrame(() => netDraw(false));
+  };
+  window.addEventListener("resize", again);
+  if ("ResizeObserver" in window) new ResizeObserver(again).observe($("netStage"));
+}
 /* 並び替えは th ではなく中のボタンに付ける。ボタンなら Tab で止まり、
    Enter / Space でも押せる（A-05） */
 document.querySelectorAll(".tbl .th-sort").forEach(b =>
@@ -5616,9 +6399,10 @@ document.querySelectorAll(".tbl .th-sort").forEach(b =>
 paintSortState();
 $("backToTeam").addEventListener("click", () => {
   hideAllViews(); $("viewTeam").classList.remove("hidden");
+  /* 戻ったときに図の幅が変わっていることがある（詳細のほうが縦に長く、
+     スクロールバーの有無で幅が数px違う）ので、必要なら置き直す */
+  netDraw(false);
 });
-document.querySelectorAll("#memberSubTabs .sub-tab").forEach(t =>
-  t.addEventListener("click", () => showMemberSub(t.dataset.s)));
 document.querySelectorAll("#adminTabs .sub-tab").forEach(t =>
   t.addEventListener("click", () => showAdmin(t.dataset.a)));
 $("demoBtn").addEventListener("click", playDemo);

@@ -154,23 +154,31 @@ async function visitAll(p, collect) {
   await p.evaluate(() => document.querySelectorAll('.overlay').forEach(o => o.remove()));
   await wait(300);
 
-  // ---- 上司：一覧とメンバー詳細（3つのサブタブ）と1on1準備メモ ----
+  // ---- 上司：全体サマリとメンバー詳細と1on1準備メモ ----
   try {
     await p.locator('.seg button', { hasText: '上司' }).first().click({ timeout: 3000 });
-    await wait(900);
-    await take('上司一覧');
-    /* 行は上司の一覧（#viewTeam）のものを指す。
-       `.tbl tbody tr` だけだと、先に描かれている「表で見る」の隠れた表
-       （#viewShape の .chart-table）の行に当たり、
-       「element is not visible」でメンバー詳細まで一度も進めていなかった。
-       同じ理由で 1on1準備メモも「1on1」という文字のボタンが無いため開けていない
+    await wait(1000);
+    await take('上司サマリ');
+    /* 関係の図で、玉を1つ選んだ状態も測る（選ぶと線の濃さと説明文が変わる）。
+       ここを通らないと、選択中だけ出る文字と薄まった玉を一度も見ない */
+    try {
+      await p.locator('#netNodes .net-node').first().click({ timeout: 2500 });
+      await wait(500);
+      await take('関係の図（玉を選んだ状態）');
+      await p.locator('#netNodes .net-node').first().click({ timeout: 2500 });
+      await wait(300);
+    } catch { out.__missed.push('関係の図の玉'); }
+    /* 行は**メンバー一覧の表**（#memberRows）のものを指す。
+       `.tbl tbody tr` だけだと、読み上げ用に視覚的に隠してある推移の表
+       （.chart-table。イシュー#27 で上司サマリにも1つ増えた）の行に当たり、
+       「element is not visible」でメンバー詳細まで一度も進めない。
+       同じ理由で 1on1準備メモも「1on1」という文字のボタンが無いため開けない
        （開く操作は月次レポートの行＝.report-item） */
-    await p.locator('#viewTeam .tbl tbody tr').first().click({ timeout: 3000 });
+    await p.locator('#memberRows tr[data-mi]').first().click({ timeout: 3000 });
     await wait(900);
     await take('メンバー詳細');
-    for (const sub of await p.locator('.sub-tab').all()) {
-      try { await sub.click({ timeout: 2000 }); await wait(700); await take('メンバー詳細サブ'); } catch {}
-    }
+    /* メンバー詳細のサブタブ（アルバム／カタチ／おくった）は
+       イシュー#27 で無くなった。カタチはタブを介さず直に出ている */
     try {
       await p.locator('.report-item').first().click({ timeout: 2500 });
       await wait(800);
