@@ -1358,12 +1358,8 @@
     <!-- 絞り込みの状態は select とチェックが持つ。ここは解除という「動作」だけ（A-41） -->
     <button class="btn clear-filter" id="clearFilter">絞り込みを解除</button>
     <button class="btn" id="btnCsv">CSVで書き出す</button>
-    <button class="btn" id="btnYear">年間アルバム</button>
-    <!-- 静かな入口（イシュー#10）。帯を常設しないぶん、見たい人が自分から
-         見に行ける場所をここに1つ置く。「1年前の今日」は同じ日付に届いた
-         ありがとうがある日だけ出て、無い日は何も出さない -->
-    <button type="button" class="quiet-link" id="btnPastMs">これまでの節目</button>
-    <button type="button" class="quiet-link hidden" id="btnYearAgo">1年前の今日</button>
+    <!-- 「年間アルバム」「これまでの節目」「1年前の今日」はユーザー判断で取りやめた
+         （イシュー#22）。節目そのものは帯として一度だけ静かに降りる形で残る -->
     <!-- 「新しい順」は以前ただの div で、押せそうに見えて押せなかった（A-40）。
          押せない見た目に落とすのではなく、期待どおり押せるようにした。
          並び替えるのは時系列だけで、人どうしの順位づけではないため原則6に反しない。 -->
@@ -3015,9 +3011,6 @@ function renderMilestones() {
   host.classList.remove("is-in");
   clearTimeout(msTimer);
 
-  /* 入口はいつでも押せるようにしておく（節目が1つも無い人には出さない） */
-  $("btnPastMs").classList.toggle("hidden", MILESTONES.length === 0);
-
   const seen = msSeen();
   const next = msNewestFirst().find(m => !seen.has(m.id));
   if (!next) return;
@@ -3053,18 +3046,6 @@ function renderMilestones() {
   el.addEventListener("focusout", hold);
 }
 
-/** 静かな入口：これまでの節目を、新しい順に日付とともに並べるだけ */
-function openPastMilestones() {
-  const list = msNewestFirst();
-  openDialog({
-    title: "これまでの節目",
-    sub: `${list.length}件`,
-    cls: "narrow",
-    body: list.length ? `<div class="ms-log">${list.map(m => `
-      <div class="ms">${msHTML(m)}<span class="ms-log-date">${m.on}</span></div>`).join("")}</div>`
-      : '<p class="ms-log-none">まだ節目はありません。ありがとうが積み重なると、ここに並びます。</p>',
-  });
-}
 
 /* -------------------------------------------------------------------------
    「1年前の今日」への静かな導線（イシュー#10）
@@ -3077,39 +3058,6 @@ function openPastMilestones() {
    ?today=2026-09-15 のように渡す（画面には何も足さない）。
    ------------------------------------------------------------------------- */
 /** カードの年月日。"2026年 6月" ＋ "6/11 10:08" から組む（「たった今」等は対象外） */
-function cardYMD(d) {
-  const y = /(\d{4})年/.exec(d.month || "");
-  const md = /^\s*(\d{1,2})\/(\d{1,2})/.exec(d.time || "");
-  return (y && md) ? { y: +y[1], m: +md[1], d: +md[2] } : null;
-}
-function refToday() {
-  const q = new URLSearchParams(location.search).get("today");
-  const t = q && /^\d{4}-\d{1,2}-\d{1,2}$/.test(q) ? new Date(q.replace(/-/g, "/")) : new Date();
-  return isNaN(t) ? new Date() : t;
-}
-function yearAgoCards() {
-  const t = refToday(), y = t.getFullYear() - 1, m = t.getMonth() + 1, day = t.getDate();
-  return DATA.filter(d => { const c = cardYMD(d); return c && c.y === y && c.m === m && c.d === day; });
-}
-function initYearAgo() {
-  const btn = $("btnYearAgo");
-  const list = yearAgoCards();
-  btn.classList.toggle("hidden", list.length === 0);
-  if (!list.length) return;
-  const t = refToday();
-  btn.onclick = () => openDialog({
-    title: "1年前の今日",
-    sub: `${t.getFullYear() - 1}年${t.getMonth() + 1}月${t.getDate()}日に届いたぶん`,
-    cls: "narrow",
-    body: list.map(d => `<div class="ago-row">
-        <div class="ava-s">${esc(d.ini)}</div>
-        <div>
-          <div class="ago-body">${esc(d.msg)}</div>
-          <div class="ago-meta">${esc(d.who)} ・ ${esc(d.ch)} ・ ${esc(d.time)}</div>
-        </div>
-      </div>`).join(""),
-  });
-}
 
 /* =========================================================================
    4. 拡大詳細（S05）とダイアログ
@@ -3761,30 +3709,6 @@ Result     ${esc(t2.quote)}</pre></div>`,
   });
 }
 
-function openAnnualDialog() {
-  const total = ANNUAL.months.reduce((a, b) => a + b[1], 0);
-  openDialog({
-    title: "年間アルバム", sub: "1年分を1冊にまとめて、PDFで持ち出せます",
-    cls: "wide",
-    body: `<div class="book">
-        <div class="book-cover">
-          <!-- PDFの表紙の見立て。画面の見出し階層には入れない（A-30） -->
-          <p class="book-title">${ANNUAL.title}</p>
-          <p>${ANNUAL.sub}　／　全 ${total} 通</p>
-        </div>
-        <div class="book-months">
-          ${ANNUAL.months.map(([m, c]) => `<div class="bm">${m}<b>${c}</b>通</div>`).join("")}
-        </div>
-      </div>
-      <p class="dlg-text" style="margin-top:12px;">月ごとのページに、その月に届いた言葉と送り主が並びます。じぶんのメモは含めません。</p>`,
-    /* PDFは生成に数秒かかる処理。押した直後に無反応だと必ず二度押しが起きる */
-    actions: [{ label: "閉じる" }, {
-      label: "PDFで書き出す", primary: true, task: true, busy: "PDFを作っています…", ms: 2400,
-      failHead: "年間アルバムを書き出せませんでした", failWhy: "PDFを作っている途中で処理が止まったためです。",
-      run: () => mockToast("年間アルバムを書き出しました"),
-    }],
-  });
-}
 
 /* =========================================================================
    7. 推移チャート（期間タブ・横スクロール・なぞるとクロスヘア＋数値）
@@ -4847,7 +4771,6 @@ initStateDemo();
 initTagFilter();
 applyFilters();
 renderMilestones();
-initYearAgo();
 renderSent();
 renderShapeInto($("myShape"), MY_SHAPE, true);
 
@@ -4862,8 +4785,6 @@ $("favFilter").addEventListener("change", applyFilters);
 $("albumSort").addEventListener("change", applyFilters);
 $("clearFilter").addEventListener("click", clearAlbumFilter);
 $("btnCsv").addEventListener("click", openCsvDialog);
-$("btnYear").addEventListener("click", openAnnualDialog);
-$("btnPastMs").addEventListener("click", openPastMilestones);
 $("teamPeriod").addEventListener("change", renderMembers);
 $("teamSearch").addEventListener("input", renderMembers);
 $("alertOnly").addEventListener("change", renderMembers);
