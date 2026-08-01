@@ -19,6 +19,7 @@
  */
 import { chromium } from '/opt/node22/lib/node_modules/playwright/index.mjs';
 import path from 'node:path';
+import { readFile } from 'node:fs/promises';
 
 const FILE = process.argv[2] || '/home/user/OBRIER/prototype/obrier-prototype-v5.html';
 const URL = 'file://' + path.resolve(FILE);
@@ -381,24 +382,34 @@ for (const [w, h, label, need] of [[1280, 900, 'PC', 24], [390, 844, 'スマホ'
 
 /* ---- スタイルシートが最後まで読めているか --------------------------
    マージで規則の閉じ括弧を1つ落としたことがあり、そこから後ろのCSSが
-   丸ごと無効になっていた（465規則までで打ち切られ、しゃぼん玉と
-   日付のかすれが一切効いていなかった）。見た目は「なんとなく違う」だけで、
+   丸ごと無効になっていた（465規則で打ち切られ、しゃぼん玉と日付のかすれが
+   一切効いていなかった）。見た目は「なんとなく違う」だけで、
    他の項目は全部○のまま通ってしまう。
-   規則の数と、最後に読めた規則を見て、途中で切れていないか確かめる */
+
+   判定は2本立てにする。
+     ① 元の文字列で括弧の数が合っているか（原因そのものを見る）
+     ② ブラウザが読んだ規則の数（結果を見る）
+   ①だけだと入れ子の取り違えを見逃し、②だけだと「何件なら正しいのか」を
+   別に持たねばならない。①が本命で、②は目安として出す */
 {
+  const src = await readFile(FILE, 'utf8');
+  const style = src.slice(src.indexOf('<style>') + 7, src.indexOf('</style>'));
+  // コメントを外してから数える（コメントの中の括弧は数に入れない）
+  const bare = style.replace(/\/\*[\s\S]*?\*\//g, '');
+  const open = (bare.match(/\{/g) || []).length;
+  const close = (bare.match(/\}/g) || []).length;
+
   const p = await browser.newPage({ viewport: { width: 1280, height: 900 } });
   await p.goto(URL);
   await p.waitForTimeout(1800);
-  const css = await p.evaluate(() => {
+  const n = await p.evaluate(() => {
     const sh = [...document.styleSheets].find(s => !s.href);
-    if (!sh) return { n: 0, last: 'スタイルシートが無い' };
-    const rules = [...sh.cssRules];
-    const last = rules[rules.length - 1];
-    return { n: rules.length, last: (last.selectorText || last.conditionText || last.cssText || '').slice(0, 40) };
+    return sh ? sh.cssRules.length : 0;
   });
-  // 末尾は必ず「動きを減らす設定」の @media で終わる作りにしてある
-  check('スタイルシートが最後まで読めている', /prefers-reduced-motion/.test(css.last),
-    `規則${css.n}件・最後=${css.last}`);
+  check('スタイルシートが最後まで読めている（括弧が閉じている）',
+    open === close && n > 0,
+    open === close ? `規則${n}件・括弧 ${open}対${close}`
+                   : `括弧が合っていない：開き${open} 閉じ${close}（差${open - close}）。規則${n}件で打ち切られている`);
   await p.close();
 }
 
