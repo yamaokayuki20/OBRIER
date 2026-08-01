@@ -373,6 +373,29 @@ for (const [w, h, label, need] of [[1280, 900, 'PC', 24], [390, 844, 'スマホ'
   await p.close();
 }
 
+/* ---- スタイルシートが最後まで読めているか --------------------------
+   マージで規則の閉じ括弧を1つ落としたことがあり、そこから後ろのCSSが
+   丸ごと無効になっていた（465規則までで打ち切られ、しゃぼん玉と
+   日付のかすれが一切効いていなかった）。見た目は「なんとなく違う」だけで、
+   他の項目は全部○のまま通ってしまう。
+   規則の数と、最後に読めた規則を見て、途中で切れていないか確かめる */
+{
+  const p = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+  await p.goto(URL);
+  await p.waitForTimeout(1800);
+  const css = await p.evaluate(() => {
+    const sh = [...document.styleSheets].find(s => !s.href);
+    if (!sh) return { n: 0, last: 'スタイルシートが無い' };
+    const rules = [...sh.cssRules];
+    const last = rules[rules.length - 1];
+    return { n: rules.length, last: (last.selectorText || last.conditionText || last.cssText || '').slice(0, 40) };
+  });
+  // 末尾は必ず「動きを減らす設定」の @media で終わる作りにしてある
+  check('スタイルシートが最後まで読めている', /prefers-reduced-motion/.test(css.last),
+    `規則${css.n}件・最後=${css.last}`);
+  await p.close();
+}
+
 /* ---- 閉じたら焦点が戻るか（全てのダイアログで） ----------------------
    拡大詳細だけ見ていて、他の6種のダイアログで焦点が body に落ちているのを
    見逃していた。開く口が違えば戻り方も別の道を通るので、全部通す。
