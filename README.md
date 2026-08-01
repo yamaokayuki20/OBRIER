@@ -29,12 +29,32 @@ Slack / Teams のやり取りから感謝の言葉を LLM で自動検出し、�
 | [`docs/basic-design.md`](docs/basic-design.md) | 基本設計書 v1.2（システム構成・画面設計・デザイン方針・データ設計・外部連携・権限） |
 | [`docs/detailed-design.md`](docs/detailed-design.md) | 詳細設計書 v1.2（画面詳細・遷移仕様・API・DB・検出ロジック・バッチ・通知文言） |
 | [`docs/decision-log.md`](docs/decision-log.md) | 改善提案対応表。意思決定の記録。**「対応しない」と決めた機能を勝手に実装しないこと** |
+| [`docs/uiux-references.md`](docs/uiux-references.md) | UI/UX の参照基準（SmartHR / freee / マネーフォワード / デジタル庁）と、遊び心の事例集（採否の判断つき）。**参照資料であって決定ではない** |
+| [`docs/uiux-audit.md`](docs/uiux-audit.md) | UI/UX 監査（1回目・指摘48件）。監査基準の定義を含む |
+| [`docs/uiux-audit-2.md`](docs/uiux-audit-2.md) ／ [`-3.md`](docs/uiux-audit-3.md) ／ [`-4.md`](docs/uiux-audit-4.md) | 再監査。リリース可否の判定 |
 | [`docs/source/`](docs/source) | 変換元の .docx / .xlsx 原本（参照用） |
+| [`tools/check.mjs`](tools/check.mjs) | 回帰検査（15項目）。積み上げた保証が壊れていないかを実際にブラウザで操作して確かめる |
+| [`tools/uiux-gate.mjs`](tools/uiux-gate.mjs) | UI/UX 合否ゲート（19項目）。コントラスト・当たり判定・キーボード・モーダルの作法・見出し階層などを機械で判定する |
 | [`CLAUDE.md`](CLAUDE.md) | Claude Code 向けの実装引き継ぎドキュメント |
 
 `docs/` 配下の Markdown は `docs/source/` の Office ファイルから変換したもの。**内容の正はこの Markdown 側**とし、以後の更新は Markdown に対して行う。
 
 プロトタイプは外部依存のない単一 HTML ファイル。ブラウザで直接開けば動く。
+
+## 検査
+
+```bash
+node tools/check.mjs      # 回帰15項目
+node tools/uiux-gate.mjs  # UI/UX 19項目
+```
+
+どちらも実際にブラウザで開いて操作し、**描画結果から**判定する（CSSの記述は見ない）。終了コード 0 が合格。
+
+判定器そのものが間違っていた例がこれまでに4件ある——ダイアログの中を巡回していない／巡回の入口が隠れた表の行に当たって上司画面へ入れていない／焦点の復帰を1つの経路でしか測っていない／「開ける」を要素の**数**で判定していて裏を向いて何も描かれていない状態を通す。いずれも合格を出す側ではなく、**それを疑う側（監査人・実装者）が見つけた**。合格の数字だけを根拠にしないこと。
+
+### プロトタイプに埋め込んだ自己診断
+
+ヘッダー右端のビルド表示（`rev.NN`）を押すと、詳細を閉じるときのなめらかさを画面自身が測る。判定は**着地ずれ**（戻り切った最後のコマで、カードが元の位置からどれだけ離れているか。2px以下で合格）で行う。コマ落ちが1つも無くても跳ねることがあり、フレーム時間の計測では検出できないため。
 
 ## 絶対に守る設計原則
 
