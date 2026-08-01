@@ -1496,61 +1496,80 @@
   }
 
   /* ========================================================================
-     ---- ありがとうの広がり（イシュー#20） ----
+     ---- ありがとうの広がり（イシュー#20 → #25 で作り直し） ----
 
      送り主ごとの通数を、しゃぼん玉の大きさで表す。
+     #25 でユーザーの指示により、部署の区切りをやめて**ひとつの場**にまとめ、
+     色を付け、大きいものが中央付近・小さいものがその周りを漂う散らし方にした。
 
-     大きさの決め方：面積が通数に比例するように、直径は平方根で決める
-     （円は直径をそのまま通数に比例させると、目には差が誇張されて見える）。
-     ものさしはパネル全体でひとつ——いちばん多い人を 1 とした比 --k（0〜1）を
-     JS 側で焼き込み、直径は
+     ---- 大きさ ----
+     面積が通数に比例するように、直径は平方根で決める（円は直径をそのまま
+     通数に比例させると、目には差が誇張されて見える）。ものさしは場でひとつ——
+     いちばん多い人を 1 とした比 --k（0〜1）を JS 側で焼き込み、
        --d = 下限 + （上限 - 下限）× --k
-     で引く。下限を持たせるのは、いちばん小さいしゃぼん玉でも指で押せる
-     44px を割らないため（uiux-gate の当たり判定・スマホ44px／PC24px）。
+     で引く。下限52pxは、いちばん小さい玉でも指で押せる44pxを割らないため。
      上限だけを @media で切り替えれば、描き直さずに幅なりの大きさになる。
 
      **順位ではない**：数字の順位（1位・2位）も「最多」「トップ」といった語も
-     出さない。差は大きさと並びだけで表す（設計原則6 非ランキング）。
+     出さない。差は大きさと置き場だけで表す（設計原則6 非ランキング）。
 
-     色は人ごとに変えない（設計原則3。アバターが濃紺1色なのと同じ理由で、
-     場面タグの色と競合させない）。しゃぼん玉はすべて同じ薄い青で、
-     光のたまりと縁の明暗だけで球に見せる。
+     ---- 色（#25 で単色から変更） ----
+     6色を順に配る。色は**飾りであって意味を持たない**（人ごとの分類でも、
+     部署でも、量の段階でもない）ので、凡例は置かない。
+     場面タグの代表7色（--c-*）とはぶつけない——同じ色が別の意味で出ると、
+     タグの色と人の色が混ざって読めなくなる。タグは「濃い色の小さなピル」、
+     しゃぼん玉は「彩度8%前後・明度94%前後の大きな淡い球」で、
+     彩度と面積の両方で別の系統にしてある。
+     地色（--sc1）は単色で置く：この色の上で文字のコントラストを測れるように
+     するため（重ねる階調は中央ほど明るくなる向きで、実際の比はこれより高い）。
+     6色とも濃紺 #3A4A66 に対して 7.6:1 以上。
 
-     動きについて（decision-log D-25 の轍を踏まないための約束）：
+     ---- 置き方 ----
+     場の中心から外へ向かう渦をたどり、**大きいものから順に**先に置く。
+     そのため大きいものが中央付近に集まり、小さいものが外へ押し出される。
+     同心円に見えないよう、渦に入る角度と半径のゆらぎを玉ごとに散らしてある。
+     計算は JS（packSpread）で、場の幅が変わったときだけやり直す。
+     詰め切れなかったとき・幅が測れないとき（画面が隠れている間）は
+     .is-packed が付かず、折り返しの並びのまま出る（重ならない安全側）。
+
+     ---- 動き（decision-log D-25 の轍を踏まないための約束） ----
        ・動かすのは transform だけ。幅・位置・影は毎コマ触らない
        ・浮くのは「画面に入っている間」だけ（IntersectionObserver）。
          カタチ画面は display:none で隠れるので、他の画面では層も動きも消える
        ・will-change は書かない（下の .is-floating の節に実測の理由）
-       ・触れている間は止める（animation-play-state: paused）。
-         読んでいるものが動き続けないし、そのぶん動く玉も減る
+       ・触れている間は止める（animation-play-state: paused）
        ・prefers-reduced-motion: reduce では浮かせない（下の @media）
 
-     名前について：この節の名前はすべて `spread-` で始める。
-     最初は `.bub` / `.bub-name` と付けていたが、この2つは**拡大詳細の
-     「やり取りの流れ」の吹き出しが先に使っていた名前**で、後から書いた
-     こちらの指定が向こうに当たっていた（吹き出しが `flex:1 1 0%` から
-     `0 0 auto` になって行幅467pxに対し最大597pxまではみ出し、話し手の名前が
-     13.5px→12px・左寄せ→中央寄せ・幅78%止まりになっていた）。
-     しかも**どちらが勝つかは節を並べた順で決まる**ので、取り込みのしかたで
-     壊れ方が変わる（上司のメンバー詳細でだけ 60x22・4x4 になる、など）。
-     名前がぶつかっている限り直し切れないので、名前のほうを分けた。
+     ---- 名前について ----
+     この節の名前はすべて `spread-` で始める。最初は `.bub` / `.bub-name` と
+     付けていたが、この2つは**拡大詳細の「やり取りの流れ」の吹き出しが
+     先に使っていた名前**で、後から書いたこちらの指定が向こうに当たっていた
+     （吹き出しが `flex:1 1 0%` から `0 0 auto` になって行幅467pxに対し
+     最大597pxまではみ出し、話し手の名前が 13.5px→12px・左寄せ→中央寄せに
+     なっていた）。しかも**どちらが勝つかは節を並べた順で決まる**ので、
+     取り込みのしかたで壊れ方が変わる。名前のほうを分けて片づけた。
      ======================================================================== */
   .spread-field {
     position: relative;
-    display: flex; flex-wrap: wrap; align-items: center;
+    /* 詰め切れるまでの控え。ここに落ちても重ならない（折り返しの並び） */
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
     gap: 12px;
-    /* 上の余白は、いちばん上の段のしゃぼん玉に添える札の居場所 */
-    padding: 34px 2px 4px;
-    --sp-min: 46px; --sp-max: 104px;
+    margin-top: 14px;
+    --sp-min: 52px; --sp-max: 104px;
   }
+  /* 詰め終わったら、玉は計算した場所へ置く */
+  .spread-field.is-packed { display: block; }
+  .spread-field.is-packed .spread-bub { position: absolute; }
+
   .spread-bub {
     /* --k は JS が1つずつ焼き込むが、既定値をここに置いておく。
-       万一 --k が届かなくても calc() が壊れず、直径は下限（46px）になる。
+       万一 --k が届かなくても calc() が壊れず、直径は下限（52px）になる。
        既定を持たせないと計算が無効になって width/height が auto に落ち、
        名前の無い玉が 4x4、名前のある玉が 60x22 まで潰れて
        当たり判定（スマホ44px／PC24px）を割ってしまう */
     --k: 0;
-    --d: calc(var(--sp-min, 46px) + (var(--sp-max, 104px) - var(--sp-min, 46px)) * var(--k));
+    --sc1: #e8eefb; --sc2: #cfdcf3;
+    --d: calc(var(--sp-min, 52px) + (var(--sp-max, 104px) - var(--sp-min, 52px)) * var(--k));
     position: relative; flex: none;
     width: var(--d); height: var(--d);
     padding: 0; border: none; background: none;
@@ -1560,20 +1579,14 @@
   .spread-ball {
     position: absolute; inset: 0; border-radius: 50%;
     display: grid; place-items: center;
-    /* 単色を先に置く：この地色の上で文字のコントラストを測れるようにするため
-       （上に重ねる階調は、中央ほど明るくなる向きにしてある） */
-    background-color: #eaf0f8;
-    /* いちばん下が球の階調。その上に、しゃぼん玉の膜の色を2つだけ、ごく薄く重ねる。
-       色は既にこの画面が持っているもの（--accent の飴色と --c-coord の水色）から
-       borrow していて、新しい色は増やしていない。人ごとに色は変えない（設計原則3） */
-    background-image:
-      radial-gradient(circle at 74% 78%, rgba(201, 138, 61, .16) 0%, rgba(201, 138, 61, 0) 46%),
-      radial-gradient(circle at 24% 82%, rgba(85, 183, 191, .16) 0%, rgba(85, 183, 191, 0) 44%),
-      radial-gradient(circle at 34% 26%,
-        #ffffff 0%, #f8fbff 30%, #e9f1fa 66%, #d8e4f3 100%);
-    border: 1px solid rgba(58, 74, 102, .20);
+    background-color: var(--sc1);
+    background-image: radial-gradient(circle at 34% 27%,
+      #ffffff 0%,
+      color-mix(in srgb, var(--sc1) 45%, #fff) 30%,
+      var(--sc1) 66%, var(--sc2) 100%);
+    border: 1px solid color-mix(in srgb, var(--sc2) 72%, #6a7690);
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .75),
-                inset 0 -7px 14px rgba(58, 74, 102, .09),
+                inset 0 -7px 14px rgba(58, 74, 102, .08),
                 inset 4px 6px 12px rgba(255, 255, 255, .9),
                 0 5px 12px rgba(58, 74, 102, .13);
     transition: transform .18s ease, box-shadow .18s ease;
@@ -1587,20 +1600,25 @@
   }
   .spread-name {
     position: relative;
-    max-width: 78%; text-align: center;
-    font-size: var(--fs-note); font-weight: 700; line-height: 1.3;
-    letter-spacing: .02em;
+    max-width: 86%; text-align: center;
+    font-size: var(--fs-note); font-weight: 700; line-height: 1.25;
+    letter-spacing: 0;
     /* 折り返しは、折ってよいところだけ。anywhere にすると
        「YUKIYAMAさん」が「YUKIYAM／Aさん」と欧文の途中で切れてしまう。
        既定のままなら、欧文と和文の境（YUKIYAMA／さん）で折れる */
     overflow-wrap: normal; word-break: normal;
   }
-  .spread-bub:hover .spread-ball, .spread-bub:focus-visible .spread-ball, .spread-bub.is-open .spread-ball {
-    transform: scale(1.06);
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .75),
-                inset 0 -7px 14px rgba(58, 74, 102, .09),
+  /* 触れると、ちょっとだけ大きくなる（#25-5）。
+     ホバーだけにせず、キーボードの焦点・指で押したときも同じ見え方にする。
+     8%（直径104pxで片側4.2px）は、玉どうしの隙間14pxの内側に収まる量 */
+  .spread-bub:hover .spread-ball,
+  .spread-bub:focus-visible .spread-ball,
+  .spread-bub.is-open .spread-ball {
+    transform: scale(1.08);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .8),
+                inset 0 -7px 14px rgba(58, 74, 102, .08),
                 inset 4px 6px 12px rgba(255, 255, 255, .9),
-                0 9px 20px rgba(58, 74, 102, .22);
+                0 10px 22px rgba(58, 74, 102, .24);
   }
   .spread-bub:hover, .spread-bub:focus-visible, .spread-bub.is-open { z-index: 3; }
 
@@ -1619,13 +1637,14 @@
   .spread-tip span { margin-left: 7px; color: #cdd6e8; font-variant-numeric: tabular-nums; }
 
   @media (max-width: 640px) {
-    .spread-field { --sp-max: 92px; gap: 11px; }
+    .spread-field { --sp-max: 92px; }
   }
 
   /* ---- ふわふわ浮く ----
-     上下 6px までの往復だけ（段の間隔 12px より小さいので、
-     どの幅でもしゃぼん玉どうしが重ならない）。回さない・跳ねない・弾まない。
-     周期と位相は玉ごとに散らして、そろって動いて見えないようにする */
+     上下 6px までの往復だけ（玉どうしの隙間14pxより小さいので、
+     浮きと拡大（片側4.2px）が重なっても触れ合わない）。
+     回さない・跳ねない・弾まない。周期と位相は玉ごとに散らして、
+     そろって動いて見えないようにする */
   @keyframes spread-float {
     0%   { transform: translate(0, 0); }
     22%  { transform: translate(1.3px, -4.2px); }
@@ -1648,6 +1667,11 @@
   @media (prefers-reduced-motion: reduce) {
     .spread-field.is-floating .spread-bub { animation: none; }
     .spread-ball, .spread-tip { transition: none; }
+    /* 触れたときの合図は残すが、動きは最小限にする（8% → 3%）。
+       止まっている画面で急に8%跳ねるより、輪郭が少し変わるだけにする */
+    .spread-bub:hover .spread-ball,
+    .spread-bub:focus-visible .spread-ball,
+    .spread-bub.is-open .spread-ball { transform: scale(1.03); }
   }
 
   /* ========================================================================
@@ -4535,14 +4559,32 @@ function tagBars(S, allowJump) {
 }
 
 /* =========================================================================
-   ありがとうの広がり（イシュー#20）
+   ありがとうの広がり（イシュー#20 → #25 で作り直し）
    送り主ごとの通数を、しゃぼん玉の大きさで表す。
+   部署の区切りは持たず、ひとつの場に全員を置く。
    ========================================================================= */
 
 /* 名前を玉の中に入れる閾値。いちばん多い人を 1 としたときの比（--k）で決める。
    px で決めないのは、上限の直径が幅（@media）で変わるため——px を境にすると
-   同じ人がPCでは名前つき・スマホでは名前なし、と入れ替わってしまう */
-const BUB_NAME_K = 0.70;
+   同じ人がPCでは名前つき・スマホでは名前なし、と入れ替わってしまう。
+   #25 で 0.70 → 0.30 に下げた（「もうちょっと名前を入れる。
+   極端に小さいやつは名前つけなくていい」）。0.30 は直径でいうと
+   PC 67.6px／スマホ 64.0px にあたり、4文字の名前が1行で収まる下限 */
+const BUB_NAME_K = 0.30;
+
+/* しゃぼん玉の色（#25-1）。順に配るだけで、色は飾りであって意味を持たない
+   （人の分類でも部署でも量の段階でもない）ので凡例は置かない。
+   場面タグの代表7色（--c-*）とはぶつけない：あちらは濃い色の小さなピル、
+   こちらは彩度8%前後・明度94%前後の大きな淡い球で、彩度と面積の両方で別系統。
+   [地色, 縁の色] の対。地色はいずれも濃紺 #3A4A66 に対して 7.6:1 以上 */
+const BUB_COLORS = [
+  ["#e8eefb", "#cfdcf3"],   // 青
+  ["#e7f2ec", "#cee5da"],   // 緑
+  ["#f7edf1", "#eed5e0"],   // 桃
+  ["#f4f0e4", "#e6dcc4"],   // 砂
+  ["#e6f1f4", "#cbe3e9"],   // 水
+  ["#efebf7", "#dcd4ee"],   // 藤
+];
 
 /* 浮かせるのは「画面に入っている間」だけ。
    カタチ画面は display:none で隠れるので、他の画面を見ている間は is-floating が外れ、
@@ -4554,14 +4596,36 @@ const bubIO = "IntersectionObserver" in window
         /* 描き直しで捨てられた器は観察をやめる（メンバー詳細は開くたびに描き直す） */
         if (!e.target.isConnected) { bubIO.unobserve(e.target); continue; }
         e.target.classList.toggle("is-floating", e.isIntersecting);
+        if (e.isIntersecting) packSpread(e.target);
       }
     }, { rootMargin: "80px" })
   : null;
 
-/** そのカタチ（S）の中で、いちばん多い送り主の通数。大きさのものさしはパネルで1つ。
-    どのカタチ（本人・メンバー）でも同じ道を通るように、数でないものは 0 として数える */
-const bubMaxOf = S => Math.max(1, ...(S.groups || [])
-  .flatMap(g => (g.people || []).map(p => (Number.isFinite(+p[2]) ? +p[2] : 0))));
+/* 場の幅が変わったら置き直す。高さは packSpread が書くので、
+   同じ幅で呼ばれたときは何もしない（書く→また呼ばれる、の堂々巡りを断つ） */
+const bubRO = "ResizeObserver" in window
+  ? new ResizeObserver(es => {
+      for (const e of es) {
+        if (!e.target.isConnected) { bubRO.unobserve(e.target); continue; }
+        packSpread(e.target);
+      }
+    })
+  : null;
+
+/** そのカタチ（S）の送り主を、部署の区切りを外してひとつに束ねる（#25-2）。
+    同じ人が2つの区切りに出ていたら足し合わせる */
+function spreadPeople(S) {
+  const sum = new Map();
+  for (const g of S.groups || [])
+    for (const p of g.people || []) {
+      const name = p[1], c = Number.isFinite(+p[2]) ? +p[2] : 0;
+      sum.set(name, (sum.get(name) || 0) + c);
+    }
+  return [...sum].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
+}
+
+/** 大きさのものさし。いちばん多い送り主の通数を 1 とする */
+const bubMaxOf = S => Math.max(1, ...spreadPeople(S).map(p => p.count));
 
 function bubbleHTML(name, count, max, i) {
   /* 面積が通数に比例するように、直径は平方根で引く。
@@ -4570,16 +4634,100 @@ function bubbleHTML(name, count, max, i) {
   const c = Number.isFinite(+count) ? +count : 0;
   const m = Number.isFinite(+max) && +max > 0 ? +max : 1;
   const k = +Math.min(1, Math.max(0, Math.sqrt(c / m))).toFixed(4);
-  /* 周期と位相は名前から決める（毎回同じ・そろって動かない） */
-  const seed = [...name].reduce((a, c) => a + c.charCodeAt(0), i * 13);
+  /* 周期と位相、渦に入る角度は名前から決める（毎回同じ・そろって動かない） */
+  const seed = [...name].reduce((a, ch) => a + ch.charCodeAt(0), i * 13);
   const dur = (7 + (seed % 56) / 10).toFixed(1);   // 7.0〜12.5秒
   const dly = (-(seed % 71) / 10).toFixed(1);      // 位相をずらす
-  /* 小さい玉には名前を入れない。読み上げ名には必ず名前と通数の両方を入れる
+  const [c1, c2] = BUB_COLORS[i % BUB_COLORS.length];
+  /* 極端に小さい玉には名前を入れない。読み上げ名には必ず名前と通数の両方を入れる
      （見た目に出ていないものが、読み上げからも落ちないように） */
-  return `<button type="button" class="spread-bub" style="--k:${k}; --dur:${dur}s; --dly:${dly}s"
-    data-name="${name}" data-count="${count}" aria-label="${name}から、${count}通のありがとう">
+  return `<button type="button" class="spread-bub" data-seed="${seed}"
+    style="--k:${k}; --dur:${dur}s; --dly:${dly}s; --sc1:${c1}; --sc2:${c2}"
+    data-name="${name}" data-count="${c}" aria-label="${name}から、${c}通のありがとう">
     <span class="spread-ball">${k >= BUB_NAME_K ? `<span class="spread-name">${name}</span>` : ""}</span>
   </button>`;
+}
+
+/**
+ * しゃぼん玉を「大きいものが中央付近、小さいものがその周り」に散らす（#25-3）。
+ *
+ * 場の中心から外へ向かう渦をたどり、**大きいものから順に**空いている場所へ置く。
+ * 先に置いた大きいものが中央を占めるので、小さいものは外へ押し出される。
+ * 同心円に見えないよう、渦に入る角度（玉ごとの seed）と半径の伸び（同）を散らす。
+ *
+ * 重ならないこと・場からはみ出さないことは、置く前に確かめている（後から
+ * 丸め込むと、確かめたはずの隙間が消える）。隙間14pxは、浮きの振れ幅6pxと
+ * 触れたときの拡大（片側4.2px）を足しても触れ合わない量。
+ *
+ * 幅が測れないとき（画面が隠れている間）や詰め切れなかったときは false を返し、
+ * .is-packed を付けない＝折り返しの並びのまま出る（重ならない安全側）。
+ */
+function packSpread(field) {
+  const W = Math.round(field.clientWidth);
+  if (!W || W < 60) return false;
+  if (field.dataset.packedAt === String(W)) return true;   // 同じ幅なら置き直さない
+
+  const items = [...field.querySelectorAll(".spread-bub")];
+  if (!items.length) { field.dataset.packedAt = String(W); return true; }
+
+  const list = items.map(el => ({
+    el, r: (el.offsetWidth || 52) / 2, seed: +el.dataset.seed || 0,
+  })).sort((a, b) => b.r - a.r);
+
+  const GAP = 14, EDGE = 6, TOP = 10, BOT = 10;
+  /* たまりの形。横：縦の比を、広い画面では 2.4、狭い画面では 1.55 にする。
+     真円にすると縦へ間延びし、場の幅いっぱいに広げると一列に並んでしまうので、
+     その間を取っている（広い画面のほうが横に取れる余地が大きい） */
+  const ASP = W >= 760 ? 2.4 : 1.55;
+  /* 大きさの見当。玉の面積（隙間ぶんを含む）を詰まり具合0.55で割って場の面積とし、
+     上の比の楕円に収める。幅が足りないときは、幅で割って縦へ伸ばす。
+     足りなければ下の繰り返しで広げる */
+  const need = list.reduce((a, o) => a + Math.PI * (o.r + GAP / 2) ** 2, 0);
+  const target = need / 0.55, aMax = (W - EDGE * 2) / 2;
+  const ax = Math.sqrt(target * ASP / Math.PI);
+  const by = ax > aMax ? target / (W - EDGE * 2) / 2 : ax / ASP;
+  let H = Math.max(list[0].r * 2 + GAP, Math.ceil(by * 2));
+
+  for (let attempt = 0; attempt < 16; attempt++) {
+    const put = [];
+    let ok = true;
+    /* 渦の横伸びは「たまりの形」に合わせる（場の形ではない）。
+       場の形にすると、広い画面で一列に並んでしまう */
+    const cx = W / 2, cy = H / 2, asp = Math.min(W - EDGE * 2, H * ASP) / H;
+    for (const o of list) {
+      const j0 = (o.seed % 997) / 997;                        // 渦に入る角度
+      const j1 = 0.86 + ((o.seed >> 5) % 100) / 350;          // 半径の伸びのゆらぎ
+      let hit = null;
+      for (let s = 0; s < 2600; s++) {
+        const t = s * 0.27;
+        const rad = (3 + t * 1.9) * j1;
+        const ang = t * 0.83 + j0 * Math.PI * 2;
+        const x = cx + Math.cos(ang) * rad * asp;
+        const y = cy + Math.sin(ang) * rad;
+        if (x - o.r < EDGE || x + o.r > W - EDGE) continue;
+        if (y - o.r < 0 || y + o.r > H) continue;
+        if (put.some(q => Math.hypot(q.x - x, q.y - y) < q.r + o.r + GAP)) continue;
+        hit = { x, y, r: o.r, el: o.el }; break;
+      }
+      if (!hit) { ok = false; break; }
+      put.push(hit);
+    }
+    if (!ok) { H = Math.round(H * 1.14); continue; }
+
+    /* 置けた範囲を測って、場の中で横の真ん中へ寄せ、上に札のぶんの余白を残す */
+    const minX = Math.min(...put.map(q => q.x - q.r)), maxX = Math.max(...put.map(q => q.x + q.r));
+    const minY = Math.min(...put.map(q => q.y - q.r)), maxY = Math.max(...put.map(q => q.y + q.r));
+    const dx = (W - (maxX - minX)) / 2 - minX, dy = TOP - minY;
+    put.forEach(q => {
+      q.el.style.left = (q.x + dx - q.r).toFixed(1) + "px";
+      q.el.style.top = (q.y + dy - q.r).toFixed(1) + "px";
+    });
+    field.style.height = Math.ceil(maxY - minY + TOP + BOT) + "px";
+    field.classList.add("is-packed");
+    field.dataset.packedAt = String(W);
+    return true;
+  }
+  return false;
 }
 
 /** しゃぼん玉に、指・マウス・キーボードのどれからでも名前と通数が出るようにする */
@@ -4597,8 +4745,10 @@ function wireBubbles(root) {
       const tw = tip.offsetWidth, th = tip.offsetHeight;
       let x = br.left - fr.left + br.width / 2 - tw / 2;
       x = Math.max(2, Math.min(x, Math.max(2, fr.width - tw - 2)));   // 枠からはみ出させない
+      /* 上に出す。上が足りないときだけ下へ回す（場の外へ出さない） */
+      const above = br.top - fr.top - th - 6;
       tip.style.left = x + "px";
-      tip.style.top = Math.max(0, br.top - fr.top - th - 6) + "px";
+      tip.style.top = (above >= 0 ? above : br.bottom - fr.top + 6) + "px";
     };
     const clear = () => { if (!pinned) tip.classList.remove("is-on"); };
 
@@ -4618,14 +4768,17 @@ function wireBubbles(root) {
         place(b);
       });
     });
+    packSpread(field);
     if (bubIO) bubIO.observe(field);
+    if (bubRO) bubRO.observe(field);
   });
 }
 
 function renderShapeInto(el, S, allowJump) {
   const uid = "chart_" + Math.random().toString(36).slice(2, 8);
-  /* しゃぼん玉の大きさのものさし。グループをまたいで同じ尺度で見比べられるよう、
-     パネル全体でいちばん多い通数を 1 とする */
+  /* しゃぼん玉。部署の区切りを外してひとつの場に束ね（#25-2）、
+     大きさのものさしは場でひとつ＝いちばん多い通数を 1 とする */
+  const people = spreadPeople(S);
   const bubMax = bubMaxOf(S);
 
   const topsHTML = list => list.map((t, i) => `
@@ -4685,16 +4838,14 @@ function renderShapeInto(el, S, allowJump) {
       <div id="${uid}_rep"></div>
     </div>` : ""}
 
+    <!-- ありがとうの広がり（#25）。部署の区切りは持たず、ひとつの場に全員を置く。
+         説明文はユーザーの指示で外した（意味は玉の大きさと、触れたときに出る
+         名前・通数、読み上げ名で伝わる） -->
     <div class="panel">
       <h2>ありがとうの広がり</h2>
-      <div class="panel-sub">どこから届いているか（${ALBUM_PERIOD}）。しゃぼん玉の大きさは、その人から届いた通数です。押すか、カーソルを重ねると名前と通数が出ます</div>
-      <div class="map-groups">${S.groups.map(g => `
-        <div class="map-group"><h3>${g.dept}</h3>
-          <div class="spread-field">
-            ${g.people.map(([, name, c], i) => bubbleHTML(name, c, bubMax, i)).join("")}
-            <span class="spread-tip" aria-hidden="true"></span>
-          </div>
-        </div>`).join("")}
+      <div class="spread-field">
+        ${people.map((p, i) => bubbleHTML(p.name, p.count, bubMax, i)).join("")}
+        <span class="spread-tip" aria-hidden="true"></span>
       </div>
     </div>`;
 
