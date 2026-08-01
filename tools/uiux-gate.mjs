@@ -128,9 +128,15 @@ async function visitAll(p, collect) {
   }
 
   // ---- 削除の確認（拡大詳細の中から開く入れ子） ----
+  /* 削除はイシュー#24 で、日付の右の「⋯」の中へ移った。
+     先にメニューを開かないと [data-del] は隠れたままで、
+     ここから先（削除の確認）へ一度も入れない。開いた状態も1場面として測る */
   try {
     await p.locator('#grid .card').first().click({ timeout: 3000 });
     await wait(900);
+    await p.locator('[data-card-menu]').first().click({ timeout: 2500 });
+    await wait(400);
+    await take('カードの操作メニュー');
     await p.locator('[data-del]').first().click({ timeout: 2500 });
     await wait(700);
     await take('削除の確認');

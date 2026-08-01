@@ -366,7 +366,7 @@
     background: rgba(255,255,255,.94); color: color-mix(in srgb, var(--cc) 62%, #1d2430);
   }
   /* お気に入り済みの目印は装飾ではなく情報なので、淡い金 #ffd66b（白地で1.37:1）
-     ではなく、.fav-btn の押下済み表示と同じ濃い琥珀色に揃えた */
+     ではなく、拡大詳細のお気に入りの印（.fav-mark）と同じ濃い琥珀色に揃えた */
   .fav-seal { position: absolute; top: 12px; right: 14px; z-index: 5; font-size: var(--fs-body); color: #8a6410; transform: rotate(9deg); }
   .memo-dot { position: absolute; bottom: 14px; right: 16px; z-index: 5; width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.92); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ci) 22%, transparent); }
 
@@ -666,13 +666,11 @@
      ボタン側の大きさで決める（PC 32px／スマホ 44px）。
      ✕ で使った background-clip: content-box の手はここでは使えない
      ——縁（押している状態の琥珀の輪）は border なので、内側ではなく
-     当たり判定の外周に描かれてしまう。丸を内側の要素に持たせて分ける */
-  .fav-btn {
-    flex: none; margin-left: 8px; border: none; background: none; padding: 0;
-    width: 32px; height: 32px; color: var(--navy-soft);
-    display: inline-flex; align-items: center; justify-content: center;
-    cursor: pointer; font-family: inherit;
-  }
+     当たり判定の外周に描かれてしまう。丸を内側の要素に持たせて分ける。
+
+     **イシュー#24 で、これは押すボタンではなくなった**（登録・解除は日付の右の
+     ⋯ の中へ移した）。丸と星の見た目（.fav-dot / .fav-star）はそのまま使い、
+     付いているときだけ出る「印」として .fav-mark が身にまとう（下の #24 の節） */
   /* 「まるのなかの星」なので、丸が見えていないと形が成り立たない。
      台紙（--sheet-board #f7f5f2）の上では地色だけでは丸が浮かばなかったので、
      白い面と細い輪で丸を描く。押している状態では輪も地も琥珀に変わる */
@@ -685,11 +683,6 @@
     width: 19px; height: 19px; fill: none; stroke: currentColor;
     stroke-width: 1.7; stroke-linejoin: round; pointer-events: none;
   }
-  .fav-btn:hover .fav-dot { background: var(--navy-bg); border-color: var(--navy-soft); }
-  .fav-btn[aria-pressed="true"] { color: #8a6410; }
-  .fav-btn[aria-pressed="true"] .fav-dot { background: #fdf4dc; border-color: #e0a62f; }
-  .fav-btn[aria-pressed="true"] .fav-star { fill: currentColor; }
-  .fav-btn[aria-pressed="true"]:hover .fav-dot { background: #f9ead0; }
   .memo-ta {
     width: 100%; min-height: 72px; resize: vertical; font-family: inherit; font-size: var(--fs-ui); line-height: 1.8;
     background: var(--navy-bg); border: 1px solid var(--navy-line); border-radius: 3px 12px 12px 12px; padding: 10px 12px;
@@ -702,7 +695,8 @@
   .memo-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
   .memo-row small { font-size: var(--fs-note); color: var(--navy-soft); }
   .memo-row .mini-btn { margin-left: auto; }
-  .sheet-danger { margin-top: 22px; padding-top: 14px; border-top: 1px dashed var(--navy-line); display: flex; gap: 10px; flex-wrap: wrap; }
+  /* .sheet-danger（本文の下に「報告する」「削除する」を並べていた帯）は、
+     イシュー#24 で無くなった。削除は日付の右の ⋯ の中へ、報告そのものは廃止 */
   .danger-btn { font-family: inherit; font-size: var(--fs-cap); font-weight: 700; cursor: pointer; border: 1px solid #e3b9b3; background: #fff; color: #b0432f; border-radius: 999px; padding: 6px 14px; }
   .danger-btn:hover { background: #fbeeec; border-color: #cf7f72; }
   /* 上司・管理者で「じぶんのメモ」の中身の代わりに出る注記。
@@ -1177,11 +1171,9 @@
   .sheet-head h2 { white-space: nowrap; }
   @media (max-width: 640px) {
     .sheet-head { flex-wrap: wrap; }
-    /* お気に入りの丸は ✕ の手前。時刻だけを次の行へ送るのは元のまま
-       （イシュー#19-5 でボタンが1つ増えたので、折り返す機会は増える） */
-    .sheet-head .fav-btn { order: 1; }
-    .sheet-head .sheet-close { order: 2; }
-    .sheet-head .sheet-time { order: 3; margin-left: 44px; }
+    /* 時刻・お気に入りの印・⋯ の並べ替え（order）は、イシュー#24 で
+       「日付とその右」をひと組（.sheet-head-right）にしたので要らなくなった。
+       折り返すときは、その組ごと次の行へ落ちる */
   }
   /* メンバー詳細（S06）の画面名。見た目は見出し・意味は div だったので、
      h1 にして「各画面に h1 がちょうど1つ」を満たす（再監査 VD-2） */
@@ -1280,9 +1272,6 @@
       width: 44px; height: 44px; padding: 6px;
       background-clip: content-box; background-origin: content-box;
     }
-    /* お気に入りの丸も同じ扱い。見える丸（.fav-dot）は32pxのままで、
-       押せる範囲だけ44pxにする（イシュー#19-5） */
-    .fav-btn { width: 44px; height: 44px; margin-left: 2px; }
   }
 
   /* ---- N-01 節目の帯を、主役の上に重ねない ----
@@ -1656,6 +1645,115 @@
   @media (prefers-reduced-motion: reduce) {
     .spread-field.is-floating .spread-bub { animation: none; }
     .spread-ball, .spread-tip { transition: none; }
+  }
+
+  /* ========================================================================
+     ---- 詳細の操作の置き方（イシュー#24） ----
+
+     ユーザー指摘は4つ。
+       1 スマホで閉じるボタンの位置がおかしい（送り主名の直後に割り込む）
+       2 下端に大きな閉じるボタンを置き、スクロールしても常に見えていること
+       3 上の ✕ は要らない
+       4 日付の右に3点リーダーを置き、そこへ削除とお気に入りを入れる
+     あわせて「これは感謝ではないと報告する」を廃止した。
+
+     置き方の考え方は「読む面」と「このカードを操作する面」を分けること。
+     読む面（オブリエのメモ／やり取りの流れ／じぶんのメモ）は本文に置いたまま、
+     操作は**頭の右（⋯）**と**下端の帯（閉じる）**の2か所だけにする。
+     本文の下に赤い削除ボタンが最後に残る形（旧 .sheet-danger）はやめる。
+     ここに書く指定はすべて追加で、上の既存の値には触れていない
+     （上で消したのは、押せなくなった .fav-btn と、無くなった .sheet-danger、
+       スマホの並べ替え（order）の3つだけ）。
+     ======================================================================== */
+
+  /* -1 頭の右側を「日付・お気に入りの印・⋯」のひと組にする。
+     もとは3つが .sheet-head の直接の子で、640px以下では flex-wrap と order で
+     並べ替えていた。そのため折り返したとき、お気に入りと ✕ だけが
+     送り主名の直後に割り込み、日付がその次の行へ独りで残っていた。
+     ひと組にまとめておけば、入りきらないときは**組ごと**次の行へ落ち、
+     右端にそろったまま並ぶ */
+  .sheet-head-right {
+    margin-left: auto; display: flex; align-items: center; gap: 4px; flex: none;
+  }
+  .sheet-head-right .sheet-time { margin-left: 0; }
+
+  /* -2 お気に入りの印。押せない（role="img"）ので、当たり判定も
+     Tab の止まり先も増やさない。丸と星は #19-5 のものをそのまま使う。
+     付いているときだけ出す＝カード表面の★（.fav-seal）と同じ振る舞い */
+  .fav-mark {
+    flex: none; display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; color: #8a6410; pointer-events: none;
+  }
+  .fav-mark[hidden] { display: none; }
+  .fav-mark .fav-dot { background: #fdf4dc; border-color: #e0a62f; }
+  .fav-mark .fav-star { fill: currentColor; }
+
+  /* -3 3点リーダー。丸の大きさ（32px）は ✕ と同じにして、頭の右の並びをそろえる */
+  .card-menu { position: relative; flex: none; }
+  .menu-btn {
+    border: none; background: #e9edf4; width: 32px; height: 32px; border-radius: 50%;
+    cursor: pointer; color: var(--navy-soft); font-family: inherit;
+    display: inline-flex; align-items: center; justify-content: center; padding: 0;
+  }
+  .menu-btn:hover, .menu-btn[aria-expanded="true"] { background: var(--navy-line); }
+  /* 点は文字（⋯）ではなく図形で描く。書体によって字幅も位置も変わるうえ、
+     読み上げには aria-label があれば足りる（アイコンだけにして名前は失わせない） */
+  .menu-dots {
+    width: 3.5px; height: 3.5px; border-radius: 50%; background: currentColor;
+    box-shadow: -6.5px 0 0 currentColor, 6.5px 0 0 currentColor;
+  }
+  .menu-pop {
+    position: absolute; top: calc(100% + 6px); right: 0; z-index: 5;
+    min-width: 208px; padding: 6px;
+    background: #fff; border: 1px solid var(--navy-line); border-radius: 12px;
+    box-shadow: 0 10px 24px rgba(20,26,40,.18);
+  }
+  .menu-pop[hidden] { display: none; }
+  .menu-item {
+    display: flex; align-items: center; width: 100%; min-height: 36px;
+    padding: 8px 12px; border: none; border-radius: 8px; background: none;
+    font-family: inherit; font-size: var(--fs-ui); font-weight: 700; color: var(--navy);
+    text-align: left; white-space: nowrap; cursor: pointer;
+  }
+  .menu-item:hover { background: var(--navy-bg); }
+  .menu-item.is-danger { color: #a33d2b; }        /* 白地で 6.0:1 */
+  .menu-item.is-danger:hover { background: #fbeeec; }
+
+  /* -4 閉じるは下端に貼り付いて、スクロールしても見えている。
+     1on1準備メモで使っている .sheet .dlg-actions の sticky（A-16）に乗せる。
+     sticky なので**帯は流れの中に場所を持つ**——固定して浮かせたときのように
+     最後の紙を覆い隠すことがない（下端まで送ると帯は中身の後ろに着地する）。
+     地は詳細の台紙（--sheet-board）にそろえる。白のままだと、
+     台紙の上に白い帯がもう1枚あるように見えてしまう */
+  .f-back .dlg-actions {
+    background: var(--sheet-board);
+    border-top: 1px solid color-mix(in srgb, var(--navy) 12%, transparent);
+    justify-content: stretch;
+    padding: 12px 22px 16px; margin-top: 8px;
+  }
+  .f-back .dlg-actions::before {
+    background: linear-gradient(rgba(247,245,242,0), var(--sheet-board));
+  }
+  /* 「大きく」＝帯の幅いっぱい。丸い ✕（.sheet-close）の寸法は打ち消す */
+  .f-back .sheet-close-wide {
+    width: 100%; height: auto; min-height: 48px; border-radius: 12px;
+    font-size: var(--fs-body); letter-spacing: .08em; padding: 10px 16px;
+    background: var(--navy); color: #fff; border: 1px solid var(--navy);
+  }
+  .f-back .sheet-close-wide:hover { background: #2f3d57; }
+  /* 器そのものに焦点を当てる（pushModalFocus の [data-initial-focus]）。
+     題を読ませるための当て先で、押すものではないので輪郭は描かない */
+  .f-back[data-initial-focus]:focus { outline: none; }
+
+  @media (max-width: 640px) {
+    /* 当たり判定 44px。⋯ は丸の見た目（32px）を保ったまま、
+       地色を content-box で塗って押せる範囲だけ広げる（.sheet-close と同じ手） */
+    .menu-btn {
+      width: 44px; height: 44px; padding: 6px;
+      background-clip: content-box; background-origin: content-box;
+    }
+    .menu-item { min-height: 44px; }
+    .f-back .sheet-close-wide { min-height: 52px; }
   }
 </style>
 </head>
@@ -3263,8 +3361,8 @@ function renderAlbumFoot(el) {
 }
 
 /* 本人のアルバム（S01） */
-const SELF_OPTS = { clickable: true, memo: true, del: true, report: true, fav: true, list: DATA, emptyKind: "self" };
-const SENT_OPTS = { clickable: true, memo: false, del: false, report: false, fav: false, emptyKind: "sent" };
+const SELF_OPTS = { clickable: true, memo: true, del: true, fav: true, list: DATA, emptyKind: "self" };
+const SENT_OPTS = { clickable: true, memo: false, del: false, fav: false, emptyKind: "sent" };
 const filter = { tag: "", fav: false, sort: "new" };
 
 /** いま画面に出ている（＝絞り込み・並び替え後の）カード。書き出しもこれを使う（A-08） */
@@ -3555,8 +3653,17 @@ function pushModalFocus(ov) {
   const prev = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   const entry = { ov, panel, prev };
   modalStack.push(entry);
-  // 最初の焦点は閉じるボタン。無ければ中の最初の操作要素、それも無ければ器そのもの
-  (panel.querySelector(".sheet-close") || focusablesIn(panel)[0] || panel).focus({ preventScroll: true });
+  /* 最初の焦点。[data-initial-focus] があればそこ、無ければ閉じるボタン、
+     それも無ければ中の最初の操作要素、最後は器そのもの。
+     拡大詳細（イシュー#24）は器そのものを当て先にしている——上の ✕ が無くなり、
+     閉じるは下端の帯に移った。そこへ最初に焦点を置くと、開いた人が最初に聞くのが
+     「閉じる」になってしまう。器（role="dialog"）に当てれば題（送り主と「詳細」）から
+     読まれ、そのあと Tab で ⋯ → 本文の中のボタン → 閉じる、と画面の並び順に進む。
+     ダイアログ（openDialog）は今までどおり ✕ から始まる */
+  const first = panel.matches("[data-initial-focus]") ? panel
+    : (panel.querySelector("[data-initial-focus]") || panel.querySelector(".sheet-close")
+       || focusablesIn(panel)[0] || panel);
+  first.focus({ preventScroll: true });
   syncScrollLock();
   return entry;
 }
@@ -3751,17 +3858,35 @@ function openThread(d, fromCard, opts) {
      ——長文は13px→14.5pxで大きくなり、短文は17px→14.5pxで小さくなっていた。
      複製の側にも同じ kind-* を渡して、押す前と同じ字面で飛ばす */
   const kindCls = fromCard ? [...fromCard.classList].find(c => c.startsWith("kind-")) || "" : "";
+  /* ---- 日付の右の「⋯」に、このカードへの操作をまとめる（イシュー#24） ----
+     お気に入りと削除は、どちらも「このカード1枚に対する操作」で、
+     読むための面（オブリエのメモ／やり取りの流れ／じぶんのメモ）とは別のもの。
+     本文の下に並べていると、読み終えるまで目に入り続け、削除だけが
+     赤い枠で最後に残る。日付のとなりに畳んで、開いたときだけ出す。
+     上司・管理者では opts.fav も opts.del も偽なので、**メニューごと描かれない**
+     （原則8・原則7。分岐を増やさず、既存の opts 1本で決まる形は変えていない） */
+  const hasMenu = !!(opts.fav || opts.del);
   ov.innerHTML = `
     <div class="overlay-bg"></div>
     <div class="flipwrap">
       <div class="f-front ${kindCls}" aria-hidden="true">${faceHTML}</div>
-      <div class="f-back sheet" role="dialog" aria-modal="true" aria-label="${d.who}からの「ありがとう」の詳細">
+      <div class="f-back sheet" role="dialog" aria-modal="true" data-initial-focus aria-label="${d.who}からの「ありがとう」の詳細">
       <div class="sheet-head">
         <div class="ava">${d.ini}</div>
         <div><h2>${d.who}</h2><small>${d.ch}</small></div>
-        <span class="sheet-time">${d.time}</span>
-        ${opts.fav ? `<button class="fav-btn" data-fav aria-pressed="${!!d.fav}" aria-label="${FAV_LABEL(!!d.fav)}" title="${FAV_LABEL(!!d.fav)}">${STAR_ICON}</button>` : ""}
-        <button class="sheet-close" aria-label="閉じる">✕</button>
+        <div class="sheet-head-right">
+          <span class="sheet-time">${d.time}</span>
+          ${opts.fav ? `<span class="fav-mark" data-fav-mark role="img" aria-label="お気に入り済み"${d.fav ? "" : " hidden"}>${STAR_ICON}</span>` : ""}
+          ${hasMenu ? `<div class="card-menu">
+            <button type="button" class="menu-btn" data-card-menu aria-haspopup="menu" aria-expanded="false" aria-label="このカードの操作">
+              <span class="menu-dots" aria-hidden="true"></span>
+            </button>
+            <div class="menu-pop" role="menu" aria-label="このカードの操作" hidden>
+              ${opts.fav ? `<button type="button" class="menu-item" role="menuitem" data-fav>${FAV_LABEL(!!d.fav)}</button>` : ""}
+              ${opts.del ? '<button type="button" class="menu-item is-danger" role="menuitem" data-del>このカードを削除する</button>' : ""}
+            </div>
+          </div>` : ""}
+        </div>
       </div>
       <div class="sheet-body">
         ${d.summary ? `<section class="sheet-block">
@@ -3789,10 +3914,11 @@ function openThread(d, fromCard, opts) {
           <h3 class="sheet-sec">じぶんのメモ</h3>
           <p class="privacy-note">じぶんのメモは本人だけのものです。上司・管理者には表示されません。</p>
         </section>`}
-        ${(opts.report || opts.del) ? `<div class="sheet-danger">
-          ${opts.report ? '<button class="mini-btn" data-not-thanks>これは感謝ではないと報告する</button>' : ""}
-          ${opts.del ? '<button class="danger-btn" data-del>このカードを削除する</button>' : ""}
-        </div>` : ""}
+      </div>
+      <!-- 閉じるは、詳細の下端に貼り付いて常に見えている（イシュー#24）。
+           1on1準備メモで使っている .dlg-actions の sticky（A-16）にそのまま乗せる -->
+      <div class="dlg-actions sheet-foot">
+        <button type="button" class="btn btn-primary sheet-close sheet-close-wide">閉じる</button>
       </div>
       </div>
     </div>`;
@@ -3805,16 +3931,72 @@ function openThread(d, fromCard, opts) {
 
   ov.querySelector("[data-open-src]").addEventListener("click", () => mockToast("元のメッセージを開きます"));
 
+  /* ---- 3点リーダーのメニュー（イシュー#24） -----------------------------
+     開閉と選択はキーボードだけで通せること。
+       ・Enter / Space（button の既定の click）で開く
+       ・↓ / ↑ でも開く（↑ は最後の項目に入る）
+       ・開いている間は ↑↓ Home End で項目を移り、Escape で閉じて ⋯ へ戻る
+       ・Tab を押したら畳む（メニューは Tab の輪の中に居座らない）
+     Escape はここで止める（stopPropagation）。止めないと document 側の
+     onEsc まで届き、メニューを閉じるつもりで詳細ごと閉じてしまう
+     ——A-14 で「Escape はいちばん上のものだけを閉じる」と決めたのと同じ考え方で、
+     いちばん上にあるのはこのとき開いているメニューである。
+     ------------------------------------------------------------------------ */
+  const menuWrap = ov.querySelector(".card-menu");
+  const menuBtn = ov.querySelector("[data-card-menu]");
+  const menuPop = ov.querySelector(".menu-pop");
+  const menuItems = () => (menuPop ? [...menuPop.querySelectorAll(".menu-item")] : []);
+  const openMenu = (idx = 0) => {
+    if (!menuPop) return;
+    menuPop.hidden = false;
+    menuBtn.setAttribute("aria-expanded", "true");
+    const it = menuItems();
+    (it[idx < 0 ? it.length + idx : idx] || menuBtn).focus({ preventScroll: true });
+  };
+  const closeMenu = (giveBack = true) => {
+    if (!menuPop || menuPop.hidden) return;
+    menuPop.hidden = true;
+    menuBtn.setAttribute("aria-expanded", "false");
+    if (giveBack) menuBtn.focus({ preventScroll: true });
+  };
+  if (menuBtn) {
+    menuBtn.addEventListener("click", () => (menuPop.hidden ? openMenu(0) : closeMenu()));
+    menuBtn.addEventListener("keydown", e => {
+      if (e.key === "ArrowDown") { e.preventDefault(); openMenu(0); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); openMenu(-1); }
+    });
+    menuPop.addEventListener("keydown", e => {
+      const it = menuItems();
+      const i = it.indexOf(document.activeElement);
+      if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); closeMenu(); }
+      else if (e.key === "ArrowDown") { e.preventDefault(); it[(i + 1) % it.length].focus({ preventScroll: true }); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); it[(i - 1 + it.length) % it.length].focus({ preventScroll: true }); }
+      else if (e.key === "Home") { e.preventDefault(); it[0].focus({ preventScroll: true }); }
+      else if (e.key === "End") { e.preventDefault(); it[it.length - 1].focus({ preventScroll: true }); }
+      else if (e.key === "Tab") closeMenu(false);
+    });
+    // メニューの外を押したら畳む（詳細そのものを閉じる判定より先に走る）
+    ov.addEventListener("pointerdown", e => { if (!menuWrap.contains(e.target)) closeMenu(false); });
+  }
+
+  /* お気に入りの状態は、メニューを開かなくても分かるようにする。
+     ⋯ の中へ入れると、いままで丸の中の星（イシュー#19-5）で見えていた
+     「付いているかどうか」が畳まれて見えなくなる。採ったのは次の2本立て：
+       ①日付の右に、付いているときだけ**押せない**星の印（.fav-mark）を出す。
+         カード表面の★（.fav-seal）と同じ「付いていれば出る／無ければ出ない」
+         関係にそろえたので、一覧と詳細で見え方が食い違わない。
+         押す先は ⋯ ひとつに保ちたいので、この印は操作要素にしない
+         （role="img"。Tab の止まり先も、当たり判定の対象も増やさない）
+       ②メニューの項目名そのもので状態を出す（「お気に入りから外す」＝いま付いている）。
+     色や形が見えない人には②が、メニューを開かない人には①が届く。
+     どちらか片方に寄せると、必ずどちらかの人に届かなくなる */
+  const favMark = ov.querySelector("[data-fav-mark]");
   const favBtn = ov.querySelector("[data-fav]");
   if (favBtn) favBtn.addEventListener("click", () => {
     d.fav = !d.fav;
-    /* 押している／いないは aria-pressed で伝え、名前のほうも次に押したら
-       何が起きるかに書き換える（イシュー#19-5）。アイコンだけのボタンなので
-       名前を失うと何のボタンか分からなくなる。title も同じ文言にして、
-       マウスで使う人にも伝わるようにする */
-    favBtn.setAttribute("aria-pressed", String(d.fav));
-    favBtn.setAttribute("aria-label", FAV_LABEL(d.fav));
-    favBtn.setAttribute("title", FAV_LABEL(d.fav));
+    favBtn.textContent = FAV_LABEL(d.fav);
+    if (favMark) favMark.hidden = !d.fav;
+    closeMenu();
     /* カード表面の★を、その場で付け外しする（A-09）。
        以前は内部の状態だけが変わり、表面は古いまま・絞り込むと急に現れていた。
        全体を描き直すと入場アニメが走り直すので、触るのはこの1枚だけ。
@@ -3886,8 +4068,13 @@ function openThread(d, fromCard, opts) {
     }, 2200);
   });
 
+  /* 削除は破壊的で復元できない（原則10）ので、メニューから直に消さず
+     いままでどおり確認ダイアログを通す。先にメニューを畳んで ⋯ へ焦点を返してから
+     開く——確認の「戻り先」は開いた瞬間の焦点なので、畳んだあとの
+     見えない項目を戻り先にしてしまうと、やめたときに焦点が行き場を失う */
   const delBtn = ov.querySelector("[data-del]");
   if (delBtn) delBtn.addEventListener("click", () => {
+    closeMenu();
     confirmDialog("このカードを削除しますか？",
       "このカードは、削除するとあとから復元できません。アルバムからも、書き出したCSVの元になるデータからも消えます。",
       "削除する",
@@ -3897,21 +4084,6 @@ function openThread(d, fromCard, opts) {
         close();
         initTagFilter(); applyFilters();
         toast("このカードを削除しました", { alert: true });
-      },
-      d);
-  });
-
-  const ntBtn = ov.querySelector("[data-not-thanks]");
-  if (ntBtn) ntBtn.addEventListener("click", () => {
-    confirmDialog("これは感謝ではない、と報告しますか？",
-      "確認のうえ、このカードをアルバムから外します。外したあと、このカードは復元できません。報告の内容は、感謝の見分け方を良くするための学習にだけ使われます。",
-      "報告する",
-      () => {
-        const i = DATA.indexOf(d);
-        if (i >= 0) DATA.splice(i, 1);
-        close();
-        initTagFilter(); applyFilters();
-        toast("このカードを、感謝ではないと報告しました", { alert: true });
       },
       d);
   });
@@ -4704,7 +4876,7 @@ let currentMember = null;
 /* 上司が見るカード（A-19）。押して経緯を読めるが、じぶんのメモ・削除・
    誤検出報告・お気に入りは持たない。じぶんのメモの欄には代わりに
    「本人だけのものです。上司・管理者には表示されません」が出る（原則8） */
-const BOSS_OPTS = { clickable: true, memo: false, del: false, report: false, fav: false };
+const BOSS_OPTS = { clickable: true, memo: false, del: false, fav: false };
 
 function openMember(i) {
   const m = MEMBERS[i];
@@ -4752,7 +4924,7 @@ function showMemberSub(name, quiet) {
     /* どのメンバーのカードも、本人と同じように押して経緯を読めるようにする（A-19）。
        要件F16・画面一覧S05 は拡大詳細を「本人／上司」と定めており、経緯が読めないと
        1on1の準備という上司ビューの目的そのものが果たせなかった。
-       開けるのは BOSS_OPTS ＝ じぶんのメモ・削除・誤検出報告・お気に入りを持たない形で、
+       開けるのは BOSS_OPTS ＝ じぶんのメモ・削除・お気に入りを持たない形で、
        じぶんのメモの代わりに「本人だけのものです」と書かれた断りが出る（原則8）。
        開いた記録は openThread の中で監査ログに残る */
     renderAlbumInto(g, m.key === "yuki" ? DATA.filter(d => !d.isNew) : (MEMBER_CARDS[m.key] || []),
