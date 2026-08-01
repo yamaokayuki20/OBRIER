@@ -8,6 +8,12 @@
   :root {
     /* 紙・インク（カード面で使う） */
     --paper: #fffdfa; --ink: #3d3229; --ink-soft: #6f6355;
+    /* 拡大詳細の台紙。この上に --paper の紙を3枚置いて項目を切り分ける（イシュー#19-4）。
+       白（#fff）との差は8階調ぶんしかないが、やわらかい影と角丸が付くので
+       紙が乗っていることは読み取れる。ここを濃くすると詳細だけ暗い面になり、
+       アルバム（白地×薄い青の方眼）から浮くので、これ以上は濃くしない。
+       この地の上で --navy-soft #5c6884 は 5.04:1（基準4.5:1）を満たす */
+    --sheet-board: #f7f5f2;
     --accent: #c98a3d; --accent-deep: #8a5a1c; --accent-soft: #f3e3cb;
 
     /* 場面タグ7色（card-simple-v1 で確定）。
@@ -550,7 +556,11 @@
   }
   .f-front .card3d, .f-front .face { width: 100%; height: 100%; }
   .f-front .card3d { transform: none !important; box-shadow: 0 18px 40px rgba(20,26,40,.28); }
+  /* 拡大詳細の地は「台紙」。この上に3枚の紙（.sheet-block）を置く（イシュー#19-4）。
+     .sheet は #fff だが、ここは .sheet より後に書いてあるので上書きされる。
+     ダイアログ（.overlay > .sheet）は白のまま——重ねる紙を持たないため */
   .f-back {
+    background: var(--sheet-board);
     position: relative; transform: rotateY(180deg);
     backface-visibility: hidden; -webkit-backface-visibility: hidden;
     max-height: calc(100vh - 60px); overflow-y: auto; overscroll-behavior: contain;
@@ -560,12 +570,61 @@
   .sheet-head b { font-size: var(--fs-body); }
   .sheet-head small { display: block; font-size: var(--fs-cap); color: var(--navy-soft); font-weight: 400; }
   .sheet-head .ava { width: 34px; height: 34px; font-size: var(--fs-ui); box-shadow: none; transform: none; }
-  .sheet-time { margin-left: auto; font-size: var(--fs-note); color: var(--navy-soft); font-family: "Courier New", monospace; white-space: nowrap; }
+  /* ---- イシュー#19-1 詳細ヘッダー右上の日時が小さすぎた ----
+     var(--fs-note) の 12px を Courier New で組んでいた。Courier は
+     x-height が低く、同じ 12px でも和文ゴシックより一段小さく見える。
+     しかも「たった今 15:58」のように和文を含むので、Courier に無い文字は
+     フォールバックで別の字面になり、行の中で大きさが揃っていなかった。
+     操作面の既定である var(--fs-ui)（PC 14.5px／スマホ 15px）に寄せ、
+     書体は本文と同じものに戻す。数字の桁が揃わないぶんは
+     tabular-nums で受ける（等幅書体を使う理由はこれだけだった） */
+  .sheet-time {
+    margin-left: auto; font-size: var(--fs-ui); color: var(--navy-soft);
+    white-space: nowrap; font-variant-numeric: tabular-nums;
+  }
   .sheet-close { margin-left: 10px; border: none; background: var(--navy-bg); width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: var(--fs-ui); color: var(--navy-soft); flex: none; }
   .sheet-close:hover { background: var(--navy-line); }
+  /* 詳細の頭は台紙（--sheet-board）の上に乗るので、✕ の丸（#f2f4f8）は
+     地とほとんど同じ明るさになって沈む。詳細のときだけ一段濃い面にする
+     （ダイアログは白地のままなので触らない）。✕ の文字は 4.67:1 で基準を満たす */
+  .f-back .sheet-close { background: #e9edf4; }
+  .f-back .sheet-close:hover { background: var(--navy-line); }
   .sheet-body { padding: 4px 22px 24px; }
-  .sheet-sec { font-size: var(--fs-note); letter-spacing: .2em; color: var(--navy); opacity: .75; font-weight: 800; margin: 18px 0 8px; }
-  .sheet-sec:first-child { margin-top: 6px; }
+
+  /* ---- イシュー#19-4 3項目（オブリエのメモ／やり取りの流れ／じぶんのメモ）を切り分ける ----
+     もとは小見出し（.sheet-sec）が 12px・不透明度.75 で流れの中に置かれ、
+     項目のあいだ（18px）と項目の中（8〜16px）の余白がほぼ同じだった。
+     どこからどこまでが1つの塊なのかを、目で追えるところが無い。
+
+     採ったのは「面として分ける」＋「余白の階層」＋「小見出しの重さ」の3つを
+     いっぺんに効かせる形。ただし**線は増やさない**——枠線で仕切ると
+     たちまち無機質な管理画面になり、アルバムの世界観（原則1）を壊す。
+
+     見立ては**紙を重ねる**こと。詳細の地を台紙（--sheet-board）にして、
+     その上に白い紙（--paper）を3枚置く。この2色はアルバムの画面と同じ
+     関係（薄い台紙の上に #fffdfa のカード）で、詳細だけ別の世界にならない。
+     境目は色の段差とやわらかい影が作るので、はっきりした線は要らない。
+
+     余白の比は 項目間 20px ＞ 項目内 8px（小見出し→中身）とし、
+     さらに紙の内側の余白（14〜16px）が両側に足されるので、
+     実際に目に映る隔たりは 項目間 50px 前後 ／ 項目内 8〜12px になる。
+
+     小見出しは h3 にして、大きさも h1 24 ＞ h2 20 ＞ h3 17.5 ＞ 本文 16 の
+     並びに合わせる（D-59 と同じ物差し）。不透明度で薄めるのはやめる
+     ——実測 4.52:1 と基準ぎりぎりだったうえ、薄い色で階層は作らない（D-44） */
+  .sheet-block {
+    background: var(--paper);
+    border: 1px solid rgba(61,50,41,.07);
+    border-radius: 14px;
+    padding: 14px 16px 16px;
+    box-shadow: 0 1px 2px rgba(20,26,40,.05), 0 6px 14px rgba(20,26,40,.05);
+    margin-top: 20px;
+  }
+  .sheet-block:first-child { margin-top: 8px; }
+  .sheet-sec {
+    font-size: var(--fs-lead); font-weight: 800; letter-spacing: .04em;
+    color: var(--navy); margin: 0 0 8px;
+  }
   /* 拡大詳細は「省略せず全文を出す」面なので、一覧のカードとは扱いが違う。
      ここは読ませる本文にあたるため、付随情報ではなく本文の大きさを当てる
      （デジタル庁の基準：本文は16 CSS px以上） */
@@ -590,7 +649,48 @@
   }
   .mini-btn:hover { border-color: var(--navy-soft); background: var(--navy-bg); }
   .ext-icon { width: 12px; height: 12px; flex: none; opacity: .8; }
-  .fav-btn[aria-pressed="true"] { border-color: #e0a62f; background: #fdf4dc; color: #8a6410; }
+
+  /* ---- イシュー#19-5 お気に入りは「丸のなかの星」にする ----
+     もとは「★ お気に入り」という横長のボタンで、他のボタン（Slackで開く・
+     報告する・削除する）と同じ形をしていた。お気に入りだけは
+     「押すたびに入れ替わる状態」なので、一度きりの行き先を持つボタンとは
+     形から違うほうがよい。カード表面の★は右上に出る（.fav-seal）ので、
+     詳細でも同じ右上に置くと、同じものだと分かる。
+
+     状態の見分けは**色だけに頼らない**：
+       ・付いていない … 線の星（fill:none）＋白い丸と薄い輪
+       ・付いている　 … 塗りの星＋琥珀の丸と輪
+     塗りか線かは、色が見えなくても、拡大しても、印刷しても分かる。
+     読み上げには aria-pressed と、状態のわかる aria-label
+     （「お気に入りに追加する」／「お気に入りから外す」）で伝える。
+     見える丸（.fav-dot）は 32px（✕と同じ）で固定し、押せる範囲は
+     ボタン側の大きさで決める（PC 32px／スマホ 44px）。
+     ✕ で使った background-clip: content-box の手はここでは使えない
+     ——縁（押している状態の琥珀の輪）は border なので、内側ではなく
+     当たり判定の外周に描かれてしまう。丸を内側の要素に持たせて分ける */
+  .fav-btn {
+    flex: none; margin-left: 8px; border: none; background: none; padding: 0;
+    width: 32px; height: 32px; color: var(--navy-soft);
+    display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer; font-family: inherit;
+  }
+  /* 「まるのなかの星」なので、丸が見えていないと形が成り立たない。
+     台紙（--sheet-board #f7f5f2）の上では地色だけでは丸が浮かばなかったので、
+     白い面と細い輪で丸を描く。押している状態では輪も地も琥珀に変わる */
+  .fav-dot {
+    width: 32px; height: 32px; border-radius: 50%; flex: none;
+    background: #fff; border: 1px solid var(--navy-line);
+    display: grid; place-items: center;
+  }
+  .fav-star {
+    width: 19px; height: 19px; fill: none; stroke: currentColor;
+    stroke-width: 1.7; stroke-linejoin: round; pointer-events: none;
+  }
+  .fav-btn:hover .fav-dot { background: var(--navy-bg); border-color: var(--navy-soft); }
+  .fav-btn[aria-pressed="true"] { color: #8a6410; }
+  .fav-btn[aria-pressed="true"] .fav-dot { background: #fdf4dc; border-color: #e0a62f; }
+  .fav-btn[aria-pressed="true"] .fav-star { fill: currentColor; }
+  .fav-btn[aria-pressed="true"]:hover .fav-dot { background: #f9ead0; }
   .memo-ta {
     width: 100%; min-height: 72px; resize: vertical; font-family: inherit; font-size: var(--fs-ui); line-height: 1.8;
     background: var(--navy-bg); border: 1px solid var(--navy-line); border-radius: 3px 12px 12px 12px; padding: 10px 12px;
@@ -606,7 +706,12 @@
   .sheet-danger { margin-top: 22px; padding-top: 14px; border-top: 1px dashed var(--navy-line); display: flex; gap: 10px; flex-wrap: wrap; }
   .danger-btn { font-family: inherit; font-size: var(--fs-cap); font-weight: 700; cursor: pointer; border: 1px solid #e3b9b3; background: #fff; color: #b0432f; border-radius: 999px; padding: 6px 14px; }
   .danger-btn:hover { background: #fbeeec; border-color: #cf7f72; }
-  .privacy-note { font-size: var(--fs-cap); color: var(--navy-soft); line-height: 1.8; background: var(--navy-bg); border-radius: 10px; padding: 10px 12px; }
+  /* 上司・管理者で「じぶんのメモ」の中身の代わりに出る注記。
+     もとは自前の地色を持った箱だったが、いまは紙（.sheet-block）の上に
+     載るので、箱の中にもう一つ箱があることになる。地色は紙に任せ、
+     ここは文章として置く。**枠そのものは本人のときと同じ位置に残す**
+     ——3枚目の紙が消えると、上司ビューだけ組みが変わってしまう */
+  .privacy-note { font-size: var(--fs-ui); color: var(--navy-soft); line-height: 1.9; }
 
   /* ダイアログ（プレビュー・確認） */
   .dlg-body { padding: 4px 22px 22px; }
@@ -1074,6 +1179,9 @@
   .sheet-head h2 { white-space: nowrap; }
   @media (max-width: 640px) {
     .sheet-head { flex-wrap: wrap; }
+    /* お気に入りの丸は ✕ の手前。時刻だけを次の行へ送るのは元のまま
+       （イシュー#19-5 でボタンが1つ増えたので、折り返す機会は増える） */
+    .sheet-head .fav-btn { order: 1; }
     .sheet-head .sheet-close { order: 2; }
     .sheet-head .sheet-time { order: 3; margin-left: 44px; }
   }
@@ -1174,6 +1282,9 @@
       width: 44px; height: 44px; padding: 6px;
       background-clip: content-box; background-origin: content-box;
     }
+    /* お気に入りの丸も同じ扱い。見える丸（.fav-dot）は32pxのままで、
+       押せる範囲だけ44pxにする（イシュー#19-5） */
+    .fav-btn { width: 44px; height: 44px; margin-left: 2px; }
   }
 
   /* ---- N-01 節目の帯を、主役の上に重ねない ----
@@ -3069,6 +3180,15 @@ const EXT_ICON = `<svg class="ext-icon" viewBox="0 0 16 16" aria-hidden="true">
         fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>`;
 
+/* お気に入りの星（イシュー#19-5）。塗るか線かで状態を出し分けるので、
+   星の形は1つだけ持ち、fill を CSS（[aria-pressed="true"]）で切り替える。
+   ★という文字ではなく図形にしたのは、字だと書体によって形も太さも変わり、
+   「線の星」を作れないため。読み上げ名はボタン側の aria-label が持つ */
+const FAV_LABEL = on => (on ? "お気に入りから外す" : "お気に入りに追加する");
+const STAR_ICON = `<span class="fav-dot"><svg class="fav-star" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+  <path d="M12 3.9l2.55 5.17 5.7.83-4.12 4.02.97 5.68L12 16.92l-5.1 2.68.97-5.68L3.75 9.9l5.7-.83z"/>
+</svg></span>`;
+
 /* ---- モーダルの焦点の作法（イシュー#8） ---------------------------------
    拡大詳細やダイアログを開いても焦点が背後のページに残っていると、
    キーボードだけの人は「開いたのに中を触れない・Tabを送ると裏の画面を
@@ -3378,26 +3498,35 @@ function openThread(d, fromCard, opts) {
         <div class="ava">${d.ini}</div>
         <div><h2>${d.who}</h2><small>${d.ch}</small></div>
         <span class="sheet-time">${d.time}</span>
+        ${opts.fav ? `<button class="fav-btn" data-fav aria-pressed="${!!d.fav}" aria-label="${FAV_LABEL(!!d.fav)}" title="${FAV_LABEL(!!d.fav)}">${STAR_ICON}</button>` : ""}
         <button class="sheet-close" aria-label="閉じる">✕</button>
       </div>
       <div class="sheet-body">
-        ${d.summary ? `<div class="sheet-sec">オブリエのメモ</div><p class="sheet-summary">${d.summary}</p>` : ""}
-        <div class="sheet-sec">やり取りの流れ</div>
-        ${story}
-        <div class="sheet-actions">
-          <button class="mini-btn" data-open-src>${d.src}で開く${EXT_ICON}</button>
-          ${opts.fav ? `<button class="mini-btn fav-btn" data-fav aria-pressed="${!!d.fav}">★ お気に入り</button>` : ""}
-        </div>
+        ${d.summary ? `<section class="sheet-block">
+          <h3 class="sheet-sec">オブリエのメモ</h3>
+          <p class="sheet-summary">${d.summary}</p>
+        </section>` : ""}
+        <section class="sheet-block">
+          <h3 class="sheet-sec">やり取りの流れ</h3>
+          ${story}
+          <div class="sheet-actions">
+            <button class="mini-btn" data-open-src>${d.src}で開く${EXT_ICON}</button>
+          </div>
+        </section>
         ${opts.memo ? `
-        <div class="sheet-sec">じぶんのメモ</div>
-        <textarea class="memo-ta" data-memo aria-label="じぶんのメモ" aria-describedby="memoState" placeholder="気づいたことを、じぶんのために残しておけます">${esc(d.myMemo || "")}</textarea>
-        <div class="memo-row">
-          <small>このメモはあなただけに表示されます</small>
-          <span class="memo-state" id="memoState" data-memo-state role="status" aria-live="polite">${d.myMemo ? "保存済み" : ""}</span>
-          <button class="mini-btn" data-save-memo>保存する</button>
-        </div>` : `
-        <div class="sheet-sec">じぶんのメモ</div>
-        <div class="privacy-note">じぶんのメモは本人だけのものです。上司・管理者には表示されません。</div>`}
+        <section class="sheet-block">
+          <h3 class="sheet-sec">じぶんのメモ</h3>
+          <textarea class="memo-ta" data-memo aria-label="じぶんのメモ" aria-describedby="memoState" placeholder="気づいたことを、じぶんのために残しておけます">${esc(d.myMemo || "")}</textarea>
+          <div class="memo-row">
+            <small>このメモはあなただけに表示されます</small>
+            <span class="memo-state" id="memoState" data-memo-state role="status" aria-live="polite">${d.myMemo ? "保存済み" : ""}</span>
+            <button class="mini-btn" data-save-memo>保存する</button>
+          </div>
+        </section>` : `
+        <section class="sheet-block">
+          <h3 class="sheet-sec">じぶんのメモ</h3>
+          <p class="privacy-note">じぶんのメモは本人だけのものです。上司・管理者には表示されません。</p>
+        </section>`}
         ${(opts.report || opts.del) ? `<div class="sheet-danger">
           ${opts.report ? '<button class="mini-btn" data-not-thanks>これは感謝ではないと報告する</button>' : ""}
           ${opts.del ? '<button class="danger-btn" data-del>このカードを削除する</button>' : ""}
@@ -3417,7 +3546,13 @@ function openThread(d, fromCard, opts) {
   const favBtn = ov.querySelector("[data-fav]");
   if (favBtn) favBtn.addEventListener("click", () => {
     d.fav = !d.fav;
+    /* 押している／いないは aria-pressed で伝え、名前のほうも次に押したら
+       何が起きるかに書き換える（イシュー#19-5）。アイコンだけのボタンなので
+       名前を失うと何のボタンか分からなくなる。title も同じ文言にして、
+       マウスで使う人にも伝わるようにする */
     favBtn.setAttribute("aria-pressed", String(d.fav));
+    favBtn.setAttribute("aria-label", FAV_LABEL(d.fav));
+    favBtn.setAttribute("title", FAV_LABEL(d.fav));
     /* カード表面の★を、その場で付け外しする（A-09）。
        以前は内部の状態だけが変わり、表面は古いまま・絞り込むと急に現れていた。
        全体を描き直すと入場アニメが走り直すので、触るのはこの1枚だけ。
