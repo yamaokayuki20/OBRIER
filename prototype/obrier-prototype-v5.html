@@ -1835,10 +1835,11 @@
   .net-lg { display: inline-flex; align-items: center; gap: 7px; }
   .net-lg i { flex: none; display: inline-block; }
   .net-lg-ball { width: 15px; height: 15px; border-radius: 50%; background: var(--navy); }
-  .net-lg-line { width: 26px; height: 5px; border-radius: 3px; background: var(--navy); opacity: .55; }
-  .net-lg-arrow {
-    width: 0; height: 0; border-left: 9px solid var(--navy);
-    border-top: 5px solid transparent; border-bottom: 5px solid transparent;
+  .net-lg-line { width: 26px; height: 2px; border-radius: 2px; background: var(--navy); opacity: .42; }
+  /* 点の流れの見本。線ではなく点を並べて「向きは点が示す」ことを伝える */
+  .net-lg-dots {
+    width: 26px; height: 5px; border-radius: 3px;
+    background: radial-gradient(circle, var(--line-sent) 44%, transparent 47%) 0 0/9px 5px repeat-x;
   }
 
   .net-stage {
@@ -1877,9 +1878,22 @@
   /* 選んでいる間、関わりのない玉と線は控えめにする。
      薄くするのは玉と線だけで、名前の字はそのまま（読めなくならないように） */
   .net-stage.has-pick .net-node:not(.is-on):not(.is-link) .net-ball { opacity: .3; }
+
+  /* 線は「つながっている」の一言だけを担う。太さも濃さも全部そろえる。
+     量は下の表が、向きは押したときの点の流れが受け持つ（調査 §3）。
+     1組につき1本しか引かないので、双方向でも線は重ならない */
   .net-edge { transition: stroke-opacity .18s ease; }
-  .net-stage.has-pick .net-edge:not(.is-link) { stroke-opacity: .07 !important; }
-  .net-stage.has-pick .net-head:not(.is-link) { fill-opacity: .07 !important; }
+  .net-stage.has-pick .net-edge:not(.is-link) { stroke-opacity: .06 !important; }
+
+  /* 点の流れ。破線の隙間を送っているだけなので、要素はひと組につき1本。
+     押した人のぶん（最大10本ほど）しか作らない＝常時26本を動かさない */
+  .net-dots {
+    fill: none; stroke-linecap: round; stroke-width: 4.4;
+    animation: net-march linear infinite;
+  }
+  .net-dots.is-out { stroke: var(--line-sent); }
+  .net-dots.is-in  { stroke: var(--line-recv); }
+  @keyframes net-march { to { stroke-dashoffset: var(--march); } }
 
   .net-pick {
     margin-top: 12px; background: var(--navy-bg); border-radius: 12px;
@@ -1888,6 +1902,60 @@
   }
   .net-pick b { font-weight: 800; }
   .net-pick .net-pick-hint { color: var(--navy-soft); }
+
+  /* -- (B-2) 誰から誰への表（隣接行列） --
+     線を引かないので絡まりようがない。向きは行と列の役割で決まるから、
+     矢印も弧も要らない。密なやり取りほどノードリンク図より読みやすくなる
+     （docs/network-visualization-study.md §2-3）。
+     本物の <table> なので、読み上げとキーボードは構造だけで満たされる */
+  .net-mx-wrap { margin-top: 4px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .net-mx { border-collapse: separate; border-spacing: 3px; width: 100%; }
+  .net-mx caption { text-align: left; font-size: var(--fs-cap); color: var(--stage-ink-soft); line-height: 1.7; padding-bottom: 8px; }
+  .net-mx th, .net-mx td { padding: 0; font-weight: 400; }
+  .net-mx thead th {
+    font-size: var(--fs-note); font-weight: 700; color: var(--stage-ink-soft);
+    text-align: center; padding-bottom: 3px; white-space: nowrap;
+  }
+  .net-mx thead th:first-child { text-align: left; }
+  .net-mx tbody th, .net-mx tfoot th {
+    text-align: right; padding-right: 8px; white-space: nowrap;
+    font-size: var(--fs-cap); font-weight: 700; color: var(--stage-ink);
+  }
+  /* 狭い画面では列のほうがはみ出して横に送ることになる。そのとき名前の列が
+     一緒に流れていくと、いま見ているマスが誰の行なのか分からなくなるので、
+     いちばん左だけは貼り付けたままにする */
+  .net-mx thead th:first-child,
+  .net-mx tbody th, .net-mx tfoot th {
+    position: sticky; left: 0; z-index: 1;
+    background: linear-gradient(to right, var(--panel-bg, #fff) 0 calc(100% - 6px), transparent);
+  }
+  /* マス。押せるのは値のあるマスだけで、当たり判定は 44px を割らない */
+  .net-cell {
+    display: flex; align-items: center; justify-content: center;
+    width: 100%; min-width: 44px; height: 44px; border-radius: 8px;
+    border: 1px solid transparent; background: var(--cellbg);
+    font-family: inherit; font-size: var(--fs-cap); font-variant-numeric: tabular-nums;
+    color: var(--navy); cursor: pointer; padding: 0;
+    transition: outline-color .15s ease;
+  }
+  .net-cell[disabled] { cursor: default; }
+  .net-cell.is-zero { color: var(--navy-soft); background: #f7f8fa; }
+  .net-cell.is-self { background: repeating-linear-gradient(-45deg, #f2f4f7 0 5px, #fff 5px 10px); cursor: default; }
+  .net-cell:focus-visible { outline: 3px solid var(--navy); outline-offset: 2px; }
+  .net-cell:hover:not([disabled]) { border-color: var(--navy); }
+  /* 十字の強調。行と列を同時に照らして「誰から誰へ」を目で追えるようにする */
+  .net-mx.has-cross tbody th:not(.is-cross) { opacity: .45; }
+  .net-mx.has-cross thead th:not(.is-cross) { opacity: .45; }
+  .net-mx.has-cross .net-cell:not(.is-cross) { opacity: .34; }
+  .net-cell.is-hit { outline: 3px solid var(--accent-deep); outline-offset: 2px; }
+  .net-mx-ini { display: none; }
+  .net-mx-tot { font-size: var(--fs-note); color: var(--stage-ink-soft); font-variant-numeric: tabular-nums; text-align: center; white-space: nowrap; }
+  .net-mx-read {
+    margin-top: 10px; background: var(--navy-bg); border-radius: 12px;
+    padding: 11px 15px; font-size: var(--fs-ui); line-height: 1.85; color: var(--navy); min-height: 44px;
+  }
+  .net-mx-read b { font-weight: 800; }
+  .net-mx-read .net-pick-hint { color: var(--navy-soft); }
 
   .net-h3 { font-size: var(--fs-lead); font-weight: 800; color: var(--stage-ink); margin: 22px 0 6px; }
   .net-list { margin-top: 10px; background: #fff; border: 1px solid var(--panel-line); border-radius: 14px; overflow: hidden; }
@@ -1950,10 +2018,20 @@
     .net-tile { flex: 1 1 100%; }
     .net-tile b { font-size: 24px; }
     .net-bar-name { width: 78px; }
+    /* 表は狭い画面でこそ強い（図と違って潰れない）。行の見出しは頭文字だけにして
+       6列ぶんの幅を空ける。名前は読み上げ名とマスの説明文に残してある */
+    .net-mx tbody th { padding-right: 5px; font-size: var(--fs-note); }
+    /* 44px を割らせない。6列ぶんが画面に収まらないぶんは、表の枠の中だけを
+       横へ送る（頁そのものは動かさない）。送れることは枠に注記で書いてある */
+    .net-cell { min-width: 44px; height: 46px; }
+    .net-mx-full { display: none; }
+    .net-mx-ini { display: inline; }
   }
   @media (prefers-reduced-motion: reduce) {
     .net-ball, .net-edge { transition: none; }
     .net-node:hover .net-ball { transform: none; }
+    /* 点を流さない。向きは表と、押したときの文章が受け持つので情報は落ちない */
+    .net-dots { animation: none; stroke-dasharray: none !important; stroke-width: 2.4; opacity: .75; }
   }
 
   /* ---- 立体のしゃぼん玉と写真アバター（イシュー#22） ----------------------
@@ -2167,7 +2245,7 @@
     </div>
     <div class="me" id="meBox"><span>ユーザーさん</span><div class="ava-s">ユ</div></div>
     <!-- どの版を見ているかを確かめるための表示。更新されていないと思ったときはここを見る -->
-    <button class="build" id="buildTag" title="押すと自己診断（閉じる動作の重さを自動で測ります）">rev.20 上司ダッシュボード版</button>
+    <button class="build" id="buildTag" title="押すと自己診断（閉じる動作の重さを自動で測ります）">rev.21 やり取りの図＋表版</button>
   </div>
 </header>
 
@@ -2266,16 +2344,30 @@
       <p class="panel-sub" id="netSub"></p>
       <div class="net-legend">
         <span class="net-lg"><i class="net-lg-ball"></i>玉が大きく濃いほど、チームの中でのやり取りが多い</span>
-        <span class="net-lg"><i class="net-lg-line"></i>線が太く濃いほど、その2人の間の通数が多い</span>
-        <span class="net-lg"><i class="net-lg-arrow"></i>矢印の向きは、ありがとうが届いた向き</span>
+        <span class="net-lg"><i class="net-lg-line"></i>線はつながりがあることだけを示す（太さは通数を表しません）</span>
+        <span class="net-lg"><i class="net-lg-dots"></i>玉を押すと、その人のありがとうが向かう先へ点が流れる</span>
       </div>
       <div class="net-stage" id="netStage">
-        <!-- 図そのものは読み上げから外し、同じ内容を下の「つながりの一覧」と
+        <!-- 図そのものは読み上げから外し、同じ内容を下の表・「つながりの一覧」と
              玉のボタンの読み上げ名で届ける（ホバー限定にしない・A-04） -->
         <svg class="net-svg" id="netSvg" aria-hidden="true" focusable="false"></svg>
         <div class="net-nodes" id="netNodes"></div>
       </div>
       <div class="net-pick" id="netPick"></div>
+
+      <!-- (B-2) 誰から誰への表。通数を読むのはこちらの担当。
+           図は「つながりの形」を、表は「向きと量」を受け持つ
+           （docs/network-visualization-study.md §3） -->
+      <h3 class="net-h3">誰から誰へ ― 通数の表</h3>
+      <!-- 説明は枠の**外**に置く。中に入れると、表の幅（＝画面より広いことがある）に
+           引き伸ばされて、横に送らないと最後まで読めなくなる -->
+      <p class="mini-note">行が送った人、列が受け取った人です。マスが濃いほど通数が多く、押すとその組み合わせの説明が下に出ます。斜めの縞は自分あてで、やり取りとして数えません。狭い画面では、表を横に送って残りの列を見られます。</p>
+      <!-- 横に送れる枠は、キーボードだけでも送れるように焦点を持たせる
+           （tabindex="0" が無いと、マウスホイールを持たない人が中を見られない） -->
+      <div class="net-mx-wrap" tabindex="0" role="region" aria-label="誰から誰への通数の表（狭い画面では横に送れます）">
+        <table class="net-mx" id="netMatrix"></table>
+      </div>
+      <div class="net-mx-read" id="netMxRead"></div>
 
       <h3 class="net-h3">つながりの数（相手の少ない順）</h3>
       <p class="mini-note">この期間に、チームの中でありがとうをやり取りした相手の人数です。チーム外とのやり取りはこの数に入りません。少ないことがそのまま問題だとは限りませんが、支援が要るかどうかは1on1で確かめてください。</p>
@@ -5536,6 +5628,8 @@ function netLayout(nodes, links, W, H) {
 let netNow = null, netPrev = null;      // いまの期間／その前の期間のやり取り
 let netPinned = null, netHover = null;  // 押して固定した玉／触れている玉
 let netGeomAt = "";                     // 置き直しの要否を測るための「幅×高さ」
+let netLanes = [];                      // 線の両端の座標。点の流れが同じ道を通るため
+let netFocusKey = null;                 // キーボードで焦点のある玉（押したのと同じ扱い）
 
 /** 図を描く。W×H が前と同じなら、置き直さずに描くだけ */
 function netDraw(force) {
@@ -5571,35 +5665,27 @@ function netDraw(force) {
   netLayout(nodes, links, W, H);
   window.__netLayoutMs = +(performance.now() - t0).toFixed(2);
 
-  /* 線と矢じり。矢じりは marker ではなく三角形で描く——marker だと
-     線ごとの濃さ（＝通数）を矢じりへ引き継げないため */
+  /* 線。**1組につき1本・直線・太さも濃さも一定**。
+     線が担うのは「つながりがある」の一言だけで、量は下の表が、向きは押した
+     ときの点の流れが受け持つ（docs/network-visualization-study.md §3）。
+     向きを線で示さなくなったぶん、双方向の組み合わせも1本で足りる——
+     有向26本が15本に減り、これだけで絡まりの大半が消える。
+     端点は玉のふちで止め、両端の座標を残しておく（点の流れが同じ道を通る） */
+  netLanes = [];
   const paths = [];
-  for (const e of netNow.edges) {
-    const a = byNode[e.from], b = byNode[e.to];
+  for (const l of links) {
+    const a = l.a, b = l.b;
     const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 1;
-    const ux = dx / d, uy = dy / d, nx = -uy, ny = ux;
-    const k = Math.sqrt(e.c / cMax);
-    const wd = (1.1 + 6.2 * k).toFixed(2);
-    const op = (0.18 + 0.62 * k).toFixed(3);
-    const bow = Math.min(30, d * 0.17);
-    const headLen = 8 + 1.6 * (1.1 + 6.2 * k) / 2;
-    const sx = a.x + ux * (a.r + 2) + nx * bow * 0.34;
-    const sy = a.y + uy * (a.r + 2) + ny * bow * 0.34;
-    const ex = b.x - ux * (b.r + 3 + headLen) + nx * bow * 0.34;
-    const ey = b.y - uy * (b.r + 3 + headLen) + ny * bow * 0.34;
-    const cx = (a.x + b.x) / 2 + nx * bow, cy = (a.y + b.y) / 2 + ny * bow;
-    const tvx = ex - cx, tvy = ey - cy, tl = Math.hypot(tvx, tvy) || 1;
-    const tx = tvx / tl, ty = tvy / tl, px = -ty, py = tx;
-    const hw = 3.2 + 0.42 * (1.1 + 6.2 * k);
-    const tip = [ex + tx * headLen, ey + ty * headLen];
-    const tag = `data-f="${e.from}" data-t="${e.to}"`;
-    paths.push(`<path class="net-edge" ${tag} d="M${sx.toFixed(1)},${sy.toFixed(1)} Q${cx.toFixed(1)},${cy.toFixed(1)} ${ex.toFixed(1)},${ey.toFixed(1)}"
-      fill="none" stroke="#3A4A66" stroke-width="${wd}" stroke-opacity="${op}" stroke-linecap="round"/>`);
-    paths.push(`<polygon class="net-head" ${tag} fill="#3A4A66" fill-opacity="${op}"
-      points="${tip[0].toFixed(1)},${tip[1].toFixed(1)} ${(ex + px * hw).toFixed(1)},${(ey + py * hw).toFixed(1)} ${(ex - px * hw).toFixed(1)},${(ey - py * hw).toFixed(1)}"/>`);
+    const ux = dx / d, uy = dy / d;
+    const sx = a.x + ux * (a.r + 2), sy = a.y + uy * (a.r + 2);
+    const ex = b.x - ux * (b.r + 2), ey = b.y - uy * (b.r + 2);
+    netLanes.push({ a: a.key, b: b.key, sx, sy, ex, ey, ux, uy });
+    paths.push(`<path class="net-edge" data-f="${a.key}" data-t="${b.key}"
+      d="M${sx.toFixed(1)},${sy.toFixed(1)} L${ex.toFixed(1)},${ey.toFixed(1)}"
+      fill="none" stroke="#3A4A66" stroke-width="1.6" stroke-opacity="0.42" stroke-linecap="round"/>`);
   }
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-  svg.innerHTML = paths.join("");
+  svg.innerHTML = paths.join("") + '<g id="netDotLayer"></g>';
 
   host.innerHTML = nodes.map(o => `
     <button type="button" class="net-node" data-k="${o.key}"
@@ -5613,8 +5699,14 @@ function netDraw(force) {
     const k = b.dataset.k;
     b.addEventListener("mouseenter", () => { netHover = k; netPaintPick(); });
     b.addEventListener("mouseleave", () => { if (netHover === k) netHover = null; netPaintPick(); });
-    b.addEventListener("focus", () => { netHover = k; netPaintPick(); });
-    b.addEventListener("blur", () => { if (netHover === k) netHover = null; netPaintPick(); });
+    /* 焦点は「押した」と同じ扱いにする。点の流れは押したときに出すものなので、
+       キーボードだけの人にも同じものが出るようにしておく（ホバー限定にしない） */
+    b.addEventListener("focus", () => { netHover = k; netFocusKey = k; netPaintPick(); });
+    b.addEventListener("blur", () => {
+      if (netHover === k) netHover = null;
+      if (netFocusKey === k) netFocusKey = null;
+      netPaintPick();
+    });
     b.addEventListener("click", () => { netPinned = netPinned === k ? null : k; netPaintPick(); });
   });
   netPaintPick();
@@ -5649,10 +5741,13 @@ function netPaintPick() {
     b.classList.toggle("is-on", b.dataset.k === netPinned);
     b.classList.toggle("is-link", !!k && linked.has(b.dataset.k) && b.dataset.k !== k);
   });
-  stage.querySelectorAll(".net-edge, .net-head").forEach(p =>
+  stage.querySelectorAll(".net-edge").forEach(p =>
     p.classList.toggle("is-link", !!k && (p.dataset.f === k || p.dataset.t === k)));
+  /* 点を流すのは「押した／キーボードで選んだ」ときだけ。
+     ただ通りかかっただけのホバーでは流さない（画面がうるさくなる） */
+  netPaintDots(netPinned || netFocusKey);
   if (!k) {
-    box.innerHTML = '<span class="net-pick-hint">玉を押す（キーボードなら Tab で選んで Enter）と、その人が誰と、どれだけやり取りしているかがここに出ます。玉の下の数字は「やり取りのあった相手の人数・チームの中での通数」です。</span>';
+    box.innerHTML = '<span class="net-pick-hint">玉を押す（キーボードなら Tab で選んで Enter）と、その人のありがとうが向かう先へ点が流れ、誰とどれだけやり取りしているかがここに出ます。玉の下の数字は「やり取りのあった相手の人数・チームの中での通数」です。</span>';
     return;
   }
   const d = netNow.by[k];
@@ -5666,6 +5761,163 @@ function netPaintPick() {
     + `チームの中でおくった ${d.out}通・もらった ${d.in}通<br>`
     + (list.length ? `<span class="net-pick-hint">${list.join("、")}</span>`
                    : '<span class="net-pick-hint">この期間、チームの中でのやり取りは見えていません。チーム外の仕事が中心なのかもしれません。</span>');
+}
+
+/**
+ * 選ばれた人のぶんだけ、点を流す。
+ *
+ * 向きを静止した矢印で示すより、動く点で示すほうが速く正確に読み取れる
+ * （docs/network-visualization-study.md §2-5）。ただし26本を同時に流すと
+ * 「動くスパゲッティ」になるので、**押した人の線だけ**にする。
+ *
+ * 作りは破線の隙送り。`stroke-dasharray` で点を並べ、`stroke-dashoffset` を
+ * 動かすだけなので、1方向につき path 1本しか要らない（最大10本ほど）。
+ * 送りの向きの符号がそのまま点の進む向きになる。
+ * 通数は点の「間隔」で示す——多いほど点が詰まって流れる。**線の太さは変えない。**
+ */
+function netPaintDots(k) {
+  const layer = document.getElementById("netDotLayer");
+  if (!layer) return;
+  layer.innerHTML = "";
+  if (!k || !netNow) return;
+  const d = netNow.by[k];
+  const cMax = Math.max(1, ...netNow.edges.map(e => e.c));
+  const out = [];
+  netLanes.forEach((ln, i) => {
+    if (ln.a !== k && ln.b !== k) return;
+    const other = ln.a === k ? ln.b : ln.a;
+    const p = d.partners.get(other);
+    if (!p) return;
+    /* 送りと受けは、線の左右に 3px ずつ寄せた別の道を通す。
+       同じ道に重ねると、双方向のときにどちらの点か分からなくなる */
+    const nx = -ln.uy, ny = ln.ux;
+    const lane = (sign) => {
+      const o = 3.1 * sign;
+      return { x1: ln.sx + nx * o, y1: ln.sy + ny * o, x2: ln.ex + nx * o, y2: ln.ey + ny * o };
+    };
+    const len = Math.hypot(ln.ex - ln.sx, ln.ey - ln.sy) || 1;
+    const add = (cnt, dirOut, sign) => {
+      if (!cnt) return;
+      /* 点の間隔。通数が多いほど詰める（22px〜46px）。太さは触らない */
+      const gap = 46 - 24 * Math.sqrt(Math.min(1, cnt / cMax));
+      const g = lane(sign);
+      /* k から見て「送る」なら k 側が始点。線の向きは a→b で引いてあるので、
+         k が b 側のときは進む向きを反転する */
+      const kIsStart = (ln.a === k);
+      const forward = dirOut ? kIsStart : !kIsStart;
+      const march = forward ? -gap : gap;
+      /* 1周（＝点1つぶん進む）にかける時間。長い線ほど遅くならないよう距離で割らない */
+      const dur = (gap / 46 * 0.85 + 0.35).toFixed(2);
+      out.push(`<line class="net-dots ${dirOut ? "is-out" : "is-in"}"
+        x1="${g.x1.toFixed(1)}" y1="${g.y1.toFixed(1)}" x2="${g.x2.toFixed(1)}" y2="${g.y2.toFixed(1)}"
+        stroke-dasharray="0.1 ${gap.toFixed(1)}"
+        style="--march:${march.toFixed(1)}px; animation-duration:${dur}s; animation-delay:${(i * -0.17).toFixed(2)}s"/>`);
+      void len;
+    };
+    add(p.out, true, +1);
+    add(p.in, false, -1);
+  });
+  layer.innerHTML = out.join("");
+}
+
+/**
+ * 誰から誰への表（隣接行列）。
+ *
+ * 行＝送った人、列＝受け取った人。線を引かないので絡まりようがなく、
+ * 向きは行と列の役割だけで決まる（矢印も弧も要らない）。
+ * 一方通行は対角線をまたいだ2つのマスを見比べれば分かり、
+ * 孤立は行と列がまるごと薄い十字の帯として見える。
+ * 本物の <table> なので、読み上げとキーボードは構造そのもので満たされる。
+ * 選定の経緯は docs/network-visualization-study.md。
+ */
+function renderNetMatrix() {
+  const t = $("netMatrix"), read = $("netMxRead");
+  if (!t || !netNow) return;
+  const cMax = Math.max(1, ...netNow.edges.map(e => e.c));
+  const nm = k => netNow.by[k].name;
+  const cell = (from, to) => {
+    if (from === to) return `<td><span class="net-cell is-self" aria-hidden="true">―</span></td>`;
+    const p = netNow.by[from].partners.get(to);
+    const c = p ? p.out : 0;
+    /* 濃さは通数の平方根。面積ではなく濃さなので、多いマスが黒く潰れない。
+       **上限は 0.36 で止める。** 濃紺の字は地が薄いうちは 4.5:1 を満たすが、
+       濃くしていくと途中で落ちる。かといって字を白にしても、そこはまだ
+       地が明るすぎて白も落ちる——**濃紺も白も通らない帯**（地の相対輝度
+       0.18〜0.47）が真ん中にある。0.32 はその帯に入る手前で、実測 4.9:1
+       （0.36 でちょうど 4.51:1 まで落ちるので、余裕を見て 0.32 で止めた）。
+       濃さだけで足りないぶんは、字の太さを併せて変えて補う（色に頼らない） */
+    const kk = Math.sqrt(c / cMax);
+    const bg = c ? `rgba(58,74,102,${(0.06 + 0.26 * kk).toFixed(3)})` : "";
+    const wt = c ? Math.round(400 + 400 * kk) : 400;
+    return `<td><button type="button" class="net-cell${c ? "" : " is-zero"}"
+      data-f="${from}" data-t="${to}"
+      style="${bg ? `--cellbg:${bg};` : ""}font-weight:${wt}"
+      aria-label="${nm(from)}から${nm(to)}へ ${c}通">${c || "－"}</button></td>`;
+  };
+  /* 列の見出しは、幅があるうちは名前をそのまま出す。頭文字だけだと
+     「佐」が誰なのかを一度あたまで戻す手間が要る。狭いときだけ頭文字にする
+     （どちらか一方しか描かれないので、読み上げが二重にならない） */
+  const head = NET_KEYS.map(k =>
+    `<th scope="col" data-k="${k}"><span class="net-mx-full">${nm(k)}</span>`
+    + `<span class="net-mx-ini" title="${nm(k)}">${netNow.by[k].ini}</span></th>`).join("");
+  const body = NET_KEYS.map(from => {
+    const tot = netNow.by[from].out;
+    return `<tr><th scope="row" data-k="${from}">${nm(from)}</th>`
+      + NET_KEYS.map(to => cell(from, to)).join("")
+      + `<td class="net-mx-tot">${tot}</td></tr>`;
+  }).join("");
+  const foot = NET_KEYS.map(k => `<td class="net-mx-tot">${netNow.by[k].in}</td>`).join("");
+  /* 見える説明は表の外の注記が受け持つ（枠の中に入れると横に引き伸ばされる）。
+     ここは表そのものの名乗りとして、読み上げにだけ渡す */
+  t.innerHTML = `<caption class="vh-label">誰から誰へ ― 通数の表。行が送った人、列が受け取った人です。</caption>`
+    + `<thead><tr><th scope="col">おくった人 ＼ もらった人</th>${head}<th scope="col">おくった計</th></tr></thead>`
+    + `<tbody>${body}</tbody>`
+    + `<tfoot><tr><th scope="row">もらった計</th>${foot}<td class="net-mx-tot">${netNow.total}</td></tr></tfoot>`;
+
+  const clear = () => {
+    t.classList.remove("has-cross");
+    t.querySelectorAll(".is-cross").forEach(el => el.classList.remove("is-cross"));
+  };
+  /* 十字の強調。行と列を同時に照らして、目で追えるようにする。
+     ホバーだけにせず、キーボードの焦点でも同じことが起きる（A-04） */
+  const light = (btn) => {
+    clear();
+    const f = btn.dataset.f, to = btn.dataset.t;
+    t.classList.add("has-cross");
+    t.querySelectorAll(`[data-f="${f}"], [data-t="${to}"]`).forEach(el => el.classList.add("is-cross"));
+    t.querySelectorAll(`tbody th[data-k="${f}"], thead th[data-k="${to}"]`).forEach(el => el.classList.add("is-cross"));
+    btn.classList.add("is-cross");
+  };
+  const say = (btn) => {
+    const f = btn.dataset.f, to = btn.dataset.t;
+    const p = netNow.by[f].partners.get(to);
+    const back = netNow.by[to].partners.get(f);
+    const c = p ? p.out : 0, r = back ? back.out : 0;
+    let note = "";
+    if (c && r) {
+      const hi = Math.max(c, r), lo = Math.min(c, r);
+      note = hi >= lo * 2.5
+        ? `<span class="net-pick-hint">行き来はありますが、片方に大きく偏っています。</span>`
+        : `<span class="net-pick-hint">おおむね行き来のある関係です。</span>`;
+    } else if (c || r) {
+      note = `<span class="net-pick-hint">この期間、返る向きのやり取りは見えていません。仕事の性質によるものかもしれません。</span>`;
+    } else {
+      note = `<span class="net-pick-hint">この期間、この2人の間でのやり取りは見えていません。</span>`;
+    }
+    read.innerHTML = `<b>${nm(f)} → ${nm(to)} ${c}通</b>　／　${nm(to)} → ${nm(f)} ${r}通<br>${note}`;
+  };
+  t.querySelectorAll(".net-cell:not(.is-self)").forEach(b => {
+    b.addEventListener("mouseenter", () => { light(b); say(b); });
+    b.addEventListener("focus", () => { light(b); say(b); });
+    b.addEventListener("click", () => {
+      t.querySelectorAll(".is-hit").forEach(el => el.classList.remove("is-hit"));
+      b.classList.add("is-hit"); light(b); say(b);
+    });
+  });
+  /* 表そのものは期間を変えても作り直さない（中身だけ差し替わる）ので、
+     addEventListener だと期間を変えるたびに重なっていく。ここは上書きにする */
+  t.onmouseleave = clear;
+  read.innerHTML = '<span class="net-pick-hint">マスに触れる（キーボードなら Tab で選ぶ）と、その2人の行き来がここに出ます。</span>';
 }
 
 /**
@@ -5953,7 +6205,7 @@ function renderTeamSummary() {
   netNow = netFlow(months, "now");
   netPrev = netFlow(months, "prev");
   netNow.stampKey = months;
-  netPinned = null; netHover = null;
+  netPinned = null; netHover = null; netFocusKey = null;
 
   const label = teamSpanLabel();
   const recvAll = MEMBERS.reduce((a, m) => a + periodSum(m.shape, months).r, 0);
@@ -5968,11 +6220,13 @@ function renderTeamSummary() {
 
   $("netSub").textContent =
     `${teamPeriodLabel()}に、チームの中でだれからだれへありがとうが届いたかです。`
-    + "おくった側の記録から作っているので、チーム外とのやり取りはこの図に出ません。";
+    + "おくった側の記録から作っているので、チーム外とのやり取りは図にも表にも出ません。"
+    + "図はつながりの形を、下の表は向きと通数を受け持ちます。";
   $("netChangeSub").textContent = `前の${label}と比べて、関係の見え方が変わったところです。事実と、考えられる読み方を分けて書いています。`;
 
   netGeomAt = "";
   netDraw(true);
+  renderNetMatrix();
   renderNetList();
   renderNetInsights(label);
   renderTeamTags();
