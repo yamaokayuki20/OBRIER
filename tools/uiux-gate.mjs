@@ -247,6 +247,224 @@ for (const [vw, vh, wlabel] of [[1280, 900, 'PC'], [390, 844, 'スマホ']]) {
   await p.close();
 }
 
+/* ---- ホバー中の色も測る（監査 盲点⑩） --------------------------------
+   コントラストを**静止時にしか測っていなかった**ため、ホバーで初めて出る色は
+   原理的に見えなかった。実際、「アルバムで見る」がホバーでタグ色のベタ塗り＋
+   白文字になり、8枚すべてが 4.5:1 未満（最悪 1.55:1）で通っていた。
+
+   全要素にホバーすると時間がかかりすぎるので、**クラスの組み合わせごとに
+   1つだけ**触る（ホバーの見た目はクラスで決まるので、同じクラスなら同じ結果）。
+   触るのは押せるものだけ——ホバーで色が変わるのは押せるものだから */
+for (const [vw, vh, wlabel] of [[1280, 900, 'PC'], [390, 844, 'スマホ']]) {
+  const p = await browser.newPage({ viewport: { width: vw, height: vh } });
+  await p.goto(URL);
+  await p.waitForTimeout(2200);
+  await p.addScriptTag({ content: TOOLS });
+
+  const hoverScan = async () => {
+    const keys = await p.evaluate(() => {
+      const seen = new Set();
+      const sel = 'button, a[href], [role="button"], .tab, .card';
+      [...document.querySelectorAll(sel)].forEach((el, i) => {
+        if (el.offsetParent === null) return;
+        const r = el.getBoundingClientRect();
+        if (r.width < 4 || r.height < 4) return;
+        const sig = String(el.className) || el.tagName;
+        if (seen.has(sig)) return;
+        seen.add(sig);
+        el.setAttribute('data-gate-hover', String(i));
+      });
+      return [...document.querySelectorAll('[data-gate-hover]')].map(e => e.getAttribute('data-gate-hover'));
+    });
+    const bad = [];
+    for (const k of keys.slice(0, 26)) {
+      const loc = p.locator(`[data-gate-hover="${k}"]`);
+      try { await loc.hover({ timeout: 1200 }); } catch { continue; }
+      bad.push(...await p.evaluate(k => {
+        const host = document.querySelector(`[data-gate-hover="${k}"]`);
+        if (!host) return [];
+        const out = [];
+        for (const el of [host, ...host.querySelectorAll('*')]) {
+          if (el.offsetParent === null) continue;
+          const t = [...el.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent.trim()).join('');
+          if (!t) continue;
+          const cs = getComputedStyle(el);
+          if (parseFloat(cs.opacity) === 0) continue;
+          const size = parseFloat(cs.fontSize);
+          const fg = window.__ui.parse(cs.color);
+          const bg = window.__ui.bgOf(el);
+          const eff = window.__ui.over({ r: fg.r, g: fg.g, b: fg.b, a: fg.a * parseFloat(cs.opacity) }, bg);
+          const r = window.__ui.ratio(eff, bg);
+          const need = window.__ui.isLarge(size, cs.fontWeight) ? 3 : 4.5;
+          if (r < need) out.push({ cls: String(el.className).split(' ')[0] || el.tagName, r, need, size });
+        }
+        return out;
+      }, k));
+    }
+    await p.evaluate(() => document.querySelectorAll('[data-gate-hover]')
+      .forEach(e => e.removeAttribute('data-gate-hover')));
+    return bad;
+  };
+
+  const all = await visitAll(p, hoverScan);
+  const uniq = [...new Map(all.map(x => [x.cls + x.r, x])).values()].sort((a, b) => a.r - b.r);
+  check(`${wlabel}: ホバー中の文字も基準を満たす`,
+    uniq.length === 0,
+    uniq.slice(0, 6).map(x => `[${x.screen}] ${x.cls} ${x.r}:1(要${x.need}) ${x.size}px`).join(' / ')
+    + (uniq.length > 6 ? ` ほか${uniq.length - 6}件` : ''));
+  await p.close();
+}
+
+/* ---- 並べ替えの状態が、見た目と読み上げで食い違わないか（盲点⑫） -------
+   ゲートは `aria-label` が**在るか**しか見ておらず、**中身が正しいか**を見る
+   項目が1つも無かった。並べ替えのように「押すと状態が変わる」ものは、
+   状態を作らないと矛盾が現れない。実際、つながり順に並べると▼が別の列に付き、
+   読み上げ名も取り違えたまま3版通っていた（監査 A5-3） */
+{
+  const p = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+  await p.goto(URL);
+  await p.waitForTimeout(2200);
+  const bad = [];
+  try {
+    await p.locator('.seg button', { hasText: '上司' }).first().click({ timeout: 3000 });
+    await p.waitForTimeout(1000);
+    for (const key of ['recv', 'sent', 'link']) {
+      for (const step of [1, 2]) {
+        await p.locator(`.tbl .th-sort[data-sort="${key}"]`).click({ timeout: 2500 });
+        await p.waitForTimeout(300);
+        bad.push(...await p.evaluate(({ key, step }) => {
+          const out = [];
+          const marks = { recv: 'sortRecv', sent: 'sortSent', link: 'sortLink' };
+          const want = step === 1 ? '▼' : '▲';
+          for (const [k, id] of Object.entries(marks)) {
+            const span = document.getElementById(id);
+            if (!span) { out.push(`${id} が無い`); continue; }
+            const got = span.textContent.trim();
+            const should = k === key ? want : '⇅';
+            if (got !== should) out.push(`${key}で並べたのに ${id} が「${got}」（「${should}」のはず）`);
+            const lab = span.parentElement.getAttribute('aria-label') || '';
+            const name = { recv: 'もらった', sent: 'おくった', link: 'つながり' }[k];
+            if (!lab.startsWith(name)) out.push(`${id} の読み上げ名が「${lab.slice(0, 10)}」（「${name}」で始まるはず）`);
+          }
+          return out;
+        }, { key, step }));
+      }
+      await p.locator(`.tbl .th-sort[data-sort="${key}"]`).click({ timeout: 2500 });  // 3回目で未ソートへ戻す
+      await p.waitForTimeout(250);
+    }
+  } catch (e) { bad.push('並べ替えを操作できなかった: ' + String(e).slice(0, 60)); }
+  const uniq = [...new Set(bad)];
+  check('並べ替えの矢印と読み上げ名が、押した列と一致する', uniq.length === 0, uniq.slice(0, 4).join(' / '));
+  await p.close();
+}
+
+/* ---- 画面に出ている数どうしが食い違わないか（盲点⑭） ------------------
+   44項目のどれも「数の一致」を見ていなかった。B2B では数の信用がいちばん先に
+   効くので、同じ画面の中で基準が食い違っていること自体を不合格にする。
+   実際、チームの場面タグだけ期間に追随せず、3か月でも1年でも同じ1,460通と
+   出ていた（同じ画面のタイルは337通・監査 A5-4） */
+{
+  const p = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+  await p.goto(URL);
+  await p.waitForTimeout(2200);
+  const bad = [];
+  try {
+    await p.locator('.seg button', { hasText: '上司' }).first().click({ timeout: 3000 });
+    await p.waitForTimeout(1000);
+    const read = () => p.evaluate(() => {
+      const tile = document.querySelector('#teamTiles .net-tile b');
+      const bars = [...document.querySelectorAll('#teamTags .bar-count')];
+      return {
+        recv: tile ? parseInt(tile.textContent.replace(/[^0-9]/g, ''), 10) : NaN,
+        tags: bars.reduce((a, b) => a + parseInt(b.textContent.replace(/[^0-9]/g, ''), 10), 0),
+      };
+    });
+    const seen = [];
+    const opts = await p.locator('#teamPeriod option').evaluateAll(os => os.map(o => o.value));
+    if (opts.length < 2) bad.push('期間の選択肢が2つ未満');
+    for (const [i, v] of opts.entries()) {
+      await p.selectOption('#teamPeriod', v);
+      await p.waitForTimeout(800);
+      const r = await read();
+      seen.push(r);
+      /* タグは上位8つに切っているので、受信の合計とちょうど同じにはならない。
+         「受信を超えない」「受信の半分は超える」の2つで、桁と基準の一致を見る */
+      if (!(r.tags > 0 && r.tags <= r.recv && r.tags >= r.recv * 0.5))
+        bad.push(`期間${i + 1}: 受信${r.recv}通に対し場面タグの合計が${r.tags}通`);
+    }
+    if (seen.length >= 2 && new Set(seen.map(s => s.tags)).size === 1)
+      bad.push(`期間を変えても場面タグの合計が変わらない（${seen[0].tags}通のまま）`);
+  } catch (e) { bad.push('期間を切り替えられなかった: ' + String(e).slice(0, 60)); }
+  check('期間を変えると、画面の数がそろって動く', bad.length === 0, bad.slice(0, 3).join(' / '));
+  await p.close();
+}
+
+/* ---- 画面をまるごと入れ替えたときの着地（監査 A5-5・盲点⑮） ------------
+   ダイアログの焦点は測っていたが、**画面まるごとの入れ替え**は一度も見て
+   いなかった。押した要素ごと消える入れ替え（一覧→メンバー詳細、詳細→一覧、
+   タグの棒→アルバム）では焦点が <body> へ落ち、読み上げには何も伝わらない。
+   `document.title` が変わらないことも合わせて見る */
+{
+  const p = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+  await p.goto(URL);
+  await p.waitForTimeout(2200);
+  const bad = [];
+  const land = async (label, act) => {
+    const before = await p.title();
+    try { await act(); } catch (e) { bad.push(`${label}: 操作できない`); return; }
+    await p.waitForTimeout(900);
+    const r = await p.evaluate(() => {
+      const a = document.activeElement;
+      return { tag: a ? a.tagName : 'なし', title: document.title };
+    });
+    if (r.tag === 'BODY' || r.tag === 'HTML' || r.tag === 'なし') bad.push(`${label}: 焦点が${r.tag}へ落ちた`);
+    if (r.title === before) bad.push(`${label}: document.title が変わらない`);
+  };
+  await land('上司へ切り替え', () => p.locator('.seg button', { hasText: '上司' }).first().click({ timeout: 3000 }));
+  await land('メンバー詳細へ', () => p.locator('#memberRows tr[data-mi]').first().click({ timeout: 3000 }));
+  await land('チーム全体へ戻る', () => p.locator('#backToTeam').click({ timeout: 3000 }));
+  await land('管理者へ切り替え', () => p.locator('.seg button', { hasText: '管理者' }).first().click({ timeout: 3000 }));
+  await land('本人へ切り替え', () => p.locator('.seg button', { hasText: '本人' }).first().click({ timeout: 3000 }));
+  await land('カタチへ', () => p.locator('.tab[data-v="shape"]').click({ timeout: 3000 }));
+  await land('タグの棒からアルバムへ', () => p.locator('.bar-jump, [data-barjump]').first().click({ timeout: 3000 }));
+  check('画面をまるごと入れ替えても、焦点と題が置き去りにならない', bad.length === 0, bad.slice(0, 4).join(' / '));
+  await p.close();
+}
+
+/* ---- 文字の間隔を広げても中身が失われないか（WCAG SC 1.4.12・A-37） ----
+   利用者が読みやすさのために行送り・字間・語間を広げることがある。
+   基準が定める値（行送り1.5倍・字間0.12em・語間0.16em・段落の間2em）を
+   当てたうえで、**中身が消えないこと・枠から出ないこと**を見る。
+   5回の監査で指摘されつづけたが一度も測られていなかった項目 */
+for (const [vw, vh, wlabel] of [[1280, 900, 'PC'], [390, 844, 'スマホ']]) {
+  const p = await browser.newPage({ viewport: { width: vw, height: vh } });
+  await p.goto(URL);
+  await p.waitForTimeout(2200);
+  await p.addStyleTag({ content:
+    `* { line-height: 1.5 !important; letter-spacing: .12em !important; word-spacing: .16em !important; }
+     p { margin-bottom: 2em !important; }` });
+  await p.waitForTimeout(800);
+  const r = await p.evaluate(() => {
+    const cards = [...document.querySelectorAll('#grid .card')].slice(0, 30);
+    const gone = cards.filter(c => {
+      const t = c.querySelector('.say');
+      return !t || t.getBoundingClientRect().height < 10;
+    }).length;
+    const out = cards.filter(c => {
+      const cr = c.getBoundingClientRect();
+      return [...c.querySelectorAll('*')].some(e => {
+        const r = e.getBoundingClientRect();
+        return r.height > 0 && (r.bottom > cr.bottom + 2 || r.right > cr.right + 2);
+      });
+    }).length;
+    return { gone, out, hs: document.documentElement.scrollWidth - window.innerWidth, n: cards.length };
+  });
+  check(`${wlabel}: 文字の間隔を広げても中身が失われない（SC 1.4.12）`,
+    r.gone === 0 && r.out === 0 && r.hs <= 1,
+    `${r.n}枚中 本文が消えた${r.gone}枚・枠から出た${r.out}枚・横あふれ${r.hs}px`);
+  await p.close();
+}
+
 /* ---- 当たり判定の大きさ ---------------------------------------------- */
 for (const [w, h, label, need] of [[1280, 900, 'PC', 24], [390, 844, 'スマホ', 44]]) {
   const p = await browser.newPage({ viewport: { width: w, height: h } });
@@ -286,32 +504,44 @@ for (const vw of [320, 375, 390, 768, 1280, 1920]) {
   const p = await browser.newPage({ viewport: { width: vw, height: 900 } });
   await p.goto(URL);
   await p.waitForTimeout(2000);
-  const bad = [];
-  const probe = async label => {
-    const r = await p.evaluate(() => ({
-      doc: document.documentElement.scrollWidth, win: window.innerWidth,
-      // どの要素がはみ出しているかも拾う
-      who: [...document.querySelectorAll('body *')]
+  /* **巡回は visitAll に任せる。**
+     ここだけ自前の巡回表（本人3画面＋役割＋サブタブ）を持っていたため、
+     メンバー詳細もダイアログも一度も測っていなかった。4回目の監査で
+     「腐った巡回表」を1つ直したのに、同じファイルの別のループにもう1つ
+     残っていた（監査 盲点⑨）。巡回表は二度と増やさない。
+
+     あわせて**枠の内側も測る**。以前は文書の最外側（documentElement）でしか
+     見ておらず、`overflow-x: auto` の内側で切れているものは 0 と出ていた
+     （盲点⑬）。送れる枠（data-scroll-region）は送れて当然なので除き、
+     **送る手立ての無い枠だけ**を数える */
+  const collect = () => p.evaluate(() => {
+    const out = [];
+    const doc = document.documentElement;
+    if (doc.scrollWidth > window.innerWidth + 1) {
+      const who = [...document.querySelectorAll('body *')]
         .filter(e => e.offsetParent !== null && e.getBoundingClientRect().right > window.innerWidth + 1)
         .slice(0, 3).map(e => (String(e.className).split(' ')[0] || e.tagName)
-          + ' ' + Math.round(e.getBoundingClientRect().right)),
-    }));
-    if (r.doc > r.win + 1) bad.push(`${label} ${r.doc}>${r.win}${r.who.length ? '（' + r.who.join(',') + '）' : ''}`);
-  };
-  for (const v of ['album', 'shape', 'sent']) {
-    try { await p.locator(`.tab[data-v="${v}"]`).click({ timeout: 2500 }); await p.waitForTimeout(600); } catch {}
-    await probe(v);
-  }
-  for (const role of ['上司', '管理者']) {
-    try { await p.locator('.seg button', { hasText: role }).first().click({ timeout: 2500 }); } catch { continue; }
-    await p.waitForTimeout(800);
-    await probe(role);
-    for (const [i, sub] of (await p.locator('.sub-tab').all()).entries()) {
-      try { await sub.click({ timeout: 2000 }); await p.waitForTimeout(600); } catch { continue; }
-      await probe(`${role}サブ${i + 1}`);
+          + ' ' + Math.round(e.getBoundingClientRect().right));
+        out.push({ what: `頁 ${doc.scrollWidth}>${window.innerWidth}${who.length ? '（' + who.join(',') + '）' : ''}` });
     }
-  }
-  check(`${vw}px: 横に溢れていない`, bad.length === 0, bad.slice(0, 4).join(' / '));
+    for (const el of document.querySelectorAll('*')) {
+      if (el.offsetParent === null) continue;
+      if (el.scrollWidth - el.clientWidth <= 2) continue;
+      if (el.hasAttribute('data-scroll-region')) continue;   // 送れる枠は除く
+      /* 読み上げ用に1px へ潰してある要素（.vh-label / .vh-table）は、
+         潰してあること自体が目的なので溢れて当然。見た目の幅が無いものは除く */
+      if (el.clientWidth < 8 || el.clientHeight < 8) continue;
+      const s = getComputedStyle(el);
+      if (s.overflowX === 'visible') continue;               // 頁の判定で拾う
+      out.push({ what: `${String(el.className).split(' ')[0] || el.tagName} 枠の中 ${el.scrollWidth}>${el.clientWidth}` });
+    }
+    return out;
+  });
+  const found = await visitAll(p, collect);
+  const bad = found.map(x => `${x.screen}: ${x.what}`);
+  check(`${vw}px: 横に溢れていない`,
+    bad.length === 0 && found.__missed.length === 0,
+    [...bad.slice(0, 4), ...found.__missed.map(m => '開けなかった:' + m)].join(' / '));
   await p.close();
 }
 

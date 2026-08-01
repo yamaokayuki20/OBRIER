@@ -400,17 +400,26 @@
   .top-card.jump { cursor: pointer; }
   .top-card.jump:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(44,51,69,.12); border-color: var(--cc); }
   .top-card.jump:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; }
-  .top-card.jump:hover .top-go { background: var(--cc); color: #fff; border-color: transparent; }
+  /* ホバーでタグ色のベタ塗り＋白文字にしていたが、場面タグの7色は明るい色が
+     多く、白を乗せると 8枚中8枚が 4.5:1 を割っていた（アイデアの黄で 1.55:1・
+     監査 A5-2）。**地を塗りつぶすのをやめ、淡い色地＋濃い文字**に変える。
+     色は付くので「押せる」ことは伝わり、文字は静止時と同じ濃さのまま */
+  .top-card.jump:hover .top-go {
+    background: color-mix(in srgb, var(--cc) 20%, #fff);
+    border-color: var(--cc);
+  }
   .top-go {
     align-self: flex-start; margin-top: 2px;
     display: inline-flex; align-items: center; gap: 5px;
     font-size: var(--fs-cap); font-weight: 700; border-radius: 999px; padding: 4px 11px;
     border: 1px solid var(--panel-line); background: var(--panel-bg);
-    color: color-mix(in srgb, var(--cc) 55%, #1d2430);
+    /* 55% だと 3.73:1 まで落ちる色があった。35% まで濃くすると、
+       7色すべてがパネル地でも淡い色地でも 5.9:1 以上になる */
+    color: color-mix(in srgb, var(--cc) 35%, #1d2430);
     transition: background .15s, color .15s, border-color .15s;
   }
   .top-go::after { content: "→"; font-weight: 800; }
-  .top-rank { font-size: var(--fs-cap); font-weight: 800; letter-spacing: .12em; color: color-mix(in srgb, var(--cc) 55%, #1d2430); }
+  .top-rank { font-size: var(--fs-cap); font-weight: 800; letter-spacing: .12em; color: color-mix(in srgb, var(--cc) 35%, #1d2430); }
   .top-title { font-size: var(--fs-body); font-weight: 800; line-height: 1.6; color: var(--stage-ink); }
   .top-quote { font-size: var(--fs-cap); color: var(--stage-ink-soft); line-height: 1.7; }
   .top-count { font-size: var(--fs-cap); font-weight: 700; color: var(--navy); margin-top: auto; }
@@ -483,7 +492,11 @@
   .report-item { display: flex; align-items: center; gap: 10px; background: var(--panel-soft); border: 1px solid transparent; border-radius: 10px; padding: 11px 14px; font-size: var(--fs-ui); font-weight: 700; cursor: pointer; font-family: inherit; color: var(--stage-ink); text-align: left; width: 100%; }
   .report-item:hover { border-color: var(--navy-line); background: var(--navy-bg); }
   .report-item small { margin-left: auto; color: var(--stage-ink-soft); font-weight: 400; font-size: var(--fs-cap); }
-  .sub-tabs { display: flex; gap: 4px; margin: 8px 0 4px; border-bottom: 1px solid var(--panel-line); overflow-x: auto; scrollbar-width: none; }
+  /* 横に送れることが目に見えない（scrollbar-width:none）ので、狭い画面では
+     送らせずに折り返す。390px で管理者の「検出品質」が画面の85px外にあり、
+     そこにタブがあること自体が見えていなかった（監査 A5-6）。
+     それでも溢れる場合に備えて data-scroll-region も付けてある */
+  .sub-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0 4px; border-bottom: 1px solid var(--panel-line); overflow-x: auto; scrollbar-width: none; }
   .sub-tabs::-webkit-scrollbar { display: none; }
   .sub-tab { padding: 9px 15px; font-size: var(--fs-ui); color: var(--stage-ink-soft); cursor: pointer; border: none; background: none; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; font-family: inherit; }
   .sub-tab.active { color: var(--navy); font-weight: 800; border-bottom-color: var(--navy); }
@@ -577,12 +590,14 @@
     white-space: nowrap; font-variant-numeric: tabular-nums;
   }
   .sheet-close { margin-left: 10px; border: none; background: var(--navy-bg); width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: var(--fs-ui); color: var(--navy-soft); flex: none; }
-  .sheet-close:hover { background: var(--navy-line); }
+  /* 地を濃くするだけだと、--navy-soft の字が 4.37:1 まで落ちる（監査 盲点⑩）。
+     地を濃くするぶん、字も濃くする */
+  .sheet-close:not(.btn-primary):hover { background: var(--navy-line); color: var(--navy); }
   /* 詳細の頭は台紙（--sheet-board）の上に乗るので、✕ の丸（#f2f4f8）は
      地とほとんど同じ明るさになって沈む。詳細のときだけ一段濃い面にする
      （ダイアログは白地のままなので触らない）。✕ の文字は 4.67:1 で基準を満たす */
   .f-back .sheet-close { background: #e9edf4; }
-  .f-back .sheet-close:hover { background: var(--navy-line); }
+  .f-back .sheet-close:not(.btn-primary):hover { background: var(--navy-line); color: var(--navy); }
   .sheet-body { padding: 4px 22px 24px; }
 
   /* ---- イシュー#19-4 3項目（オブリエのメモ／やり取りの流れ／じぶんのメモ）を切り分ける ----
@@ -1163,7 +1178,11 @@
      名前が語の途中で折り返していた（「上司さ／ん」）。
      名前は折らず、収まらないときは時刻のほうを次の行へ送る。
      ✕ は右端のままにしたいので、並べ替えるのは狭い画面だけにする */
-  .sheet-head h2 { white-space: nowrap; }
+  /* 折らないのは**送り主の名前だけ**にする。ダイアログの題（「1on1の準備メモ ―
+     ユーザーさん」など）まで折らないと、320px で題が枠の外へ 18px はみ出す
+     （監査 盲点⑬で見つかった）。名前は短く、題は長い——同じ扱いにできない */
+  .sheet-head h2.sheet-who { white-space: nowrap; }
+  .sheet-head > div { min-width: 0; }
   @media (max-width: 640px) {
     .sheet-head { flex-wrap: wrap; }
     /* 時刻・お気に入りの印・⋯ の並べ替え（order）は、イシュー#24 で
@@ -1864,11 +1883,16 @@
     box-shadow: 0 2px 7px rgba(28,38,60,.18);
     transition: transform .18s ease, box-shadow .18s ease;
   }
+  /* 名札。狭い画面では玉が寄るので、重なっても読めるように地を**不透明**にする
+     （半透明だと下の玉が透けて字が沈む・監査 A5-9）。選んでいる人の名札は
+     いちばん上へ出して、確実に読めるようにする */
   .net-label {
     position: absolute; left: 50%; top: calc(100% + 5px); transform: translateX(-50%);
     white-space: nowrap; text-align: center; pointer-events: none;
-    background: rgba(255,255,255,.88); border-radius: 6px; padding: 1px 5px;
+    background: #fff; border-radius: 6px; padding: 1px 5px;
+    box-shadow: 0 0 0 3px #fff;
   }
+  .net-node:hover, .net-node:focus-visible, .net-node.is-on { z-index: 3; }
   .net-label b { display: block; font-size: var(--fs-cap); font-weight: 800; color: var(--stage-ink); }
   .net-label span { display: block; font-size: var(--fs-note); color: var(--stage-ink-soft); font-variant-numeric: tabular-nums; }
   .net-node:hover .net-ball { transform: scale(1.07); box-shadow: 0 4px 12px rgba(28,38,60,.26); }
@@ -2017,7 +2041,12 @@
     .net-label b { font-size: var(--fs-note); }
     .net-tile { flex: 1 1 100%; }
     .net-tile b { font-size: 24px; }
+    /* 320px では「名前＋棒＋もらった◯・おくった◯」が1行に並びきらず、
+       右端の数字が画面の外へ出ていた（監査 A5-1）。数字を下の行へ折り返す。
+       棒は名前の右に残したいので、折り返すのは数字だけ */
+    .net-bar-row { flex-wrap: wrap; }
     .net-bar-name { width: 78px; }
+    .net-bar-num { flex: 1 0 100%; }
     /* 表は狭い画面でこそ強い（図と違って潰れない）。行の見出しは頭文字だけにして
        6列ぶんの幅を空ける。名前は読み上げ名とマスの説明文に残してある */
     .net-mx tbody th { padding-right: 5px; font-size: var(--fs-note); }
@@ -2227,7 +2256,7 @@
              見出しも件数も入れ替わる。中身の切り替えというより行き先の選択に近い
            ・元から <nav> で囲まれており、行き先の選択という見立てと合う
          そのため「いま開いている行き先」を aria-current="page" で示す。 -->
-    <nav class="tabs" id="personTabs" aria-label="画面の切り替え">
+    <nav class="tabs" id="personTabs" aria-label="画面の切り替え" data-scroll-region="画面の切り替えタブ">
       <button type="button" class="tab active" data-v="album" aria-current="page">アルバム</button>
       <button type="button" class="tab" data-v="shape">あなたのカタチ</button>
       <button type="button" class="tab" data-v="sent">おくった ありがとう</button>
@@ -2364,7 +2393,7 @@
       <p class="mini-note">行が送った人、列が受け取った人です。マスが濃いほど通数が多く、押すとその組み合わせの説明が下に出ます。斜めの縞は自分あてで、やり取りとして数えません。狭い画面では、表を横に送って残りの列を見られます。</p>
       <!-- 横に送れる枠は、キーボードだけでも送れるように焦点を持たせる
            （tabindex="0" が無いと、マウスホイールを持たない人が中を見られない） -->
-      <div class="net-mx-wrap" tabindex="0" role="region" aria-label="誰から誰への通数の表（狭い画面では横に送れます）">
+      <div class="net-mx-wrap" data-scroll-region="誰から誰への通数の表">
         <table class="net-mx" id="netMatrix"></table>
       </div>
       <div class="net-mx-read" id="netMxRead"></div>
@@ -2489,7 +2518,7 @@
     <h2 class="lead-line">オブリエの設定と記録</h2>
   </div>
   <div class="hero-note">連携設定・チーム管理・監査ログ・検出品質を管理します。個人の「じぶんのメモ」は、管理者からも参照できません。</div>
-  <div class="sub-tabs" id="adminTabs">
+  <div class="sub-tabs" id="adminTabs" data-scroll-region="管理者設定のタブ">
     <button class="sub-tab active" data-a="conn">連携設定</button>
     <button class="sub-tab" data-a="team">チーム／メンバー管理</button>
     <button class="sub-tab" data-a="audit">監査ログ</button>
@@ -3416,11 +3445,11 @@ const ADMIN = {
   bosses: ["上司さん", "部長", "―"],
   roles: ["本人", "上司", "管理者"],
   audit: [
-    { t: "2026-07-04 10:02", who: "上司さん（上司）", op: "アルバム閲覧", target: "高橋さん" },
+    { t: "2026-07-04 10:02", who: "上司さん（上司）", op: "メンバー詳細閲覧", target: "高橋さん" },
     { t: "2026-07-04 09:58", who: "上司さん（上司）", op: "1on1準備メモ閲覧", target: "高橋さん・2026年6月" },
     { t: "2026-07-03 18:20", who: "上司さん（上司）", op: "レポートPDF書き出し", target: "ユーザーさん・2026年6月" },
     { t: "2026-07-03 11:44", who: "管理者さん（管理者）", op: "連携設定の変更", target: "Slack 解析対象チャンネル" },
-    { t: "2026-07-01 09:12", who: "上司さん（上司）", op: "カタチ閲覧", target: "森さん" },
+    { t: "2026-07-01 09:12", who: "上司さん（上司）", op: "チーム全体サマリ閲覧", target: "企画部 第2チーム" },
   ],
   quality: { judged: 3482, carded: 412, threshold: 0.80, reports: 7, dist: [62, 27, 11] },
 };
@@ -3432,7 +3461,11 @@ const ADMIN = {
    じぶんのメモはログにも残さない（原則8） */
 {
   const rnd = seeded(97);
-  const ops = ["アルバム閲覧", "カタチ閲覧", "おくった閲覧", "カード詳細閲覧",
+  /* 上司ビューからカードの一覧・拡大詳細を外した（イシュー#27）ので、
+     「アルバム閲覧」「おくった閲覧」「カード詳細閲覧」は**生む手立てが無い**。
+     残しておくと、いまの権限では起こりえない操作の記録が並ぶことになる
+     （監査 A5-7）。いまの画面で実際に起こる操作だけにする */
+  const ops = ["チーム全体サマリ閲覧", "メンバー詳細閲覧",
     "1on1準備メモ閲覧", "レポートPDF書き出し", "監査ログ書き出し", "メンバー設定の変更", "連携設定の変更"];
   const actors = ["上司さん（上司）", "管理者さん（管理者）", "部長（上司）"];
   const targets = ADMIN.people.map(p => p.name);
@@ -4489,7 +4522,7 @@ function openThread(d, fromCard, opts) {
       <div class="f-back sheet" role="dialog" aria-modal="true" data-initial-focus aria-label="${d.who}からの「ありがとう」の詳細">
       <div class="sheet-head">
         <div class="ava">${avaFace(d.who, d.ini)}</div>
-        <div><h2>${d.who}</h2><small>${d.ch}</small></div>
+        <div><h2 class="sheet-who">${d.who}</h2><small>${d.ch}</small></div>
         <div class="sheet-head-right">
           <span class="sheet-time">${d.time}</span>
           ${opts.fav ? `<span class="fav-mark" data-fav-mark role="img" aria-label="お気に入り済み"${d.fav ? "" : " hidden"}>${STAR_ICON}</span>` : ""}
@@ -4726,7 +4759,8 @@ function openThread(d, fromCard, opts) {
   const close = () => { commitMemo(); document.removeEventListener("keydown", onEsc); popModalFocus(focusEntry); flight.close(); };
   ov.addEventListener("click", e => { if (e.target === ov || e.target.classList.contains("overlay-bg") || e.target.closest(".sheet-close")) close(); });
   document.addEventListener("keydown", onEsc);
-  if (ROLE === "boss") logAudit("カード詳細閲覧", `${currentMember ? currentMember.name : ""}・${d.who}からのカード`);
+  /* 上司はカードを開けない（イシュー#27でカードの一覧・拡大詳細を上司ビューから
+     外した）ので、ここを通ることはもう無い。記録の種類ごと外している（A5-7） */
 }
 
 /* =========================================================================
@@ -4859,7 +4893,7 @@ function openCsvDialog() {
     title: "CSVで書き出す",
     sub: `アルバム ${list.length}件${note ? `（絞り込み：${note}）` : "（絞り込みなし・全件）"} ／ じぶんのメモは含めません`,
     body: `<p class="dlg-text">いま画面に出ている ${list.length}件を、受け取った日・送り主・場面タグ・出典・本文の順で書き出します。${note ? `絞り込み（${note}）はそのまま引き継ぎます。` : ""}じぶんのメモは、あなただけのものなので含めません。</p>
-      ${list.length ? `<div class="prev"><pre>受取日,送り主,場面タグ,出典,本文
+      ${list.length ? `<div class="prev" data-scroll-region="書き出す中身の見本"><pre>受取日,送り主,場面タグ,出典,本文
 ${esc(rows)}
 …（ほか ${Math.max(0, list.length - 4)}件）</pre></div>` : '<p class="dlg-text">いま書き出せるカードがありません。絞り込みを外してからお試しください。</p>'}`,
     actions: [{ label: "閉じる" }, {
@@ -5593,7 +5627,9 @@ function netLayout(nodes, links, W, H) {
       const a = nodes[i], b = nodes[j];
       const dx = a.x - b.x, dy = a.y - b.y;
       const d = Math.hypot(dx, dy) || 0.01;
-      const minD = a.r + b.r + 30;
+      /* 玉どうしの最小の間。名札は玉の下に出るので、狭い画面では名札2行ぶん
+         （約34px）を見込んで広く取る。ここが足りないと名札が隣の玉に乗る（A5-9） */
+      const minD = a.r + b.r + (W < 560 ? 52 : 30);
       let f = K * K / d;
       if (d < minD) f += (minD - d) * 3.4;      // 玉どうしは必ず離す
       a.dx += dx / d * f; a.dy += dy / d * f;
@@ -5990,8 +6026,12 @@ function netInsights(label) {
       q: `${nm(k)}は、${nm(top.key)}以外の人との連携がいまどうなっていますか。`,
     });
   }
-  /* 同じ人の話が並ぶと読まれない（signals §4-B「1回に出すのは1〜2つ」）。
-     ・1人につき2件まで
+  /* 出す件数（監査 A5-10）。
+     signals §4-B の「1回に出すサインは1つ、多くても2つ」は、**1on1準備メモ
+     ＝1人ぶんの文書**についての作法で、6人を一度に見るこの画面とは対象が違う。
+     ただし「並べすぎると読まれない」という趣旨はここでも同じなので、
+     **1人につき1件まで**に絞る（全体で4件でも、6人に散らばる形になる）。
+     ・1人につき1件まで
      ・「つながりの数」を出した人の「途切れた組み合わせ」は、同じことの言い換えなので出さない
      ・全部で4件まで */
   const picked = [], seen = {}, hadCount = new Set();
@@ -5999,7 +6039,7 @@ function netInsights(label) {
   for (const x of out) if (x.kind === "つながりの数") x.who.forEach(k => hadCount.add(k));
   const canTake = x => !picked.includes(x)
     && !(x.kind === "途切れた組み合わせ" && x.who.some(k => hadCount.has(k)))
-    && !x.who.some(k => (seen[k] || 0) >= 2);
+    && !x.who.some(k => (seen[k] || 0) >= 1);
   const take = x => { x.who.forEach(k => { seen[k] = (seen[k] || 0) + 1; }); picked.push(x); };
   for (const x of out) { if (picked.length >= 3) break; if (canTake(x)) take(x); }
   /* ＋のサインも1つは載せる（signals §2 F系）。気になることばかり並べない */
@@ -6017,6 +6057,31 @@ const PERSON_VIEWS = { album: "viewAlbum", shape: "viewShape", sent: "viewSent" 
 const ALL_VIEWS = ["viewAlbum", "viewShape", "viewSent", "viewTeam", "viewMember", "viewAdmin"];
 const hideAllViews = () => ALL_VIEWS.forEach(v => $(v).classList.add("hidden"));
 
+/**
+ * 画面をまるごと入れ替えたあとの着地（監査 A5-5）。
+ *
+ * 一覧からメンバー詳細へ、カタチからアルバムへ、のように**押した要素ごと
+ * 消える**入れ替えでは、焦点が `<body>` へ落ちる。読み上げを使っている人には
+ * 「何かが起きた」ことも「どこに来たのか」も伝わらないまま、次の Tab が
+ * ヘッダーの先頭から始まる。
+ *
+ * ただしタブの切り替えのように**押した要素がそのまま残る**ときは、焦点を
+ * 動かすほうが邪魔になる。そこで「押した要素がまだ見えているか」で分ける——
+ * 見えていればそのまま、消えていればその画面の見出しへ移す。
+ * あわせて `document.title` を書き換え、いまどの画面かをタブにも出す。
+ */
+function landOnView(viewId, title) {
+  const view = $(viewId);
+  if (!view) return;
+  document.title = `${title} | オブリエ`;
+  const a = document.activeElement;
+  const alive = a && a !== document.body && a.isConnected && a.offsetParent !== null;
+  if (alive) return;
+  const h = view.querySelector("h1") || view;
+  h.setAttribute("tabindex", "-1");
+  h.focus({ preventScroll: true });
+}
+
 function showPersonView(name) {
   if (ROLE !== "person") setRole("person", true);
   hideAllViews();
@@ -6027,6 +6092,8 @@ function showPersonView(name) {
     // いま開いている行き先を支援技術にも伝える（見た目の .active と対）
     if (on) t.setAttribute("aria-current", "page"); else t.removeAttribute("aria-current");
   });
+  landOnView(PERSON_VIEWS[name],
+    { album: "ありがとうのアルバム", shape: "あなたのカタチ", sent: "おくったありがとう" }[name]);
 }
 
 /** ヘッダー右上の「いま誰として見ているか」。
@@ -6051,9 +6118,13 @@ function setRole(role, quiet) {
     $("viewTeam").classList.remove("hidden");
     /* 図は幅を測ってから置くので、画面を出してから描く */
     renderTeamSummary();
+    landOnView("viewTeam", "チーム全体のようす");
+    /* 期間を変えるたびではなく、上司として画面に入ったときに1件だけ残す */
+    logAudit("チーム全体サマリ閲覧", "企画部 第2チーム");
   } else {
     showAdmin(currentAdminTab);
     $("viewAdmin").classList.remove("hidden");
+    landOnView("viewAdmin", "管理者設定");
   }
   window.scrollTo({ top: 0 });
 }
@@ -6084,7 +6155,10 @@ function paintSortState() {
     const s = state(k);
     const th = document.querySelector(`.tbl th.sortable[data-sort="${k}"]`);
     if (th) th.setAttribute("aria-sort", s);
-    const span = $(k === "recv" ? "sortRecv" : "sortSent");
+    /* 3つあるので3つとも引く。ここを2択の三項式で書いていたため、
+       つながり順に並べると▼が「おくった」列に付き、おくった順では矢印が
+       どこにも出ず、読み上げ名も取り違えていた（監査 A5-3） */
+    const span = $({ recv: "sortRecv", sent: "sortSent", link: "sortLink" }[k]);
     if (span) {
       span.textContent = mark[s];
       span.parentElement.setAttribute("aria-label", `${SORT_NAME[k]}：${
@@ -6250,7 +6324,7 @@ function renderNetList() {
     const prev = netPrev.by[d.key].partners.size;
     const move = prev === d.partners.size ? "前の期間と同じ" : `前の期間は${prev}人`;
     return `<div class="net-row">
-      <div class="net-row-head"><span class="ava-s">${d.ini}</span>${d.name}
+      <div class="net-row-head"><span class="ava-s">${avaFace(d.name, d.ini)}</span>${d.name}
         <span class="net-cnt">${d.partners.size}人</span></div>
       <div class="net-row-body">${list.length ? list.join("、") : "チームの中でのやり取りは見えていません"}<br>${move}</div>
     </div>`;
@@ -6270,11 +6344,35 @@ function renderNetInsights(label) {
 }
 
 /** チーム全員ぶんの場面タグを合算する（人ごとの内訳はメンバー詳細で見る） */
+/**
+ * チーム全体の場面タグ。
+ *
+ * **期間に追随させる。** 以前は `shape.tags`（全期間の合計）をそのまま足していた
+ * ため、3か月でも1年でも同じ1,460通と出ていた。画面の上端は「この画面の数字は
+ * 直近3か月」と宣言しているのに、同じ期間のチーム受信は337通——**同じ画面の中で
+ * 数が食い違っていた**（監査 A5-4）。
+ *
+ * タグは月ごとには持っていないので、その人のタグの**割合**は期間によらず同じと
+ * みなし、**その期間に受け取った通数へ割り付ける**。こうすると合計が上のタイルの
+ * 「チームへ届いたありがとう」と必ず一致する（D-34「数の出どころは shape.monthly
+ * ひとつ」を崩さない）。割り付けの端数は、いちばん多いタグで吸収する。
+ */
 function renderTeamTags() {
+  const months = teamMonths();
   const sum = new Map();
-  for (const m of MEMBERS) for (const [n, c] of m.shape.tags) sum.set(n, (sum.get(n) || 0) + c);
+  for (const m of MEMBERS) {
+    const recv = periodSum(m.shape, months).r;
+    const all = m.shape.tags.reduce((a, t) => a + t[1], 0) || 1;
+    const part = m.shape.tags.map(([n, c]) => [n, Math.round(recv * c / all)]);
+    /* 端数は、いちばん多いタグ（並びの先頭）で吸収する。ここを最後のタグに
+       まわすと、いちばん少ないタグが端数で負にも倍にもなる */
+    if (part.length) part[0][1] += recv - part.reduce((a, t) => a + t[1], 0);
+    for (const [n, v] of part) if (v > 0) sum.set(n, (sum.get(n) || 0) + v);
+  }
   const tags = [...sum].sort((a, b) => b[1] - a[1]).slice(0, 8);
-  $("teamTags").innerHTML = tagBars({ tags }, false);
+  $("teamTags").innerHTML = tags.length
+    ? tagBars({ tags }, false)
+    : '<div class="ok-box">この期間、集計できる場面がありません。</div>';
 }
 
 /** 準備メモにサインが出ているメンバーへの近道 */
@@ -6282,7 +6380,7 @@ function renderTeamSigns() {
   const hit = MEMBERS.map((m, i) => ({ m, i })).filter(x => x.m.alert);
   $("teamSigns").innerHTML = hit.length ? hit.map(x => `
     <div class="net-sign">
-      <div class="net-sign-name"><span class="ava-s">${x.m.ini}</span>${x.m.name}</div>
+      <div class="net-sign-name"><span class="ava-s">${avaFace(x.m.name, x.m.ini)}</span>${x.m.name}</div>
       <div class="net-sign-text">受け取りまたはおくりが前月比50%以上減った月が2か月続いています。断定ではなく、対話のきっかけとしてお使いください。</div>
       <div class="net-sign-go"><button class="btn" type="button" data-sign="${x.i}">準備メモを見る</button></div>
     </div>`).join("")
@@ -6376,6 +6474,7 @@ function openMember(i) {
   hideAllViews();
   $("viewMember").classList.remove("hidden");
   window.scrollTo({ top: 0 });
+  landOnView("viewMember", `${m.name}のようす`);
   /* カタチは幅を測ってから描くので、画面を出したあとに描く */
   renderShapeInto($("memberSub"), m.shape, false);
   logAudit("メンバー詳細閲覧", m.name);
@@ -6667,7 +6766,7 @@ function showAdmin(tab) {
     el.innerHTML = `
       <div class="panel">
         <h2>監査ログ</h2>
-        <div class="panel-sub">上司・管理者によるアルバム閲覧、レポート閲覧、書き出し、設定変更の記録です（保持期間1年）</div>
+        <div class="panel-sub">上司・管理者によるチーム全体サマリ／メンバー詳細の閲覧、準備メモ・レポートの閲覧、書き出し、設定変更の記録です（保持期間1年）。じぶんのメモは記録に残しません</div>
         <!-- 絞り込み。入力にはすべて label を紐づける（A-31） -->
         <div class="toolbar audit-filter">
           <span class="field"><label for="auFrom">開始日</label>
@@ -6732,7 +6831,7 @@ function showAdmin(tab) {
       title: "監査ログをCSVで書き出す",
       sub: `${rows.length.toLocaleString()}件${note ? `（${note}）` : "（全期間）"}`,
       body: `<p class="dlg-text">いま絞り込んでいる ${rows.length.toLocaleString()}件を書き出します。</p>
-        <div class="prev"><pre>日時,操作した人,操作,対象
+        <div class="prev" data-scroll-region="書き出す中身の見本"><pre>日時,操作した人,操作,対象
 ${esc(rows.slice(0, 4).map(a => `${a.t},${a.who},${a.op},${a.target}`).join("\n"))}
 …</pre></div>`,
       actions: [{ label: "閉じる" }, { label: "書き出す", primary: true, run: () => mockToast(`監査ログ ${rows.length.toLocaleString()}件をCSVに書き出しました`) }],
@@ -6898,6 +6997,7 @@ document.querySelectorAll(".tbl .th-sort").forEach(b =>
 paintSortState();
 $("backToTeam").addEventListener("click", () => {
   hideAllViews(); $("viewTeam").classList.remove("hidden");
+  landOnView("viewTeam", "チーム全体のようす");
   /* 戻ったときに図の幅が変わっていることがある（詳細のほうが縦に長く、
      スクロールバーの有無で幅が数px違う）ので、必要なら置き直す */
   netDraw(false);
