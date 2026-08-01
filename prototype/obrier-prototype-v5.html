@@ -382,15 +382,12 @@
   .note-box b { color: var(--stage-ink); }
   .mini-note { font-size: var(--fs-cap); color: var(--stage-ink-soft); line-height: 1.8; }
 
-  /* タグ内訳バー（可変・経年比較つき） */
+  /* タグ内訳バー（可変）。押せる形にする指定は「カタチの整理（イシュー#18）」の節に置いた */
   .bar-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
   .bar-label { width: 108px; font-size: var(--fs-ui); font-weight: 700; flex: none; }
   .bar-track { flex: 1; height: 13px; background: var(--panel-soft); border-radius: 999px; position: relative; }
   .bar-fill { height: 100%; border-radius: 999px; background: var(--cc); opacity: .85; }
-  .bar-mark { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--stage-ink); opacity: .45; border-radius: 2px; }
   .bar-count { width: 66px; text-align: right; font-size: var(--fs-ui); font-weight: 700; flex: none; font-variant-numeric: tabular-nums; }
-  .bar-count small { font-weight: 600; font-size: var(--fs-note); color: var(--line-sent); margin-left: 3px; }
-  .cmp-row { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; font-size: var(--fs-cap); color: var(--stage-ink-soft); }
 
   /* よく感謝される場面 */
   .top-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
@@ -949,9 +946,8 @@
   .chart-note { font-size: var(--fs-cap); color: var(--stage-ink-soft); line-height: 1.8; margin-top: 8px; }
   .chart-note[hidden] { display: none; }
 
-  /* 「表で見る」（A-04）。押すまでは閉じているので、ふだんの見え方は変わらない */
-  .chart-alt { margin-top: 10px; }
-  .chart-alt-btn { font-size: var(--fs-cap); }
+  /* 数を出す表（A-04）。イシュー#18-14 で画面からは隠したが、読み上げには残る
+     （隠し方は「カタチの整理（イシュー#18）」の節の .vh-table） */
   .chart-table-wrap { margin-top: 10px; max-height: 300px; overflow: auto; }
   .chart-table { font-variant-numeric: tabular-nums; }
   .chart-table caption {
@@ -1395,6 +1391,69 @@
       box-shadow: 0 10px 26px rgba(61, 50, 41, .16);
     }
   }
+
+  /* ---- カタチの整理（イシュー#18） ---------------------------------------
+
+     ユーザーの指摘どおり、この画面から余計なものを外した。
+       -6  左右のパネルの上端・下端がそろっていなかった
+       -7  「実績として書き出す（STAR形式）」を外した
+       -8  「過去のじぶんと重ねる」を外した
+       -9  推移を累計にした
+       -10 -11 説明文を外した
+       -13 場面タグのバーを押せるようにした（アルバムへ、その場面で絞り込んで）
+       -14 「表で見る」のボタンを外した（表そのものは読み上げのために残す）
+
+     ここに書く指定はすべて追加で、上の既存の指定の値には触れていない。
+     ------------------------------------------------------------------------ */
+
+  /* -6 左右のパネルの上端・下端をそろえる。ずれの原因は2つあった。
+     ①上端：積み重ねたパネル用の `.panel + .panel { margin-top: 16px }` が、
+       横並びの2枚目にも当たっていた（右の箱だけ16px下がっていた）。
+       横並びの間隔は grid の gap が持っているので、ここでは要らない。
+     ②下端：`align-items: start` で、それぞれ中身の高さのまま止まっていた。
+       grid の既定（stretch）に戻すと、両方が行の高さいっぱいに伸びる。
+     860px以下は1列に落ちるが、そのときも間隔は gap が持つので変わらない */
+  .two-col > .panel + .panel { margin-top: 0; }
+  .two-col { align-items: stretch; }
+
+  /* -10 説明文を外したので、見出しとバーがくっつく。
+     .panel-sub が持っていた下の余白（16px）をバーの側で受け持つ */
+  .tag-bars { margin-top: 16px; }
+
+  /* -13 場面タグのバーを押せるようにする。
+     見た目は今までのバーのまま。button なのでキーボードでも押せる。
+     当たり判定は PC 24px／スマホ 44px（下の @media）。
+     背景の色がつく範囲だけを左右に少し広げ、行として押せることを示す */
+  .bar-jump {
+    width: calc(100% + 12px); margin-left: -6px; margin-right: -6px;
+    padding: 3px 6px; min-height: 24px;
+    background: none; border: 0; border-radius: 8px;
+    font: inherit; color: inherit; letter-spacing: inherit; text-align: left;
+    cursor: pointer;
+  }
+  .bar-jump:hover { background: var(--panel-soft); }
+  .bar-jump:hover .bar-label { text-decoration: underline; text-underline-offset: 3px; }
+  .bar-jump:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; }
+  /* button の中に div は置けないので、中身は span にしてある。
+     span のままでは高さが効かないため、バーの実体だけ block に戻す */
+  .bar-fill { display: block; }
+
+  @media (max-width: 640px) {
+    /* スマホの当たり判定 44px。見た目のバーは太らせず、行の高さだけ広げる。
+       そのぶん行間の余白を詰めて、8行ぶんの背丈が伸びすぎないようにする */
+    .bar-jump { min-height: 44px; margin-bottom: 4px; }
+  }
+
+  /* -14 「表で見る」のボタンは画面から外したが、表は残す（A-04）。
+     display:none や aria-hidden にはしない——それでは読み上げからも消え、
+     推移の数を読む手段が「なぞる」しか無かった頃に戻ってしまう。
+     見た目の上でだけ隠す（面積1px・切り抜き）ので、読み上げには今までどおり届く。
+     中に押せるものは無いので、キーボードの止まり先も増えない */
+  .chart-table-wrap.vh-table {
+    position: absolute; width: 1px; height: 1px;
+    margin: 0; padding: 0; border: 0;
+    overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+  }
 </style>
 </head>
 <body>
@@ -1489,7 +1548,10 @@
     <h1>あなたのカタチ</h1>
     <h2 class="lead-line">もらったありがとうから見えてきた、あなたの得意</h2>
   </div>
-  <div class="hero-note" id="shapeLead"></div>
+  <!-- 見出しの下の説明文は置かない（イシュー#18-11）。
+       「場面タグは自動で生まれ増える」という説明は、画面を見れば分かることを
+       言葉で繰り返していただけだった。数の基準（いつからいつまでのぶんか）は
+       「ありがとうの広がり」と各パネルの中で示している -->
   <div id="myShape"></div>
 </section>
 
@@ -2084,11 +2146,8 @@ const MILESTONES = [
 /* 本人のカタチ */
 const MY_SHAPE = {
   tags: [["スピード対応",82],["資料品質",68],["調整力",55],["気配り",42],["後輩サポート",28],["情報共有",22],["アイデア",18],["正確さ",12]],
-  /* カタチの経年比較（decision-log No.15）。比べるのは過去のじぶんだけ */
-  past: {
-    "6m": { label: "半年前", tags: { "スピード対応":58,"資料品質":49,"調整力":40,"気配り":31,"後輩サポート":12,"情報共有":14,"アイデア":13,"正確さ":9 } },
-    "1y": { label: "1年前",  tags: { "スピード対応":34,"資料品質":28,"調整力":25,"気配り":20,"後輩サポート":3,"情報共有":8,"アイデア":7,"正確さ":5 } },
-  },
+  /* 「過去のじぶんと重ねる」は画面から外した（イシュー#18-8）ので、
+     比較用の過去データ（past）も持たない */
   reactions: { count: 124, emoji: ["🙏", "✨", "👏"] },
   memo: "「対応の速さ」への感謝が最多です。最近は「後輩サポート」が増えていて、頼られる範囲が広がっています。",
   /* 月次カタチレポート（decision-log No.13） */
@@ -3363,7 +3422,7 @@ function openDialog({ title, sub, body, actions = [], cls = "" }) {
   const ov = document.createElement("div");
   ov.className = "overlay";
   /* 暗幕（A-13）。これまで暗幕を持っていたのは拡大詳細だけで、CSV書き出し・
-     年間アルバム・STAR・削除確認・1on1準備メモ・監査ログCSVの6種は、
+     年間アルバム・削除確認・1on1準備メモ・監査ログCSVなどは、
      背後の画面がくっきり見えたまま浮いていた。どちらが手前かが読めず、
      1on1準備メモでは背後のメンバー詳細が全部読める状態で重なっていた。
      濃さ・出方は拡大詳細とそろえる（52%・200msのフェード）。
@@ -3820,29 +3879,9 @@ ${esc(rows)}
   });
 }
 
-function openStarDialog(S) {
-  const t = S.tops[0], t2 = S.tops[1];
-  openDialog({
-    title: "実績として書き出す（STAR形式）", sub: "職務経歴書・面談用",
-    body: `<p class="dlg-text">よく感謝される場面を、状況・課題・行動・結果の順に整理して書き出します。</p>
-      <div class="prev"><pre>■ ${esc(t.title)}
-Situation  急ぎの依頼が重なる時期に、
-Task       ${esc(t.tag)}を求められる場面が${t.count}回ありました。
-Action     依頼の背景を確認し、判断に必要な条件を添えて即日で返しました。
-Result     ${esc(t.quote)}
-
-■ ${esc(t2.title)}
-Situation  情報が散らばり、判断がつかない状態で、
-Task       ${esc(t2.tag)}を求められる場面が${t2.count}回ありました。
-Action     論点別に整理し直し、1枚で伝わる形にまとめました。
-Result     ${esc(t2.quote)}</pre></div>`,
-    actions: [{ label: "閉じる" }, {
-      label: "書き出す", primary: true, task: true, busy: "書き出しています…",
-      failHead: "実績シートを書き出せませんでした", failWhy: "書き出しの途中で通信が途切れたためです。",
-      run: () => mockToast("実績シートを書き出しました"),
-    }],
-  });
-}
+/* 「実績として書き出す（STAR形式）」はカタチ画面から外した（イシュー#18-7）。
+   ダイアログを開く入口が画面に無くなったので、ここも残さない。
+   エクスポート（F13）はアルバムのCSVと年間アルバムPDFが引き続き担う */
 
 
 /* =========================================================================
@@ -3872,6 +3911,21 @@ Result     ${esc(t2.quote)}</pre></div>`,
         し、下段に年を出す。スクロールする期間（3年・5年）は目盛ごとに毎回、
         スクロールしない1年は年が変わったところで出す。
    A-32 横スクロールできる領域がキーボードで動かせなかった → registerScrollRegion。
+
+   イシュー#18 で直したこと
+   -----------------------------------------------------------------------
+   -9  **累計で出す**。月ごと（日ごと）の数ではなく、いま見ている期間の
+       はじめからの積み上げを描く。元データ（shape.monthly／daily30）は
+       そのままで、見せ方だけを変える（件数の出どころは1つのまま・D-34）。
+       当月＝集計中の扱いは残す：累計でも当月の分はまだ増えるので、
+       最後のひと区切りの破線・中空の点・下の注記はそのまま置き、注記の
+       文言だけ「これから増えます」が累計の話だと分かるように書き直した。
+   -14 **「表で見る」のボタンは画面から外す**（ユーザー指示）。ただし
+       A-04（数がホバー限定では読めない）が戻らないよう、**表そのものは
+       視覚的に隠して残す**。`display:none` や `aria-hidden` にはしない——
+       それでは読み上げからも消え、A-04 の対応が無かったことになる。
+       ボタンが無くなったぶん、表は常に読み上げに届く（開く操作が要らない）。
+       指でなぞれば数が出る挙動（pointerdown／pointermove）も変えていない。
    ========================================================================= */
 const PERIODS = [["1w","1週間"],["1m","1か月"],["1y","1年"],["3y","3年"],["5y","5年"]];
 const PERIOD_LABEL = Object.fromEntries(PERIODS);
@@ -3883,16 +3937,16 @@ function chartWidget(mount, shape, defaultPeriod = "1y") {
   el.innerHTML = `
     <div class="chart-tabs">${PERIODS.map(([k, l]) =>
       `<button class="chart-tab ${k === period ? "active" : ""}" data-p="${k}">${l}</button>`).join("")}</div>
-    <div class="chart-legend"><span class="lg-recv">もらった</span><span class="lg-sent">おくった</span></div>
+    <div class="chart-legend"><span class="lg-recv">もらった（累計）</span><span class="lg-sent">おくった（累計）</span></div>
     <div class="chart-scroll" data-scroll-region="チャート"><div class="chart-inner">
       <div class="cross-line"></div><div class="chart-tip"></div>
       <div class="chart-svg"></div>
     </div></div>
     <p class="chart-note" data-note></p>
-    <div class="chart-alt">
-      <button class="btn chart-alt-btn" type="button" data-alt aria-expanded="false" aria-controls="${cid}_tbl">表で見る</button>
-    </div>
-    <div class="chart-table-wrap" id="${cid}_tbl" data-tbl data-scroll-region="推移の数の表" hidden></div>`;
+    <!-- 画面には出さないが読み上げには残す表（イシュー#18-14／A-04）。
+         見えないので data-scroll-region は付けない——付けると、見えない場所に
+         キーボードの止まり先ができてしまう -->
+    <div class="chart-table-wrap vh-table" id="${cid}_tbl" data-tbl></div>`;
   const tabs = el.querySelectorAll(".chart-tab");
   tabs.forEach(t => t.onclick = () => {
     period = t.dataset.p;
@@ -3901,12 +3955,20 @@ function chartWidget(mount, shape, defaultPeriod = "1y") {
     draw();
   });
 
+  /* 累計にする（イシュー#18-9）。いま見ている期間の先頭からの積み上げ。
+     期間タブを変えると起点も変わる（1年なら1年前から、5年なら5年前から）。
+     元の月ごと・日ごとの数は each に残しておく——注記とツールチップで
+     「当月はまだ増える」を説明するのに使う */
+  function cumulate(d) {
+    const run = arr => { let s = 0; return arr.map(v => (s += v)); };
+    return { ...d, recv: run(d.recv), sent: run(d.sent), each: { recv: d.recv, sent: d.sent } };
+  }
   function dataFor() {
-    if (period === "1w") return { d: slice(shape.daily30, 7) };
-    if (period === "1m") return { d: slice(shape.daily30, 30) };
-    if (period === "1y") return { d: slice(shape.monthly, 12) };
-    if (period === "3y") return { d: slice(shape.monthly, 36) };
-    return { d: slice(shape.monthly, 60) };
+    if (period === "1w") return { d: cumulate(slice(shape.daily30, 7)) };
+    if (period === "1m") return { d: cumulate(slice(shape.daily30, 30)) };
+    if (period === "1y") return { d: cumulate(slice(shape.monthly, 12)) };
+    if (period === "3y") return { d: cumulate(slice(shape.monthly, 36)) };
+    return { d: cumulate(slice(shape.monthly, 60)) };
   }
   /* その点を言葉にしたもの。表・ツールチップ・読み上げで同じ言い方をそろえる。
      月次は年から書き起こす（ラベル文字列は1月にしか年が入っていないため） */
@@ -3966,19 +4028,22 @@ function chartWidget(mount, shape, defaultPeriod = "1y") {
         + `<circle class="pt-partial pt-${k}" cx="${x(n - 1)}" cy="${y(arr[n - 1])}" r="3.6"/>`;
       return s;
     }).join("");
-    /* 通常時は数値ラベルを出さない。数はなぞったときと「表で見る」で読む */
+    /* 通常時は数値ラベルを出さない。数はなぞったときと、下の表で読む */
     el.querySelector(".chart-svg").innerHTML =
-      `<svg width="${w}" height="${h}" role="img" aria-label="もらった・おくったの推移（${PERIOD_LABEL[period]}・${pointName(d, 0)}から${pointName(d, n - 1)}まで）。数は下の「表で見る」で読めます">${gridY}
+      `<svg width="${w}" height="${h}" role="img" aria-label="もらった・おくったの累計の推移（${PERIOD_LABEL[period]}・${pointName(d, 0)}から${pointName(d, n - 1)}まで）。数は次の表で読めます">${gridY}
         ${seriesSVG}
         ${labels}</svg>`;
     geo = { d, n, w, x };
     el.querySelector(".chart-inner").style.width = w + "px";
     el.querySelector(".chart-scroll").scrollLeft = w;   // 最新側へ
 
-    /* 集計中の注記（A-07）。事実でない下落を、見た目だけでなく言葉でも打ち消す */
+    /* 集計中の注記（A-07）。累計にしたので線が下がることは無くなったが、
+       いちばん右がまだ確定していないことは変わらない。累計の最後の点は
+       「これ以上増えない到達点」に見えるので、そう読まれないよう言葉で示す
+       （イシュー#18-9） */
     const note = el.querySelector("[data-note]");
     note.textContent = partial
-      ? `いちばん右の ${pointName(d, n - 1)} は集計中です。月の途中までの数なので、これから増えます（破線と白丸の区間）。`
+      ? `いちばん右の ${pointName(d, n - 1)} は集計中です。累計にはこの月の途中までしか入っていないので、いちばん右はこれからまだ伸びます（破線と白丸の区間）。`
       : "";
     note.hidden = !partial;
 
@@ -3986,9 +4051,13 @@ function chartWidget(mount, shape, defaultPeriod = "1y") {
     refreshScrollRegions();
   }
 
-  /* ---- 表で見る（A-04）--------------------------------------------------
+  /* ---- 数を表でも出す（A-04）--------------------------------------------
      チャートと同じ数を、同じ並び・同じ単位で出す。列は「時点／もらった／
-     おくった」の3つだけにして、順位付けや合計は出さない（原則6） */
+     おくった」の3つだけにして、順位付けや合計は出さない（原則6）。
+     イシュー#18-14 で「表で見る」のボタンは画面から外したが、表は視覚的に
+     隠して残してある。なぞる操作ができない人（読み上げ）にとっては、
+     ここが推移の数を読む唯一の道なので、消してはいけない。
+     数はチャートに合わせて累計（イシュー#18-9） */
   function renderAltTable(d, n) {
     const wrap = el.querySelector("[data-tbl]");
     const rows = [];
@@ -3999,19 +4068,10 @@ function chartWidget(mount, shape, defaultPeriod = "1y") {
         <td>${d.sent[i]}<small>通</small></td></tr>`);
     }
     wrap.innerHTML = `<table class="tbl chart-table">
-      <caption>ありがとうの推移（${PERIOD_LABEL[period]}）。新しい順に並べています</caption>
-      <thead><tr><th scope="col">時点</th><th scope="col">もらった</th><th scope="col">おくった</th></tr></thead>
+      <caption>ありがとうの推移（${PERIOD_LABEL[period]}）。${pointName(d, 0)}からの累計を、新しい順に並べています${d.partialLast ? `。いちばん新しい ${pointName(d, n - 1)} は集計中で、これからまだ増えます` : ""}</caption>
+      <thead><tr><th scope="col">時点</th><th scope="col">もらった（累計）</th><th scope="col">おくった（累計）</th></tr></thead>
       <tbody>${rows.join("")}</tbody></table>`;
   }
-  const altBtn = el.querySelector("[data-alt]");
-  altBtn.addEventListener("click", () => {
-    const wrap = el.querySelector("[data-tbl]");
-    const open = wrap.hidden;
-    wrap.hidden = !open;
-    altBtn.setAttribute("aria-expanded", String(open));
-    altBtn.textContent = open ? "表を閉じる" : "表で見る";
-    refreshScrollRegions();
-  });
 
   const inner = el.querySelector(".chart-inner");
   const cross = el.querySelector(".cross-line");
@@ -4028,7 +4088,8 @@ function chartWidget(mount, shape, defaultPeriod = "1y") {
     const cx = geo.x(best);
     cross.style.display = "block"; cross.style.left = cx + "px";
     tip.style.display = "block";
-    tip.innerHTML = `${pointName(geo.d, best)}${isPartial(geo.d, best) ? "（集計中）" : ""}<br><span class="tip-recv">もらった <b>${geo.d.recv[best]}</b></span>　<span class="tip-sent">おくった <b>${geo.d.sent[best]}</b></span>`;
+    /* 累計（イシュー#18-9）。その時点までに何通たまったかを出す */
+    tip.innerHTML = `${pointName(geo.d, best)}まで${isPartial(geo.d, best) ? "（集計中）" : ""}<br><span class="tip-recv">もらった <b>${geo.d.recv[best]}</b></span>　<span class="tip-sent">おくった <b>${geo.d.sent[best]}</b></span>`;
     const tw = tip.offsetWidth;
     tip.style.left = Math.min(Math.max(cx - tw / 2, 4), geo.w - tw - 4) + "px";
     tip.style.top = "14px";
@@ -4057,28 +4118,30 @@ function chartWidget(mount, shape, defaultPeriod = "1y") {
 /* =========================================================================
    8. カタチ（本人・メンバー共通のコンポーネント）
    ========================================================================= */
-function tagBars(S, cmp) {
+/* 場面タグの横バー。
+   イシュー#18 で直したこと
+     -8  「過去のじぶんと重ねる」（なし／半年前／1年前）を外した。
+         比較の目盛（bar-mark）と増減（small）もここで役目を終える
+     -13 バーの行そのものを押せるようにした。押すとアルバムへ移り、
+         その場面で絞り込まれた状態で並ぶ。行は button なのでキーボードでも
+         押せる（当たり判定は PC 24px／スマホ 44px を .bar-row で確保）
+   タグの並びは「場面の分類」であって人どうしの順位づけではない（原則6） */
+function tagBars(S, allowJump) {
   const max = Math.max(...S.tags.map(t => t[1]));
-  const past = cmp && S.past && S.past[cmp] ? S.past[cmp].tags : null;
-  /* 数には単位（通）を、バーには基準（いちばん多い場面＝100%）を添える（A-47） */
-  return S.tags.map(([n, c]) => {
-    const p = past ? (past[n] || 0) : null;
-    const diff = p !== null ? c - p : null;
-    return `
-    <div class="bar-row" style="--cc:${tagColor(n)}" title="${n}：${c}通${p !== null ? `（${S.past[cmp].label}は ${p}通）` : ""}">
-      <div class="bar-label">${n}</div>
-      <div class="bar-track">
-        <div class="bar-fill" style="width:${Math.round(c / max * 100)}%"></div>
-        ${p !== null ? `<div class="bar-mark" style="left:${Math.round(p / max * 100)}%" title="${S.past[cmp].label}：${p}通"></div>` : ""}
-      </div>
-      <div class="bar-count">${c}<span class="bar-unit">通</span>${diff !== null ? `<small>${diff >= 0 ? "+" : ""}${diff}</small>` : ""}</div>
-    </div>`;
-  }).join("");
+  const tag = allowJump ? "button" : "div";
+  return S.tags.map(([n, c]) => `
+    <${tag} class="bar-row${allowJump ? " bar-jump" : ""}" style="--cc:${tagColor(n)}"
+      ${allowJump ? `type="button" data-barjump="${n}" aria-label="${n} ${c}通。アルバムでこの場面のありがとうを見る"` : `title="${n}：${c}通"`}>
+      <span class="bar-label">${n}</span>
+      <span class="bar-track">
+        <span class="bar-fill" style="width:${Math.round(c / max * 100)}%"></span>
+      </span>
+      <span class="bar-count">${c}<span class="bar-unit">通</span></span>
+    </${tag}>`).join("");
 }
 
 function renderShapeInto(el, S, allowJump) {
   const uid = "chart_" + Math.random().toString(36).slice(2, 8);
-  let cmp = "";
 
   const topsHTML = list => list.map((t, i) => `
     <${allowJump ? "button" : "div"} class="top-card ${allowJump ? "jump" : ""}" style="--cc:${tagColor(t.tag)}" ${allowJump ? `data-jump="${t.tag}"` : ""}>
@@ -4095,25 +4158,16 @@ function renderShapeInto(el, S, allowJump) {
     <div class="two-col">
       <div class="panel">
         <h2>感謝された場面</h2>
-        <div class="panel-sub">タグは現在 ${S.tags.length}つ（${ALBUM_PERIOD}・合計 ${S.tags.reduce((a, t) => a + t[1], 0)}通）。数字は届いた通数、バーの長さはいちばん多い場面を100%としたときの割合です。タグは感謝の内容から自動で生まれ、増えていきます</div>
-        ${S.past ? `<div class="cmp-row">
-          <span>過去のじぶんと重ねる</span>
-          <div class="seg" data-cmp-seg>
-            <button data-cmp="" aria-pressed="true">なし</button>
-            <button data-cmp="6m" aria-pressed="false">半年前</button>
-            <button data-cmp="1y" aria-pressed="false">1年前</button>
-          </div>
-          <span id="${uid}_cmpnote"></span>
-        </div>` : ""}
-        <div id="${uid}_bars">${tagBars(S, cmp)}</div>
+        <!-- 説明文は置かない（イシュー#18-10）。単位（通）はバーの数のとなりに
+             書いてあり、バーの長さの基準も並びを見れば分かる -->
+        <div class="tag-bars" id="${uid}_bars">${tagBars(S, allowJump)}</div>
         <div class="note-box" style="margin-top:14px;"><b>オブリエのメモ</b>${S.memo}</div>
-        <button class="btn" style="margin-top:14px;" data-star>実績として書き出す（STAR形式）</button>
       </div>
       <div class="panel">
         <h2>ありがとうの推移</h2>
-        <!-- マウス前提の書き方をやめる（A-04）。指でなぞっても数は出るし、
-             数だけを読みたいときは下の「表で見る」で表にできる -->
-        <div class="panel-sub">チャートをなぞると、その時点の数が見られます。数をまとめて読みたいときは「表で見る」を押してください</div>
+        <!-- 累計で出す（イシュー#18-9）。「表で見る」の切り替えは画面から外した
+             （#18-14）が、表そのものは読み上げ用に残っている -->
+        <div class="panel-sub">期間のはじめからの累計です。チャートをなぞると、その時点までの数が見られます</div>
         <div id="${uid}"></div>
       </div>
     </div>
@@ -4165,24 +4219,18 @@ function renderShapeInto(el, S, allowJump) {
     wireJumps();
     more.remove();
   });
+  /* 「よく感謝される場面」のカード。ここだけを見に行く（もっと見るで
+     描き直されるのはこの中だけなので、二重に結び直すことがない） */
   function wireJumps() {
-    el.querySelectorAll("[data-jump]").forEach(b =>
+    $(uid + "_tops").querySelectorAll("[data-jump]").forEach(b =>
       b.addEventListener("click", () => gotoAlbumWithTag(b.dataset.jump)));
   }
   if (allowJump) wireJumps();
 
-  /* STAR書き出し */
-  el.querySelector("[data-star]").addEventListener("click", () => openStarDialog(S));
-
-  /* カタチの経年比較（他人とは比べない） */
-  const seg = el.querySelector("[data-cmp-seg]");
-  if (seg) seg.addEventListener("click", e => {
-    const b = e.target.closest("button"); if (!b) return;
-    cmp = b.dataset.cmp;
-    seg.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
-    $(uid + "_bars").innerHTML = tagBars(S, cmp);
-    $(uid + "_cmpnote").textContent = cmp ? `${S.past[cmp].label}のじぶんを縦線で重ねています。比べるのは、過去のじぶんだけです。` : "";
-  });
+  /* 場面タグのバーから、その場面で絞り込んだアルバムへ（イシュー#18-13）。
+     描き直さないので、ここで一度だけ結ぶ */
+  if (allowJump) el.querySelectorAll("[data-barjump]").forEach(b =>
+    b.addEventListener("click", () => gotoAlbumWithTag(b.dataset.barjump)));
 
   /* 月次カタチレポート */
   const sel = $(uid + "_repsel");
@@ -4896,9 +4944,7 @@ $("sentCount").textContent = String(SENT.length);
 $("albumLead").textContent =
   `Slack・Teams から、あなた宛ての感謝を自動で集めています（${ALBUM_PERIOD}に届いたぶん）。`;
 $("sentLead").textContent = `あなたが伝えた感謝も、ここに残しています（${ALBUM_PERIOD}におくったぶん）。`;
-$("shapeLead").textContent =
-  `${ALBUM_PERIOD}に届いた${DATA.length}通の言葉を、オブリエが読み解いて分類しています。`
-  + "場面タグは感謝の内容から自動で生まれ、増えていきます。";
+/* カタチの見出しの下の説明文は置かない（イシュー#18-11） */
 
 $("demoBtn").classList.toggle("hidden", !DEMO_UI);
 
