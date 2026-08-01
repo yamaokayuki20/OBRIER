@@ -494,23 +494,56 @@ for (const vw of [320, 375, 390, 768, 1280, 1920]) {
   await p.goto(URL);
   await p.waitForTimeout(2200);
 
+  /* いま実在する開く口だけを並べる。消えた画面（年間アルバム・これまでの節目）を
+     並べたままにしていたため、開けずに黙って飛ばされ、
+     焦点の復帰は実質 CSV 1つでしか測っていなかった。
+     実在する「削除の確認」「1on1準備メモ」は開き方が違うので、
+     押す前の手順（open）を持たせて別に開く */
   const opens = [
-    ['CSVで書き出す', 'CSV'],
-    ['年間アルバム', '年間アルバム'],
-    ['これまでの節目', '節目一覧'],
+    { name: 'CSV', label: 'CSVで書き出す' },
+    { name: '削除の確認', label: null, open: async () => {
+        await p.locator('#grid .card').first().click({ timeout: 3000 });
+        await p.waitForTimeout(800);
+        const m = p.locator('[data-card-menu]').first();
+        await m.focus(); await m.click();
+        await p.waitForTimeout(400);
+        await p.locator('[data-del]').first().click({ timeout: 2500 });
+        await p.waitForTimeout(700);
+        return m;
+      } },
   ];
-  const backBad = [], inertBad = [];
+  const backBad = [], inertBad = [], openBad = [];
 
-  for (const [label, name] of opens) {
+  /* 焦点が戻るのを「待って」から見る。
+     以前は Escape のあと 900ms 固定で見ていたが、閉じる動きは380msかかり、
+     さらに元のカードが表に戻るのを rAF で待つ作りなので、
+     ほかのページを大量に開いたあとだと900msでは足りずに空振りしていた。
+     測りたいのは「戻るか」であって「900ms以内に戻るか」ではない */
+  const waitBack = async (test, ms = 4000) => {
+    const end = Date.now() + ms;
+    while (Date.now() < end) {
+      if (await p.evaluate(test)) return true;
+      await p.waitForTimeout(120);
+    }
+    return false;
+  };
+
+  for (const spec of opens) {
+    const { name, label, open } = spec;
     let btn;
-    try { btn = p.locator('button', { hasText: label }).first(); await btn.waitFor({ timeout: 2500 }); }
-    catch { continue; }
+    try {
+      if (open) { btn = await open(); }
+      else {
+        btn = p.locator('button', { hasText: label }).first();
+        await btn.waitFor({ timeout: 2500 });
+        await btn.focus();
+        await btn.click();
+        await p.waitForTimeout(800);
+      }
+    } catch { openBad.push(name); continue; }
     const mark = await btn.evaluate(el => { el.dataset.gateMark = '1'; return true; }).catch(() => false);
-    if (!mark) continue;
-    await btn.focus();
-    await btn.click();
-    await p.waitForTimeout(800);
-    if (await p.locator('.overlay').count() === 0) continue;
+    if (!mark) { openBad.push(name + '（起動要素を掴めない）'); continue; }
+    if (await p.locator('.overlay').count() === 0) { openBad.push(name + '（開かない）'); continue; }
 
     // 開いている間、背景は読み上げから外れているか
     const bgOpen = await p.evaluate(() => {
@@ -527,12 +560,18 @@ for (const vw of [320, 375, 390, 768, 1280, 1920]) {
     if (bgOpen.length) inertBad.push(`${name}: ${bgOpen.join(',')}`);
 
     await p.keyboard.press('Escape');
-    await p.waitForTimeout(900);
-    const back = await p.evaluate(() => document.activeElement?.dataset?.gateMark === '1');
+    const back = await waitBack(() => document.activeElement?.dataset?.gateMark === '1');
     if (!back) backBad.push(name + '（' + await p.evaluate(() =>
       (document.activeElement?.tagName || '') + '.' + String(document.activeElement?.className || '').split(' ')[0]) + '）');
-    await p.evaluate(() => document.querySelectorAll('[data-gate-mark]').forEach(e => delete e.dataset.gateMark));
-    await p.waitForTimeout(200);
+    // 入れ子で開いた場合に備えて、残っている幕を片付ける
+    await p.keyboard.press('Escape');
+    await p.waitForTimeout(600);
+    await p.evaluate(() => {
+      document.querySelectorAll('[data-gate-mark]').forEach(e => delete e.dataset.gateMark);
+      document.querySelectorAll('.overlay').forEach(o => o.remove());
+      document.querySelectorAll('.card').forEach(c => (c.style.visibility = ''));
+    });
+    await p.waitForTimeout(300);
   }
 
   // 拡大詳細（通常）
@@ -543,11 +582,11 @@ for (const vw of [320, 375, 390, 768, 1280, 1920]) {
     await p.keyboard.press('Enter');
     await p.waitForTimeout(900);
     await p.keyboard.press('Escape');
-    await p.waitForTimeout(900);
-    const ok = await p.evaluate(() => /card/.test(String(document.activeElement?.className || '')));
+    const ok = await waitBack(() => /card/.test(String(document.activeElement?.className || '')));
     if (!ok) backBad.push('拡大詳細');
   }
 
+  check('巡回するはずのダイアログがすべて開けた', openBad.length === 0, openBad.join(' / '));
   check('どのダイアログも、閉じたら焦点が開いた場所へ戻る', backBad.length === 0, backBad.join(' / '));
   check('開いている間、背景が読み上げから外れている（inert）', inertBad.length === 0, inertBad.join(' / '));
   await p.close();
