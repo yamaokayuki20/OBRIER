@@ -1107,6 +1107,10 @@
   }
   .skip-link:focus { left: 0; outline: 3px solid var(--accent-deep); outline-offset: 2px; }
   #mainContent:focus { outline: none; }
+  /* 画面を入れ替えたあとの着地先（landOnView が見出しに焦点を移す）。
+     tabindex="-1" は**プログラムからしか**焦点が当たらないので、枠を出すと
+     「押してもいないのに囲まれた」ように見える。キーボードの到達性は落ちない */
+  h1[tabindex="-1"]:focus, section[tabindex="-1"]:focus { outline: none; }
 
   /* ---- A-28 ヘッダーが半透明で、下を通る本文と重なって両方とも読めない ----
      rgba(255,255,255,.82) だったため、スクロールでヘッダーの裏を通る
@@ -1847,20 +1851,6 @@
   .net-tile span { display: block; font-size: var(--fs-cap); color: var(--stage-ink-soft); line-height: 1.7; }
 
   /* -- (B) ネットワーク図 -- */
-  .net-legend {
-    display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 2px 0 12px;
-    font-size: var(--fs-cap); color: var(--stage-ink-soft); line-height: 1.7;
-  }
-  .net-lg { display: inline-flex; align-items: center; gap: 7px; }
-  .net-lg i { flex: none; display: inline-block; }
-  .net-lg-ball { width: 15px; height: 15px; border-radius: 50%; background: var(--navy); }
-  .net-lg-line { width: 26px; height: 2px; border-radius: 2px; background: var(--navy); opacity: .42; }
-  /* 点の流れの見本。線ではなく点を並べて「向きは点が示す」ことを伝える */
-  .net-lg-dots {
-    width: 26px; height: 5px; border-radius: 3px;
-    background: radial-gradient(circle, var(--line-sent) 44%, transparent 47%) 0 0/9px 5px repeat-x;
-  }
-
   .net-stage {
     position: relative; width: 100%; height: 420px;
     background: #fff; border: 1px solid var(--panel-line); border-radius: 14px;
@@ -1919,92 +1909,67 @@
   .net-dots.is-in  { stroke: var(--line-recv); }
   @keyframes net-march { to { stroke-dashoffset: var(--march); } }
 
-  .net-pick {
-    margin-top: 12px; background: var(--navy-bg); border-radius: 12px;
-    padding: 12px 15px; font-size: var(--fs-ui); line-height: 1.85; color: var(--navy);
-    min-height: 62px;
+  /* -- (C) 関係の変化 --
+     事実の1行だけを出す（説明・読み方・問いはユーザー判断で外した）。
+     ＋の変化と気になる変化は、以前 #f2f4f8 と #eef5f0 でほとんど同じ地色だった。
+     見分けがつかないと分ける意味が無いので、**左の色帯**で分ける（地の濃淡だけに
+     頼らない＝色が見分けにくい人にも、帯の位置と見出しの語で伝わる） */
+  .net-ins {
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px;
+    background: var(--navy-bg); border-left: 5px solid var(--navy);
+    border-radius: 0 12px 12px 0; padding: 12px 16px; margin-bottom: 8px;
   }
-  .net-pick b { font-weight: 800; }
-  .net-pick .net-pick-hint { color: var(--navy-soft); }
+  .net-ins.is-good { background: #e7f2ea; border-left-color: #2f7048; }
+  .net-ins-kind {
+    flex: none; font-size: var(--fs-note); font-weight: 800; letter-spacing: .06em;
+    color: #fff; background: var(--navy); border-radius: 999px; padding: 3px 10px;
+  }
+  .net-ins.is-good .net-ins-kind { background: #2f7048; }
+  .net-ins-fact { flex: 1 1 260px; min-width: 0; font-size: var(--fs-body); line-height: 1.8; color: var(--navy); }
+  .net-ins.is-good .net-ins-fact { color: #23503a; }
 
-  /* -- (B-2) 誰から誰への表（隣接行列） --
-     線を引かないので絡まりようがない。向きは行と列の役割で決まるから、
-     矢印も弧も要らない。密なやり取りほどノードリンク図より読みやすくなる
-     （docs/network-visualization-study.md §2-3）。
-     本物の <table> なので、読み上げとキーボードは構造だけで満たされる */
-  .net-mx-wrap { margin-top: 4px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .net-mx { border-collapse: separate; border-spacing: 3px; width: 100%; }
-  .net-mx caption { text-align: left; font-size: var(--fs-cap); color: var(--stage-ink-soft); line-height: 1.7; padding-bottom: 8px; }
-  .net-mx th, .net-mx td { padding: 0; font-weight: 400; }
-  .net-mx thead th {
-    font-size: var(--fs-note); font-weight: 700; color: var(--stage-ink-soft);
-    text-align: center; padding-bottom: 3px; white-space: nowrap;
+  /* -- (D-2) メンバーの得意 --
+     上段は「チーム全体でどんな得意が多いか」を、持っている人数で並べた札。
+     下段は人ごとの上位5つ。**希少（チームで1人）**は札にも人にも印を付ける
+     ——上司がいちばん知りたいのは「その人しか持っていないもの」なので、
+     そこだけは色と枠と言葉の3つで分かるようにする */
+  .skill-map { display: flex; flex-wrap: wrap; gap: 8px; }
+  .skill-chip {
+    display: inline-flex; align-items: baseline; gap: 7px;
+    border: 1px solid var(--panel-line); border-left: 5px solid var(--cc);
+    background: #fff; border-radius: 0 10px 10px 0; padding: 8px 13px;
+    font-size: var(--fs-ui); color: var(--stage-ink);
   }
-  .net-mx thead th:first-child { text-align: left; }
-  .net-mx tbody th, .net-mx tfoot th {
-    text-align: right; padding-right: 8px; white-space: nowrap;
-    font-size: var(--fs-cap); font-weight: 700; color: var(--stage-ink);
+  .skill-chip b { font-weight: 800; }
+  .skill-chip span { font-size: var(--fs-cap); color: var(--stage-ink-soft); font-variant-numeric: tabular-nums; }
+  /* 希少なものは金の枠＋「1人だけ」の札。地の色だけに頼らない。
+     **`.skill-chip span` より詳しく書くこと**——同じ span なので、
+     詳しさで負けると字の色が上書きされて 1:1 になる（実際になった） */
+  .skill-chip.is-rare { border-color: var(--accent-deep); background: #fdf6ea; }
+  .skill-chip .skill-rare {
+    flex: none; font-size: var(--fs-note); font-weight: 800; color: #fff;
+    background: var(--accent-deep); border-radius: 999px; padding: 2px 8px; align-self: center;
   }
-  /* 狭い画面では列のほうがはみ出して横に送ることになる。そのとき名前の列が
-     一緒に流れていくと、いま見ているマスが誰の行なのか分からなくなるので、
-     いちばん左だけは貼り付けたままにする */
-  .net-mx thead th:first-child,
-  .net-mx tbody th, .net-mx tfoot th {
-    position: sticky; left: 0; z-index: 1;
-    background: linear-gradient(to right, var(--panel-bg, #fff) 0 calc(100% - 6px), transparent);
+  .skill-people { margin-top: 10px; background: #fff; border: 1px solid var(--panel-line); border-radius: 14px; overflow: hidden; }
+  .skill-row { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; padding: 12px 15px; border-bottom: 1px solid var(--panel-line); }
+  .skill-row:last-child { border-bottom: none; }
+  .skill-who { display: flex; align-items: center; gap: 9px; flex: none; width: 150px; font-size: var(--fs-ui); font-weight: 700; color: var(--stage-ink); }
+  .skill-tags { display: flex; flex-wrap: wrap; gap: 6px; flex: 1 1 260px; min-width: 0; }
+  .skill-pill {
+    display: inline-flex; align-items: baseline; gap: 5px;
+    font-size: var(--fs-cap); border-radius: 999px; padding: 4px 11px;
+    background: color-mix(in srgb, var(--cc) 16%, #fff);
+    color: color-mix(in srgb, var(--cc) 35%, #1d2430);
+    border: 1px solid color-mix(in srgb, var(--cc) 40%, #fff);
   }
-  /* マス。押せるのは値のあるマスだけで、当たり判定は 44px を割らない */
-  .net-cell {
-    display: flex; align-items: center; justify-content: center;
-    width: 100%; min-width: 44px; height: 44px; border-radius: 8px;
-    border: 1px solid transparent; background: var(--cellbg);
-    font-family: inherit; font-size: var(--fs-cap); font-variant-numeric: tabular-nums;
-    color: var(--navy); cursor: pointer; padding: 0;
-    transition: outline-color .15s ease;
+  /* 数だけ薄めると 4.31:1 まで落ちる。薄めずに字だけ細くして差をつける */
+  .skill-pill i { font-style: normal; font-variant-numeric: tabular-nums; font-weight: 400; }
+  .skill-pill.is-rare { border-color: var(--accent-deep); border-width: 2px; font-weight: 800; }
+  .skill-pill.is-rare::after { content: "★"; color: var(--accent-deep); }
+  .skill-none { font-size: var(--fs-cap); color: var(--stage-ink-soft); }
+  @media (max-width: 560px) {
+    .skill-who { width: 100%; }
   }
-  .net-cell[disabled] { cursor: default; }
-  .net-cell.is-zero { color: var(--navy-soft); background: #f7f8fa; }
-  .net-cell.is-self { background: repeating-linear-gradient(-45deg, #f2f4f7 0 5px, #fff 5px 10px); cursor: default; }
-  .net-cell:focus-visible { outline: 3px solid var(--navy); outline-offset: 2px; }
-  .net-cell:hover:not([disabled]) { border-color: var(--navy); }
-  /* 十字の強調。行と列を同時に照らして「誰から誰へ」を目で追えるようにする */
-  .net-mx.has-cross tbody th:not(.is-cross) { opacity: .45; }
-  .net-mx.has-cross thead th:not(.is-cross) { opacity: .45; }
-  .net-mx.has-cross .net-cell:not(.is-cross) { opacity: .34; }
-  .net-cell.is-hit { outline: 3px solid var(--accent-deep); outline-offset: 2px; }
-  .net-mx-ini { display: none; }
-  .net-mx-tot { font-size: var(--fs-note); color: var(--stage-ink-soft); font-variant-numeric: tabular-nums; text-align: center; white-space: nowrap; }
-  .net-mx-read {
-    margin-top: 10px; background: var(--navy-bg); border-radius: 12px;
-    padding: 11px 15px; font-size: var(--fs-ui); line-height: 1.85; color: var(--navy); min-height: 44px;
-  }
-  .net-mx-read b { font-weight: 800; }
-  .net-mx-read .net-pick-hint { color: var(--navy-soft); }
-
-  .net-h3 { font-size: var(--fs-lead); font-weight: 800; color: var(--stage-ink); margin: 22px 0 6px; }
-  .net-list { margin-top: 10px; background: #fff; border: 1px solid var(--panel-line); border-radius: 14px; overflow: hidden; }
-  .net-row { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; padding: 12px 15px; border-bottom: 1px solid var(--panel-line); }
-  .net-row:last-child { border-bottom: none; }
-  .net-row-head { display: flex; align-items: center; gap: 9px; font-size: var(--fs-ui); font-weight: 700; color: var(--stage-ink); flex: none; }
-  .net-cnt { font-size: var(--fs-ui); font-weight: 800; color: var(--navy); font-variant-numeric: tabular-nums; }
-  .net-row-body { font-size: var(--fs-cap); color: var(--stage-ink-soft); line-height: 1.8; flex: 1 1 260px; min-width: 0; }
-
-  /* -- (C) 関係の変化 -- */
-  .net-ins { background: var(--navy-bg); border-radius: 12px; padding: 13px 16px; margin-bottom: 10px; }
-  .net-ins.is-good { background: #eef5f0; }
-  .net-ins-kind { font-size: var(--fs-note); font-weight: 800; letter-spacing: .08em; color: var(--navy-soft); margin-bottom: 5px; }
-  .net-ins.is-good .net-ins-kind { color: #3f6a4c; }
-  .net-ins-fact { font-size: var(--fs-body); line-height: 1.85; color: var(--navy); }
-  .net-ins.is-good .net-ins-fact { color: #2f5a3c; }
-  .net-ins-read { font-size: var(--fs-ui); line-height: 1.85; color: var(--navy-soft); margin-top: 4px; }
-  .net-ins.is-good .net-ins-read { color: #3f6a4c; }
-  .net-ins-q {
-    font-size: var(--fs-ui); line-height: 1.8; color: var(--navy);
-    background: #fff; border-left: 3px solid var(--navy); border-radius: 0 8px 8px 0;
-    padding: 8px 12px; margin-top: 9px;
-  }
-  .net-ins-q b { display: block; font-size: var(--fs-note); color: var(--navy-soft); letter-spacing: .08em; margin-bottom: 2px; }
-  .net-caveat { margin-top: 12px; }
 
   /* -- (E) 気にかけたいサイン -- */
   .net-sign { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; background: #fdeceb; border: 1px solid #eccfca; border-radius: 12px; padding: 12px 15px; margin-bottom: 10px; }
@@ -2049,12 +2014,6 @@
     .net-bar-num { flex: 1 0 100%; }
     /* 表は狭い画面でこそ強い（図と違って潰れない）。行の見出しは頭文字だけにして
        6列ぶんの幅を空ける。名前は読み上げ名とマスの説明文に残してある */
-    .net-mx tbody th { padding-right: 5px; font-size: var(--fs-note); }
-    /* 44px を割らせない。6列ぶんが画面に収まらないぶんは、表の枠の中だけを
-       横へ送る（頁そのものは動かさない）。送れることは枠に注記で書いてある */
-    .net-cell { min-width: 44px; height: 46px; }
-    .net-mx-full { display: none; }
-    .net-mx-ini { display: inline; }
   }
   @media (prefers-reduced-motion: reduce) {
     .net-ball, .net-edge { transition: none; }
@@ -2370,45 +2329,23 @@
     <!-- (B) 関係のネットワーク図 -->
     <div class="panel">
       <h2>だれから だれへ ― ありがとうのやり取り</h2>
-      <p class="panel-sub" id="netSub"></p>
-      <div class="net-legend">
-        <span class="net-lg"><i class="net-lg-ball"></i>玉が大きく濃いほど、チームの中でのやり取りが多い</span>
-        <span class="net-lg"><i class="net-lg-line"></i>線はつながりがあることだけを示す（太さは通数を表しません）</span>
-        <span class="net-lg"><i class="net-lg-dots"></i>玉を押すと、その人のありがとうが向かう先へ点が流れる</span>
-      </div>
+      <!-- 説明文・凡例・選んだときの説明書きは、ユーザー判断で全部外した
+           （2026-08-01。図は見れば分かるもので、読ませるものではない）。
+           **読み上げには落とさない**——玉のボタンの `aria-label` が、相手ごとの
+           通数と向きを全部ことばで持っている（ホバー限定にしない・A-04）。
+           「誰から誰への表」「つながりの数」も同じ判断で外した（一覧画面で分かる） -->
       <div class="net-stage" id="netStage">
-        <!-- 図そのものは読み上げから外し、同じ内容を下の表・「つながりの一覧」と
-             玉のボタンの読み上げ名で届ける（ホバー限定にしない・A-04） -->
         <svg class="net-svg" id="netSvg" aria-hidden="true" focusable="false"></svg>
         <div class="net-nodes" id="netNodes"></div>
       </div>
-      <div class="net-pick" id="netPick"></div>
-
-      <!-- (B-2) 誰から誰への表。通数を読むのはこちらの担当。
-           図は「つながりの形」を、表は「向きと量」を受け持つ
-           （docs/network-visualization-study.md §3） -->
-      <h3 class="net-h3">誰から誰へ ― 通数の表</h3>
-      <!-- 説明は枠の**外**に置く。中に入れると、表の幅（＝画面より広いことがある）に
-           引き伸ばされて、横に送らないと最後まで読めなくなる -->
-      <p class="mini-note">行が送った人、列が受け取った人です。マスが濃いほど通数が多く、押すとその組み合わせの説明が下に出ます。斜めの縞は自分あてで、やり取りとして数えません。狭い画面では、表を横に送って残りの列を見られます。</p>
-      <!-- 横に送れる枠は、キーボードだけでも送れるように焦点を持たせる
-           （tabindex="0" が無いと、マウスホイールを持たない人が中を見られない） -->
-      <div class="net-mx-wrap" data-scroll-region="誰から誰への通数の表">
-        <table class="net-mx" id="netMatrix"></table>
-      </div>
-      <div class="net-mx-read" id="netMxRead"></div>
-
-      <h3 class="net-h3">つながりの数（相手の少ない順）</h3>
-      <p class="mini-note">この期間に、チームの中でありがとうをやり取りした相手の人数です。チーム外とのやり取りはこの数に入りません。少ないことがそのまま問題だとは限りませんが、支援が要るかどうかは1on1で確かめてください。</p>
-      <div class="net-list" id="netList"></div>
     </div>
 
     <!-- (C) 関係の変化 -->
     <div class="panel">
       <h2>関係の変化</h2>
-      <p class="panel-sub" id="netChangeSub"></p>
+      <!-- 説明・読み方・問いはユーザー判断で外した。事実の1行だけを残す。
+           前置きの注意書きも、読まれないうえに毎回同じなので外している -->
       <div id="netInsights"></div>
-      <p class="mini-note net-caveat">連携が止まっていた期間・長期の休み・チーム編成の変更があると、関係が減ったのと同じように見えます。まず、その事情が無かったかを確かめてください。</p>
     </div>
 
     <!-- (D) 場面とチーム全体の推移 -->
@@ -2423,6 +2360,18 @@
         <p class="panel-sub">全員ぶんの合計です。誰か1人が落ちているとき、チーム全体も同じ時期に落ちているかを見分けるための線です</p>
         <div id="teamChart"></div>
       </div>
+    </div>
+
+    <!-- (D-2) メンバーの得意（2026-08-01 ユーザー指示で新設）
+         「チーム全体としてどんな得意を持つ人が多いか」を一目で見て、
+         そのうえで「チームで希少な得意」と「人ごとの上位5つ」まで降りる。
+         得意は場面タグから作る（感謝された場面の偏り＝その人のカタチ）。 -->
+    <div class="panel">
+      <h2>メンバーの得意</h2>
+      <p class="panel-sub" id="skillSub"></p>
+      <div id="skillMap"></div>
+      <h3 class="net-h3">人ごとの得意（上位5つ）</h3>
+      <div id="skillPeople"></div>
     </div>
 
     <!-- (E) 気にかけたいサイン -->
@@ -5764,8 +5713,8 @@ function netNodeLabel(k) {
 
 /** 選ばれている玉に合わせて、線の強調と説明文を塗り直す */
 function netPaintPick() {
-  const stage = $("netStage"), box = $("netPick");
-  if (!stage || !box || !netNow) return;
+  const stage = $("netStage");
+  if (!stage || !netNow) return;
   const k = netHover || netPinned;
   stage.classList.toggle("has-pick", !!k);
   const linked = new Set();
@@ -5779,24 +5728,10 @@ function netPaintPick() {
   });
   stage.querySelectorAll(".net-edge").forEach(p =>
     p.classList.toggle("is-link", !!k && (p.dataset.f === k || p.dataset.t === k)));
-  /* 点を流すのは「押した／キーボードで選んだ」ときだけ。
-     ただ通りかかっただけのホバーでは流さない（画面がうるさくなる） */
+  /* 点を流すのは「押した／キーボードで選んだ」ときだけ。ただ通りかかった
+     だけのホバーでは流さない。選んだ人の相手ごとの通数と向きは、玉のボタンの
+     読み上げ名（netNodeLabel）がことばで持っている（説明書きは外した） */
   netPaintDots(netPinned || netFocusKey);
-  if (!k) {
-    box.innerHTML = '<span class="net-pick-hint">玉を押す（キーボードなら Tab で選んで Enter）と、その人のありがとうが向かう先へ点が流れ、誰とどれだけやり取りしているかがここに出ます。玉の下の数字は「やり取りのあった相手の人数・チームの中での通数」です。</span>';
-    return;
-  }
-  const d = netNow.by[k];
-  const list = [...d.partners.values()].sort((a, b) => (b.in + b.out) - (a.in + a.out)).map(p => {
-    const bits = [];
-    if (p.out) bits.push(`おくった${p.out}`);
-    if (p.in) bits.push(`もらった${p.in}`);
-    return `${netNow.by[p.key].name}（${bits.join("・")}）`;
-  });
-  box.innerHTML = `<b>${d.name}</b> ― やり取りのあった相手 ${d.partners.size}人 ／ `
-    + `チームの中でおくった ${d.out}通・もらった ${d.in}通<br>`
-    + (list.length ? `<span class="net-pick-hint">${list.join("、")}</span>`
-                   : '<span class="net-pick-hint">この期間、チームの中でのやり取りは見えていません。チーム外の仕事が中心なのかもしれません。</span>');
 }
 
 /**
@@ -5854,106 +5789,6 @@ function netPaintDots(k) {
     add(p.in, false, -1);
   });
   layer.innerHTML = out.join("");
-}
-
-/**
- * 誰から誰への表（隣接行列）。
- *
- * 行＝送った人、列＝受け取った人。線を引かないので絡まりようがなく、
- * 向きは行と列の役割だけで決まる（矢印も弧も要らない）。
- * 一方通行は対角線をまたいだ2つのマスを見比べれば分かり、
- * 孤立は行と列がまるごと薄い十字の帯として見える。
- * 本物の <table> なので、読み上げとキーボードは構造そのもので満たされる。
- * 選定の経緯は docs/network-visualization-study.md。
- */
-function renderNetMatrix() {
-  const t = $("netMatrix"), read = $("netMxRead");
-  if (!t || !netNow) return;
-  const cMax = Math.max(1, ...netNow.edges.map(e => e.c));
-  const nm = k => netNow.by[k].name;
-  const cell = (from, to) => {
-    if (from === to) return `<td><span class="net-cell is-self" aria-hidden="true">―</span></td>`;
-    const p = netNow.by[from].partners.get(to);
-    const c = p ? p.out : 0;
-    /* 濃さは通数の平方根。面積ではなく濃さなので、多いマスが黒く潰れない。
-       **上限は 0.36 で止める。** 濃紺の字は地が薄いうちは 4.5:1 を満たすが、
-       濃くしていくと途中で落ちる。かといって字を白にしても、そこはまだ
-       地が明るすぎて白も落ちる——**濃紺も白も通らない帯**（地の相対輝度
-       0.18〜0.47）が真ん中にある。0.32 はその帯に入る手前で、実測 4.9:1
-       （0.36 でちょうど 4.51:1 まで落ちるので、余裕を見て 0.32 で止めた）。
-       濃さだけで足りないぶんは、字の太さを併せて変えて補う（色に頼らない） */
-    const kk = Math.sqrt(c / cMax);
-    const bg = c ? `rgba(58,74,102,${(0.06 + 0.26 * kk).toFixed(3)})` : "";
-    const wt = c ? Math.round(400 + 400 * kk) : 400;
-    return `<td><button type="button" class="net-cell${c ? "" : " is-zero"}"
-      data-f="${from}" data-t="${to}"
-      style="${bg ? `--cellbg:${bg};` : ""}font-weight:${wt}"
-      aria-label="${nm(from)}から${nm(to)}へ ${c}通">${c || "－"}</button></td>`;
-  };
-  /* 列の見出しは、幅があるうちは名前をそのまま出す。頭文字だけだと
-     「佐」が誰なのかを一度あたまで戻す手間が要る。狭いときだけ頭文字にする
-     （どちらか一方しか描かれないので、読み上げが二重にならない） */
-  const head = NET_KEYS.map(k =>
-    `<th scope="col" data-k="${k}"><span class="net-mx-full">${nm(k)}</span>`
-    + `<span class="net-mx-ini" title="${nm(k)}">${netNow.by[k].ini}</span></th>`).join("");
-  const body = NET_KEYS.map(from => {
-    const tot = netNow.by[from].out;
-    return `<tr><th scope="row" data-k="${from}">${nm(from)}</th>`
-      + NET_KEYS.map(to => cell(from, to)).join("")
-      + `<td class="net-mx-tot">${tot}</td></tr>`;
-  }).join("");
-  const foot = NET_KEYS.map(k => `<td class="net-mx-tot">${netNow.by[k].in}</td>`).join("");
-  /* 見える説明は表の外の注記が受け持つ（枠の中に入れると横に引き伸ばされる）。
-     ここは表そのものの名乗りとして、読み上げにだけ渡す */
-  t.innerHTML = `<caption class="vh-label">誰から誰へ ― 通数の表。行が送った人、列が受け取った人です。</caption>`
-    + `<thead><tr><th scope="col">おくった人 ＼ もらった人</th>${head}<th scope="col">おくった計</th></tr></thead>`
-    + `<tbody>${body}</tbody>`
-    + `<tfoot><tr><th scope="row">もらった計</th>${foot}<td class="net-mx-tot">${netNow.total}</td></tr></tfoot>`;
-
-  const clear = () => {
-    t.classList.remove("has-cross");
-    t.querySelectorAll(".is-cross").forEach(el => el.classList.remove("is-cross"));
-  };
-  /* 十字の強調。行と列を同時に照らして、目で追えるようにする。
-     ホバーだけにせず、キーボードの焦点でも同じことが起きる（A-04） */
-  const light = (btn) => {
-    clear();
-    const f = btn.dataset.f, to = btn.dataset.t;
-    t.classList.add("has-cross");
-    t.querySelectorAll(`[data-f="${f}"], [data-t="${to}"]`).forEach(el => el.classList.add("is-cross"));
-    t.querySelectorAll(`tbody th[data-k="${f}"], thead th[data-k="${to}"]`).forEach(el => el.classList.add("is-cross"));
-    btn.classList.add("is-cross");
-  };
-  const say = (btn) => {
-    const f = btn.dataset.f, to = btn.dataset.t;
-    const p = netNow.by[f].partners.get(to);
-    const back = netNow.by[to].partners.get(f);
-    const c = p ? p.out : 0, r = back ? back.out : 0;
-    let note = "";
-    if (c && r) {
-      const hi = Math.max(c, r), lo = Math.min(c, r);
-      note = hi >= lo * 2.5
-        ? `<span class="net-pick-hint">行き来はありますが、片方に大きく偏っています。</span>`
-        : `<span class="net-pick-hint">おおむね行き来のある関係です。</span>`;
-    } else if (c || r) {
-      note = `<span class="net-pick-hint">この期間、返る向きのやり取りは見えていません。仕事の性質によるものかもしれません。</span>`;
-    } else {
-      note = `<span class="net-pick-hint">この期間、この2人の間でのやり取りは見えていません。</span>`;
-    }
-    read.innerHTML = `<b>${nm(f)} → ${nm(to)} ${c}通</b>　／　${nm(to)} → ${nm(f)} ${r}通<br>${note}`;
-  };
-  t.querySelectorAll(".net-cell:not(.is-self)").forEach(b => {
-    b.addEventListener("mouseenter", () => { light(b); say(b); });
-    b.addEventListener("focus", () => { light(b); say(b); });
-    b.addEventListener("click", () => {
-      t.querySelectorAll(".is-hit").forEach(el => el.classList.remove("is-hit"));
-      b.classList.add("is-hit"); light(b); say(b);
-    });
-  });
-  /* 表そのものは期間を変えても作り直さない（中身だけ差し替わる）ので、
-     addEventListener だと期間を変えるたびに重なっていく。ここは上書きにする */
-  t.onmouseleave = clear;
-  read.innerHTML = '<span class="net-pick-hint">マスに触れる（キーボードなら Tab で選ぶ）と、その2人の行き来がここに出ます。</span>';
 }
 
 /**
@@ -6292,18 +6127,11 @@ function renderTeamSummary() {
     <div class="net-tile"><b>${netNow.pairs.size}<small>／${maxPairs}組</small></b><span>やり取りのあった組み合わせ（前の${label}は${netPrev.pairs.size}組）</span></div>
     <div class="net-tile"><b>${newPairs}<small>組</small></b><span>この${label}に初めてやり取りが生まれた組み合わせ</span></div>`;
 
-  $("netSub").textContent =
-    `${teamPeriodLabel()}に、チームの中でだれからだれへありがとうが届いたかです。`
-    + "おくった側の記録から作っているので、チーム外とのやり取りは図にも表にも出ません。"
-    + "図はつながりの形を、下の表は向きと通数を受け持ちます。";
-  $("netChangeSub").textContent = `前の${label}と比べて、関係の見え方が変わったところです。事実と、考えられる読み方を分けて書いています。`;
-
   netGeomAt = "";
   netDraw(true);
-  renderNetMatrix();
-  renderNetList();
   renderNetInsights(label);
   renderTeamTags();
+  renderStrengths();
   renderTeamSigns();
 
   if (!teamChartBuilt) { chartWidget("teamChart", TEAM_SHAPE); teamChartBuilt = true; }
@@ -6311,34 +6139,19 @@ function renderTeamSummary() {
 }
 
 /** つながりの一覧。相手の少ない順＝支えが要りそうな人が上に来る */
-function renderNetList() {
-  const rows = NET_KEYS.map(k => netNow.by[k])
-    .sort((a, b) => (a.partners.size - b.partners.size) || (a.in + a.out) - (b.in + b.out));
-  $("netList").innerHTML = rows.map(d => {
-    const list = [...d.partners.values()].sort((x, y) => (y.in + y.out) - (x.in + x.out)).map(p => {
-      const bits = [];
-      if (p.out) bits.push(`おくった${p.out}`);
-      if (p.in) bits.push(`もらった${p.in}`);
-      return `${netNow.by[p.key].name}（${bits.join("・")}）`;
-    });
-    const prev = netPrev.by[d.key].partners.size;
-    const move = prev === d.partners.size ? "前の期間と同じ" : `前の期間は${prev}人`;
-    return `<div class="net-row">
-      <div class="net-row-head"><span class="ava-s">${avaFace(d.name, d.ini)}</span>${d.name}
-        <span class="net-cnt">${d.partners.size}人</span></div>
-      <div class="net-row-body">${list.length ? list.join("、") : "チームの中でのやり取りは見えていません"}<br>${move}</div>
-    </div>`;
-  }).join("");
-}
 
+/**
+ * 関係の変化。**事実の1行だけ**を出す（2026-08-01 ユーザー判断）。
+ * 「読み方」と「1on1で聞いてみたいこと」は、並べると文章の量が勝ってしまい
+ * 読まれない。問いは1on1準備メモが1人ぶんの文脈つきで持っているので、
+ * ここで重ねて出さない。
+ */
 function renderNetInsights(label) {
   const list = netInsights(label);
   $("netInsights").innerHTML = list.length ? list.map(x => `
     <div class="net-ins${x.good ? " is-good" : ""}">
-      <div class="net-ins-kind">${x.kind}</div>
+      <span class="net-ins-kind">${x.kind}</span>
       <p class="net-ins-fact">${x.fact}</p>
-      <p class="net-ins-read">${x.read}</p>
-      <p class="net-ins-q"><b>1on1で聞いてみたいこと</b>「${x.q}」</p>
     </div>`).join("")
     : '<div class="ok-box">前の期間と比べて、目立った変化は見あたりません。</div>';
 }
@@ -6373,6 +6186,72 @@ function renderTeamTags() {
   $("teamTags").innerHTML = tags.length
     ? tagBars({ tags }, false)
     : '<div class="ok-box">この期間、集計できる場面がありません。</div>';
+}
+
+/**
+ * メンバーの得意（2026-08-01 ユーザー指示で新設）。
+ *
+ * 「チーム全体としてどんな得意を持っている人が多いか」を一目で見せ、
+ * そのうえで**チームで希少な得意**と**人ごとの上位5つ**まで降りられるようにする。
+ *
+ * 得意は場面タグから作る。ある人の受け取った感謝のうち、その場面が
+ * **その人の中で上位5つに入っていて、かつ全体の1割以上**を占めるとき、
+ * 「その人の得意」とみなす。上位5つだけで切ると、たまたま1通あっただけの
+ * 場面まで得意になってしまうため、割合の下限を併せて置いている。
+ *
+ * 数は期間に追随させる（renderTeamTags と同じ割り付け方。D-34 を崩さない）。
+ * **希少＝チームで1人だけが持っている得意。** 上司がいちばん知りたいのは
+ * 「その人しか持っていないもの」——抜けたときに誰も代われないところなので。
+ */
+const SKILL_TOP = 5, SKILL_MIN_SHARE = 0.10;
+
+function memberSkills(m, months) {
+  const recv = periodSum(m.shape, months).r;
+  const all = m.shape.tags.reduce((a, t) => a + t[1], 0) || 1;
+  return m.shape.tags.slice(0, SKILL_TOP)
+    .map(([n, c]) => ({ name: n, share: c / all, count: Math.round(recv * c / all) }))
+    .filter(x => x.share >= SKILL_MIN_SHARE && x.count > 0);
+}
+
+function renderStrengths() {
+  const months = teamMonths();
+  const per = MEMBERS.map(m => ({ m, skills: memberSkills(m, months) }));
+  /* その得意を持っている人が何人いるか。多い順＝チームの厚み、1人＝希少 */
+  const holders = new Map();
+  for (const { m, skills } of per)
+    for (const s of skills) {
+      if (!holders.has(s.name)) holders.set(s.name, []);
+      holders.get(s.name).push({ name: m.name, count: s.count });
+    }
+  const rank = [...holders].sort((a, b) =>
+    b[1].length - a[1].length
+    || b[1].reduce((x, y) => x + y.count, 0) - a[1].reduce((x, y) => x + y.count, 0));
+  const rare = new Set(rank.filter(([, who]) => who.length === 1).map(([n]) => n));
+
+  const thick = rank.filter(([, w]) => w.length >= 3).length;
+  $("skillSub").textContent = rank.length
+    ? `${teamPeriodLabel()}に感謝された場面から見た得意です。`
+      + `チームには${rank.length}種類あり、3人以上が持っているものが${thick}種類、`
+      + `1人だけが持っているものが${rare.size}種類あります。`
+    : `${teamPeriodLabel()}に、得意として数えられる場面がありません。`;
+
+  $("skillMap").innerHTML = rank.length ? `<div class="skill-map">${rank.map(([n, who]) => `
+    <div class="skill-chip${rare.has(n) ? " is-rare" : ""}" style="--cc:${tagColor(n)}"
+      title="${n}：${who.map(w => w.name).join("、")}">
+      <b>${n}</b><span>${who.length}人・${who.reduce((a, w) => a + w.count, 0)}通</span>
+      ${rare.has(n) ? `<span class="skill-rare">${who[0].name}だけ</span>` : ""}
+    </div>`).join("")}</div>`
+    : '<div class="ok-box">この期間、得意として数えられる場面がありません。</div>';
+
+  $("skillPeople").innerHTML = `<div class="skill-people">${per.map(({ m, skills }) => `
+    <div class="skill-row">
+      <div class="skill-who"><span class="ava-s">${avaFace(m.name, m.ini)}</span>${m.name}</div>
+      <div class="skill-tags">${skills.length ? skills.map(s => `
+        <span class="skill-pill${rare.has(s.name) ? " is-rare" : ""}" style="--cc:${tagColor(s.name)}"
+          ${rare.has(s.name) ? 'title="チームでこの人だけが持っている得意です"' : ""}>
+          ${s.name}<i>${s.count}</i></span>`).join("")
+        : '<span class="skill-none">この期間、得意として数えられる場面がありません</span>'}</div>
+    </div>`).join("")}</div>`;
 }
 
 /** 準備メモにサインが出ているメンバーへの近道 */
