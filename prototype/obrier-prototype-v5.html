@@ -237,14 +237,9 @@
   }
   .check input[type="checkbox"]:focus-visible::before { outline: 2px solid var(--navy); outline-offset: 2px; }
   .search-input { width: 170px; }
-  /* スマホでは入力欄を16px未満にしない。iOS Safari は 16px 未満の入力欄に
-     焦点が当たると、読めないと判断してページごと勝手に拡大する（仕様どおりの挙動）。
-     viewport の maximum-scale で止める手もあるが、それは利用者から拡大を
-     奪うことになるので使わない。素直に16pxにする */
-  @media (max-width: 640px) {
-    input, select, textarea,
-    .search-input, .memo-ta, .select, .adm-select { font-size: 16px; }
-  }
+  /* スマホの入力欄を16pxにする指定は、スタイルシートの末尾へ移した。
+     ここに置いていたら、あとから書かれた .adm-select と .memo-ta に
+     打ち消されていた（詳しくは末尾の節） */
   .view-note { margin-left: auto; font-size: var(--fs-cap); color: var(--stage-ink-soft); }
   .filter-chip { display: inline-flex; align-items: center; gap: 8px; background: var(--navy-bg); color: var(--navy); border-radius: 999px; padding: 6px 13px; font-size: var(--fs-ui); font-weight: 700; }
   .filter-chip button { border: none; background: none; cursor: pointer; color: inherit; font-size: var(--fs-ui); font-weight: 800; }
@@ -1199,6 +1194,14 @@
   /* ---- A-23 監査ログの絞り込みとページ送り ---- */
   .audit-filter { margin: 4px 0 12px; }
   .audit-filter input[type="date"] { width: auto; min-width: 150px; }
+  /* 320px で溢れていた。中身の長さで select が302pxまで伸び、
+     行として 338px になって画面（320px）を18px超えていた。
+     入る幅までに抑える。min-width も一緒に下げないと、
+     min-width が勝って縮まない */
+  .audit-filter .select, .audit-filter input { max-width: 100%; }
+  @media (max-width: 380px) {
+    .audit-filter input[type="date"] { min-width: 0; }
+  }
   .au-pager { justify-content: center; margin-top: 12px; }
   .au-pager .mini-note { font-variant-numeric: tabular-nums; }
 
@@ -1754,6 +1757,22 @@
     }
     .menu-item { min-height: 44px; }
     .f-back .sheet-close-wide { min-height: 52px; }
+  }
+  /* ---- スマホの入力欄は16px以上（打ち消されない位置に置く） -------------
+     iOS Safari は 16px 未満の入力欄に焦点が当たると、読めないと判断して
+     ページごと勝手に拡大する（仕様どおりの挙動）。viewport の maximum-scale で
+     止める手もあるが、利用者から拡大を奪うので使わない。素直に16pxにする。
+
+     **この指定はスタイルシートのいちばん最後に置くこと。**
+     以前は前のほうに書いてあり、あとから書かれた
+     `.adm-select`（font-size: var(--fs-ui)）と `.memo-ta`（同）に
+     打ち消されていた。詳細度が同じなら後に書いたほうが勝つので、
+     書いてあるのに効かない状態が3版ぶん残り、じぶんのメモを打つたびに
+     iOSが勝手に拡大していた。判定器も「書いてあるか」ではなく
+     「計算された値がいくつか」を見るように直してある */
+  @media (max-width: 640px) {
+    input, select, textarea,
+    .search-input, .memo-ta, .select, .adm-select { font-size: 16px; }
   }
 </style>
 </head>

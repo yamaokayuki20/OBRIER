@@ -88,8 +88,15 @@ window.__ui = {
    メンバー詳細に h1 が無い・拡大詳細のボタンがスマホで32px）を
    見逃したまま合格を出していた。直した範囲と巡回範囲がちょうど一致していた。
    場面を増やすときは「閉じるところまで」を1組にすること */
+/* 開けなかった場面は out.__missed に積む。
+   以前は try/catch で黙って通り過ぎていたため、#23 で消えた
+   「年間アルバム」「これまでの節目」を開こうとして失敗しても何も言わず、
+   焦点の復帰は実質 CSV 1つでしか測っていなかった。
+   実在する削除の確認・1on1準備メモ・権限変更・監査ログCSVは一度も測られていない。
+   場面が開けないこと自体を不合格にする（監査 ゲートの盲点⑧） */
 async function visitAll(p, collect) {
   const out = [];
+  out.__missed = [];
   const take = async label => out.push(...(await collect()).map(x => ({ ...x, screen: label })));
   const wait = ms => p.waitForTimeout(ms);
 
@@ -112,20 +119,18 @@ async function visitAll(p, collect) {
   } catch {}
 
   // ---- ダイアログ群 ----
-  const dialogs = [
-    ['CSVで書き出す', 'CSV'],
-    ['年間アルバム', '年間アルバム'],
-    ['これまでの節目', '節目一覧'],
-  ];
+  // いま実在するダイアログだけを並べる。消えた画面を並べたままにすると、
+  // 開けないのが当たり前になって「開けない」の意味が薄れる
+  const dialogs = [['CSVで書き出す', 'CSV']];
   for (const [label, name] of dialogs) {
     try {
       await p.locator('button', { hasText: label }).first().click({ timeout: 2500 });
       await wait(700);
-      if (await p.locator('.overlay').count() === 0) continue;
+      if (await p.locator('.overlay').count() === 0) { out.__missed.push(name + '（押しても開かない）'); continue; }
       await take(name);
       await p.keyboard.press('Escape');
       await wait(600);
-    } catch {}
+    } catch { out.__missed.push(name); }
   }
 
   // ---- 削除の確認（拡大詳細の中から開く入れ子） ----
@@ -145,7 +150,7 @@ async function visitAll(p, collect) {
     await wait(500);
     await p.keyboard.press('Escape');
     await wait(700);
-  } catch {}
+  } catch { out.__missed.push('カードの操作メニュー／削除の確認'); }
   await p.evaluate(() => document.querySelectorAll('.overlay').forEach(o => o.remove()));
   await wait(300);
 
@@ -172,8 +177,8 @@ async function visitAll(p, collect) {
       await take('1on1準備メモ');
       await p.keyboard.press('Escape');
       await wait(600);
-    } catch {}
-  } catch {}
+    } catch { out.__missed.push('1on1準備メモ'); }
+  } catch { out.__missed.push('上司のメンバー詳細'); }
 
   // ---- 管理者：4つのタブ ----
   try {
@@ -183,7 +188,7 @@ async function visitAll(p, collect) {
     for (const sub of await p.locator('.sub-tab').all()) {
       try { await sub.click({ timeout: 2000 }); await wait(700); await take('管理者サブ'); } catch {}
     }
-  } catch {}
+  } catch { out.__missed.push('管理者'); }
 
   return out;
 }
@@ -223,6 +228,8 @@ for (const [vw, vh, wlabel] of [[1280, 900, 'PC'], [390, 844, 'スマホ']]) {
   });
 
   const all = await visitAll(p, scan);
+  if (wlabel === 'PC')
+    check('巡回するはずの場面がすべて開けた', all.__missed.length === 0, all.__missed.join(' / '));
   // 同じ見た目のものは1件にまとめる
   const uniq = [...new Map(all.map(x => [x.cls + x.r, x])).values()].sort((a, b) => a.r - b.r);
   check(`${wlabel}: 文字のコントラスト比が基準を満たす（本文4.5:1／大きな文字3:1）`,
@@ -259,6 +266,69 @@ for (const [w, h, label, need] of [[1280, 900, 'PC', 24], [390, 844, 'スマホ'
   const uniq = [...new Map(small.map(x => [x.cls + x.w + x.h, x])).values()];
   check(`${label}: 押せるものの当たり判定が${need}px以上`, uniq.length === 0,
     uniq.slice(0, 6).map(x => `[${x.screen}] ${x.cls} ${x.w}x${x.h}`).join(' / ')
+    + (uniq.length > 6 ? ` ほか${uniq.length - 6}件` : ''));
+  await p.close();
+}
+
+/* ---- 横あふれ（全幅） ------------------------------------------------
+   これまで 1280 と 390 の2つでしか見ておらず、320px の管理者・監査ログで
+   338 > 320 になって実際に18px横へ動くのを3版ぶん見逃していた（監査 盲点⑥）。
+   幅は狭いほうから見る。狭いところで壊れるものは広いところでは見えない */
+for (const vw of [320, 375, 390, 768, 1280, 1920]) {
+  const p = await browser.newPage({ viewport: { width: vw, height: 900 } });
+  await p.goto(URL);
+  await p.waitForTimeout(2000);
+  const bad = [];
+  const probe = async label => {
+    const r = await p.evaluate(() => ({
+      doc: document.documentElement.scrollWidth, win: window.innerWidth,
+      // どの要素がはみ出しているかも拾う
+      who: [...document.querySelectorAll('body *')]
+        .filter(e => e.offsetParent !== null && e.getBoundingClientRect().right > window.innerWidth + 1)
+        .slice(0, 3).map(e => (String(e.className).split(' ')[0] || e.tagName)
+          + ' ' + Math.round(e.getBoundingClientRect().right)),
+    }));
+    if (r.doc > r.win + 1) bad.push(`${label} ${r.doc}>${r.win}${r.who.length ? '（' + r.who.join(',') + '）' : ''}`);
+  };
+  for (const v of ['album', 'shape', 'sent']) {
+    try { await p.locator(`.tab[data-v="${v}"]`).click({ timeout: 2500 }); await p.waitForTimeout(600); } catch {}
+    await probe(v);
+  }
+  for (const role of ['上司', '管理者']) {
+    try { await p.locator('.seg button', { hasText: role }).first().click({ timeout: 2500 }); } catch { continue; }
+    await p.waitForTimeout(800);
+    await probe(role);
+    for (const [i, sub] of (await p.locator('.sub-tab').all()).entries()) {
+      try { await sub.click({ timeout: 2000 }); await p.waitForTimeout(600); } catch { continue; }
+      await probe(`${role}サブ${i + 1}`);
+    }
+  }
+  check(`${vw}px: 横に溢れていない`, bad.length === 0, bad.slice(0, 4).join(' / '));
+  await p.close();
+}
+
+/* ---- スマホの入力欄が16px以上か ---------------------------------------
+   16px 未満の入力欄に焦点が当たると iOS Safari がページごと勝手に拡大する。
+   640px以下で16pxにする @media を書いてあるが、**後から書かれた別の規則に
+   打ち消されていた**（.adm-select と .memo-ta）。書いてあることではなく、
+   実際に計算された値を見る（監査 盲点⑦） */
+{
+  const p = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  await p.goto(URL);
+  await p.waitForTimeout(2000);
+  const small = await visitAll(p, () => p.evaluate(() => {
+    const out = [];
+    for (const el of document.querySelectorAll('input, select, textarea')) {
+      if (el.offsetParent === null) continue;
+      if (el.type === 'checkbox' || el.type === 'radio') continue;   // 拡大の対象外
+      const s = parseFloat(getComputedStyle(el).fontSize);
+      if (s < 16) out.push({ cls: String(el.className).split(' ')[0] || el.tagName, s });
+    }
+    return out;
+  }));
+  const uniq = [...new Map(small.map(x => [x.cls + x.s, x])).values()];
+  check('スマホの入力欄が16px以上（iOSの勝手な拡大を防ぐ）', uniq.length === 0,
+    uniq.slice(0, 6).map(x => `[${x.screen}] ${x.cls} ${x.s}px`).join(' / ')
     + (uniq.length > 6 ? ` ほか${uniq.length - 6}件` : ''));
   await p.close();
 }
