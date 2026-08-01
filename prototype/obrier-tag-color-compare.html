@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>オブリエ | 場面タグの色分け 3案くらべ</title>
+<style>
+  /* =====================================================================
+     場面タグの色分け、3案くらべ（イシュー#21）
+
+     「カテゴリごとに色分けしてるんだけど、無理がありませんか？
+       色分けしないバージョンを見てみたい」という問いに答えるための単体ページ。
+     プロトタイプ本体（obrier-prototype-v5.html）は変えていない。決めるのは人。
+
+     色が効くのは1枚のときではなく**並んだとき**なので、
+     ①同じカードを3案で並べる ②アルバム一覧を3案で見比べる の2段で置く。
+
+     カードの寸法・字面・スタンプは v5 からそのまま持ってきている。
+     ===================================================================== */
+  :root {
+    --paper: #fffdfa; --ink: #3d3229; --ink-soft: #6f6355;
+    --accent: #c98a3d;
+
+    /* 場面タグ7色（v5と同じ） */
+    --c-speed: #F08A24; --c-doc: #3D85C8; --c-coord: #55B7BF; --c-care: #F2A0BC;
+    --c-jr: #33915F; --c-idea: #F5C63C; --c-share: #E8502F;
+
+    /* 色分けをやめたときの1色。アバターと同じ濃紺に揃える */
+    --one: #3A4A66;
+
+    --bg: #ffffff;
+    --grid-line: rgba(90,143,216,.13);
+    --stage-ink: #2c3345;
+    --stage-ink-soft: #5f6473;
+    --panel-line: #d7e0ee; --panel-bg: #f4f7fc;
+
+    --fs-note: 12px; --fs-cap: 13.5px; --fs-ui: 14.5px;
+    --fs-body: 16px; --fs-lead: 17.5px; --fs-head: 20px;
+    --fs-h2: 20px; --fs-h1: 24px;
+
+    /* 日付スタンプのかすれ（v5 と同じ型を1枚だけ持ち、全カードで使い回す） */
+    --stamp-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='100' viewBox='0 0 48 100' preserveAspectRatio='none'%3E%3Cmask id='k'%3E%3Crect width='48' height='100' fill='%23fff'/%3E%3Cg fill='%23000'%3E%3Cellipse cx='15.6' cy='50.8' rx='1.5' ry='2.3' transform='rotate(56 15.6 50.8)'/%3E%3Cellipse cx='15.0' cy='0.2' rx='1.4' ry='2.9' transform='rotate(134 15.0 0.2)'/%3E%3Cellipse cx='9.9' cy='95.5' rx='0.6' ry='2.6' transform='rotate(147 9.9 95.5)'/%3E%3Cellipse cx='14.8' cy='87.1' rx='1.3' ry='3.9' transform='rotate(141 14.8 87.1)'/%3E%3Cellipse cx='33.4' cy='76.5' rx='1.7' ry='2.8' transform='rotate(74 33.4 76.5)'/%3E%3Cellipse cx='40.2' cy='16.4' rx='1.6' ry='1.3' transform='rotate(137 40.2 16.4)'/%3E%3Cellipse cx='29.3' cy='80.7' rx='1.6' ry='2.2' transform='rotate(112 29.3 80.7)'/%3E%3Cellipse cx='29.4' cy='35.9' rx='1.5' ry='1.5' transform='rotate(179 29.4 35.9)'/%3E%3Cellipse cx='21.8' cy='98.8' rx='1.0' ry='2.0' transform='rotate(76 21.8 98.8)'/%3E%3Cellipse cx='22.4' cy='62.2' rx='1.4' ry='3.7' transform='rotate(112 22.4 62.2)'/%3E%3Cellipse cx='18.1' cy='20.1' rx='0.5' ry='1.4' transform='rotate(47 18.1 20.1)'/%3E%3Cellipse cx='23.2' cy='84.8' rx='1.0' ry='4.0' transform='rotate(150 23.2 84.8)'/%3E%3Cellipse cx='19.2' cy='96.4' rx='1.1' ry='3.7' transform='rotate(149 19.2 96.4)'/%3E%3Cellipse cx='2.3' cy='19.7' rx='1.9' ry='1.5' transform='rotate(136 2.3 19.7)'/%3E%3Cellipse cx='42.0' cy='3.1' rx='1.9' ry='3.7' transform='rotate(41 42.0 3.1)'/%3E%3Cellipse cx='14.0' cy='0.4' rx='0.7' ry='3.5' transform='rotate(170 14.0 0.4)'/%3E%3Cellipse cx='30.6' cy='86.4' rx='1.5' ry='1.5' transform='rotate(119 30.6 86.4)'/%3E%3Cellipse cx='30.5' cy='92.5' rx='1.4' ry='1.9' transform='rotate(94 30.5 92.5)'/%3E%3Cellipse cx='8.0' cy='86.9' rx='0.9' ry='3.2' transform='rotate(177 8.0 86.9)'/%3E%3Cellipse cx='34.4' cy='66.2' rx='0.7' ry='2.5' transform='rotate(52 34.4 66.2)'/%3E%3Cellipse cx='0.5' cy='78.7' rx='1.2' ry='3.3' transform='rotate(173 0.5 78.7)'/%3E%3Cellipse cx='8.9' cy='80.1' rx='1.1' ry='3.9' transform='rotate(101 8.9 80.1)'/%3E%3Cellipse cx='45.5' cy='81.1' rx='1.7' ry='1.8' transform='rotate(163 45.5 81.1)'/%3E%3Cellipse cx='22.3' cy='91.4' rx='1.1' ry='2.5' transform='rotate(122 22.3 91.4)'/%3E%3Cellipse cx='32.1' cy='97.5' rx='1.0' ry='1.9' transform='rotate(104 32.1 97.5)'/%3E%3Cellipse cx='41.8' cy='18.5' rx='1.8' ry='2.1' transform='rotate(102 41.8 18.5)'/%3E%3Cellipse cx='19.9' cy='4.2' rx='1.0' ry='1.3' transform='rotate(127 19.9 4.2)'/%3E%3Cellipse cx='28.6' cy='15.7' rx='1.5' ry='2.9' transform='rotate(42 28.6 15.7)'/%3E%3Cellipse cx='21.2' cy='84.0' rx='1.4' ry='2.2' transform='rotate(128 21.2 84.0)'/%3E%3Cellipse cx='42.2' cy='83.5' rx='1.4' ry='2.0' transform='rotate(58 42.2 83.5)'/%3E%3Cellipse cx='1.1' cy='8.6' rx='1.8' ry='3.7' transform='rotate(145 1.1 8.6)'/%3E%3Cellipse cx='44.5' cy='18.4' rx='0.7' ry='2.8' transform='rotate(112 44.5 18.4)'/%3E%3Cellipse cx='36.4' cy='13.4' rx='1.3' ry='2.6' transform='rotate(117 36.4 13.4)'/%3E%3Cellipse cx='44.2' cy='7.8' rx='1.0' ry='2.5' transform='rotate(97 44.2 7.8)'/%3E%3C/g%3E%3C/mask%3E%3Crect width='48' height='100' fill='%23000' mask='url(%23k)'/%3E%3C/svg%3E");
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    background-color: var(--bg);
+    background-image:
+      repeating-linear-gradient(0deg,  var(--grid-line) 0, var(--grid-line) 1px, transparent 1px, transparent 24px),
+      repeating-linear-gradient(90deg, var(--grid-line) 0, var(--grid-line) 1px, transparent 1px, transparent 24px);
+    color: var(--stage-ink);
+    font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
+    min-height: 100vh; overflow-x: hidden;
+    font-size: var(--fs-body); line-height: 1.7;
+  }
+
+  header {
+    position: sticky; top: 0; z-index: 30;
+    backdrop-filter: blur(10px);
+    background: color-mix(in srgb, var(--bg) 84%, transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--stage-ink) 14%, transparent);
+  }
+  .bar { max-width: 1180px; margin: 0 auto; padding: 12px 20px; display: flex; align-items: center; gap: 14px 18px; flex-wrap: wrap; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; letter-spacing: .1em; font-size: var(--fs-ui); }
+  .brand-mark { width: 30px; height: 30px; border-radius: 9px; background: linear-gradient(145deg, #d89a48, #b9752c); display: grid; place-items: center; color: #fff; font-size: var(--fs-ui); font-weight: 800; }
+  .brand small { display: block; font-size: var(--fs-note); letter-spacing: .16em; opacity: .62; font-weight: 600; }
+  .seg { display: flex; margin-left: auto; border: 1px solid color-mix(in srgb, var(--stage-ink) 28%, transparent); border-radius: 999px; overflow: hidden; }
+  .seg button {
+    font-family: inherit; font-size: var(--fs-ui); padding: 8px 14px; border: none; cursor: pointer;
+    background: transparent; color: var(--stage-ink); white-space: nowrap; min-height: 40px;
+  }
+  .seg button:hover { background: color-mix(in srgb, var(--stage-ink) 9%, transparent); }
+  .seg button[aria-pressed="true"] { background: var(--stage-ink); color: #fff; font-weight: 700; }
+  .seg button:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
+
+  main { max-width: 1180px; margin: 0 auto; padding: 0 20px 100px; }
+  .lead { padding: 44px 0 8px; max-width: 720px; }
+  h1 { font-size: var(--fs-h1); line-height: 1.55; letter-spacing: .04em; font-weight: 800; }
+  .lead p { margin-top: 14px; font-size: var(--fs-ui); line-height: 2; color: var(--stage-ink-soft); }
+  .lead p + p { margin-top: 10px; }
+  h2 { font-size: var(--fs-h2); font-weight: 800; letter-spacing: .04em; }
+  .sec { margin-top: 64px; }
+  .sec > p.sub { margin-top: 8px; font-size: var(--fs-cap); color: var(--stage-ink-soft); line-height: 1.9; max-width: 720px; }
+
+  /* ---- 案の見出しと所見 ---- */
+  .cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-top: 24px; align-items: start; }
+  @media (max-width: 900px) { .cols { grid-template-columns: 1fr; } }
+  .plan-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .plan-tag {
+    font-size: var(--fs-note); font-weight: 800; letter-spacing: .16em;
+    background: var(--stage-ink); color: #fff; border-radius: 999px; padding: 4px 11px;
+  }
+  .plan-head h3 { font-size: var(--fs-lead); font-weight: 800; letter-spacing: .04em; }
+  .note {
+    margin-top: 12px; background: var(--panel-bg); border: 1px solid var(--panel-line);
+    border-radius: 10px; padding: 14px 16px; font-size: var(--fs-cap); line-height: 1.95;
+  }
+  .note dt { font-weight: 800; letter-spacing: .06em; font-size: var(--fs-note); color: var(--one); }
+  .note dd { margin: 2px 0 10px; color: var(--stage-ink); }
+  .note dd:last-child { margin-bottom: 0; }
+
+  /* ---------------- カード（v5 から） ---------------- */
+  .card { position: relative; display: block; width: 100%; }
+  .front {
+    position: relative;
+    background: var(--paper); color: var(--ink); border-radius: 12px;
+    border-top: 7px solid var(--band);
+    padding: 24px 22px 16px; height: 320px;
+    display: flex; flex-direction: column; align-items: center; gap: 13px; overflow: hidden;
+    box-shadow: 0 5px 16px rgba(20, 26, 40, .09);
+  }
+  .ava {
+    width: 48px; height: 48px; border-radius: 50%; flex: none; background: var(--one);
+    display: grid; place-items: center; color: #fff; font-size: var(--fs-lead); font-weight: 800;
+    box-shadow: 0 0 0 5px var(--paper), 0 5px 12px rgba(58,74,102,.22);
+  }
+  .say {
+    font-weight: 600; letter-spacing: .06em; line-height: 2.05; font-size: var(--fs-body);
+    text-align: center;
+    display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .kind-short .say { font-size: var(--fs-head); line-height: 1.9; letter-spacing: .08em; -webkit-line-clamp: 3; }
+  .kind-long .say { text-align: left; font-size: var(--fs-ui); line-height: 1.8; letter-spacing: .01em; font-weight: 500; -webkit-line-clamp: 4; }
+  .more-hint { display: none; font-size: var(--fs-note); letter-spacing: .08em; color: var(--ink-soft); align-self: flex-start; margin-top: -4px; }
+  .kind-long .more-hint { display: block; }
+  .who-line { margin-top: auto; font-size: var(--fs-cap); letter-spacing: .12em; font-weight: 700; opacity: .72; }
+  .c-foot { display: flex; align-items: center; gap: 8px; width: 100%; padding-top: 4px; }
+  .tagpill {
+    font-size: var(--fs-cap); font-weight: 700; letter-spacing: .06em;
+    background: color-mix(in srgb, var(--pill) 16%, #fff);
+    color: color-mix(in srgb, var(--pill) 40%, #1d2430);
+    border: 1px solid color-mix(in srgb, var(--pill) 45%, transparent);
+    border-radius: 999px; padding: 3px 11px; white-space: nowrap;
+  }
+  .c-time {
+    margin-left: auto; font-size: var(--fs-body); letter-spacing: .04em; padding: 3px 11px; border-radius: 3px;
+    font-family: "Courier New", monospace; font-weight: 700;
+    border: 2px solid color-mix(in srgb, var(--stamp) 46%, #1d2430);
+    color: color-mix(in srgb, var(--stamp) 46%, #1d2430);
+    transform: rotate(var(--stamp-rot, -2deg));
+    white-space: nowrap;
+    -webkit-mask-image: var(--stamp-mask); mask-image: var(--stamp-mask);
+    -webkit-mask-size: 48px 100%; mask-size: 48px 100%;
+    -webkit-mask-repeat: repeat-x; mask-repeat: repeat-x;
+    -webkit-mask-position: var(--stamp-shift, 0px) center; mask-position: var(--stamp-shift, 0px) center;
+  }
+  @media (forced-colors: active) { .c-time { -webkit-mask-image: none; mask-image: none; } }
+
+  /* ---- 3案の色の当て方。ここが比較のすべて ----
+     --cc  … その場面タグの色（7色）
+     --one … 色分けをやめたときの1色（濃紺）
+     帯（border-top）／タグピル／日付スタンプのインク、の3か所に何を当てるか。
+
+     この3行は**カード自身**に付ける。--cc はカードの style で与えているので、
+     祖先の側で --band: var(--cc) と書くと、そこには --cc が無く空になる
+     （カスタムプロパティの置き換えは、宣言した要素の上で起きるため） */
+  .card.plan-a { --band: var(--cc); --pill: var(--cc); --stamp: var(--cc); }
+  .card.plan-b { --band: var(--one); --pill: var(--one); --stamp: var(--one); }
+  .card.plan-c { --band: var(--one); --pill: var(--cc); --stamp: var(--one); }
+
+  /* ---------------- 一覧 ---------------- */
+  .album { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px 20px; margin-top: 20px; }
+  @media (max-width: 880px) { .album { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) { .album { grid-template-columns: 1fr; } }
+  .album.mini { grid-template-columns: 1fr; gap: 18px; }
+  /* 上の帯（sticky）に見出しが隠れないよう、送り先に余白を持たせる */
+  .stack-block { margin-top: 34px; scroll-margin-top: 84px; }
+  #albums { scroll-margin-top: 84px; }
+  .stack-block .plan-head { margin-bottom: 4px; }
+  .month {
+    grid-column: 1 / -1; display: flex; align-items: center; gap: 12px;
+    font-size: var(--fs-ui); letter-spacing: .18em; font-weight: 700; color: var(--stage-ink-soft);
+    margin: 10px 0 2px;
+  }
+  .month::after { content: ""; flex: 1; height: 1px; background: currentColor; opacity: .3; }
+
+  .foot { margin-top: 70px; font-size: var(--fs-cap); color: var(--stage-ink-soft); line-height: 2; border-top: 1px solid var(--panel-line); padding-top: 22px; }
+  .foot b { color: var(--stage-ink); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="bar">
+    <div class="brand">
+      <div class="brand-mark">o</div>
+      <div>オブリエ<small>場面タグの色分け 3案くらべ</small></div>
+    </div>
+    <div class="seg" role="group" aria-label="一覧の見せ方">
+      <button type="button" data-view="stack" aria-pressed="true">3案を縦に並べる</button>
+      <button type="button" data-view="a" aria-pressed="false">A だけ</button>
+      <button type="button" data-view="b" aria-pressed="false">B だけ</button>
+      <button type="button" data-view="c" aria-pressed="false">C だけ</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="lead">
+    <h1>場面タグの色分けは、要りますか</h1>
+    <p>いまは場面タグごとに7色を割り当て、カード上端の帯・タグピル・日付スタンプのインクをその色で塗っています。色分けをやめた案と、途中でやめる案を並べました。</p>
+    <p>色が効くのは1枚のときではなく<b>並んだとき</b>なので、1枚での見え方と、アルバム一覧での見え方の両方を置いています。<b>このページは比較用で、プロトタイプ本体は変えていません。</b></p>
+  </div>
+
+  <section class="sec">
+    <h2>1枚だけで見る</h2>
+    <p class="sub">同じカード（場面タグ「スピード対応」）を3案で。1枚だとどれも成立します。差が出るのは次の節です。</p>
+    <div class="cols" id="single"></div>
+  </section>
+
+  <section class="sec">
+    <h2>アルバム一覧で見る</h2>
+    <p class="sub">7色ぶんの場面タグが混ざった9枚。上のボタンで見せ方を切り替えられます。</p>
+    <div id="albums"></div>
+  </section>
+
+  <div class="foot">
+    <p><b>どの案を採るかは、まだ決めていません。</b>このページは3案を見比べるためだけのもので、プロトタイプ本体（obrier-prototype-v5.html）は現行のA案のままです。</p>
+    <p>前例：カードデザインを決めたときの <b>obrier-card-simple-v1.html</b>（B案が正）と同じ立て付けにしています。</p>
+  </div>
+</main>
+
+<script>
+/* ---- 場面タグ→色（v5 と同じ割り当て） ---- */
+const TAG_COLOR = {
+  "スピード対応": "--c-speed", "資料品質": "--c-doc", "調整力": "--c-coord",
+  "気配り": "--c-care", "後輩サポート": "--c-jr", "アイデア": "--c-idea", "情報共有": "--c-share",
+};
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+/* ---- 見せるカード（v5 の文面から） ---- */
+const CARDS = [
+  { ini: "上", who: "上司さん",   tag: "スピード対応", time: "7/4 15:58", msg: "ありがとうございます。素早い対応助かります。確認しますね。" },
+  { ini: "山", who: "山本さん",   tag: "資料品質",     time: "7/3 17:30", msg: "アジェンダ助かりました！論点が整理されていて、そのまま使えます。" },
+  { ini: "佐", who: "佐藤さん",   tag: "アイデア",     time: "7/3 11:02", msg: "その切り口、すごくいい。" },
+  { ini: "森", who: "森さん",     tag: "気配り",       time: "7/2 09:50", msg: "先週しんどかったとき、声をかけてもらえて救われました。ありがとうございます。" },
+  { ini: "渡", who: "渡辺さん",   tag: "後輩サポート", time: "7/1 14:22", msg: "手順メモありがとうございました。画面共有までしてもらって、おかげで一人でできるようになりました。次からは自分でやってみます。" },
+  { ini: "田", who: "田中さん",   tag: "調整力",       time: "6/30 10:11", msg: "日程調整、ありがとう。" },
+  { ini: "高", who: "高橋さん",   tag: "情報共有",     time: "6/28 16:40", msg: "議事録テンプレ、部内でそのまま使わせてもらっています。助かりました。" },
+  { ini: "小", who: "小林さん",   tag: "資料品質",     time: "6/26 13:05", msg: "図解版、わかりやすかったです。3層で整理されていたので説明がすぐ通りました。" },
+  { ini: "伊", who: "伊藤さん",   tag: "調整力",       time: "6/24 09:58", msg: "全員の予定まとめてくれて助かった。" },
+];
+
+const STAMP_ROT = [-2.4, -1.2, -3.1, -1.8, -2.8, -1.5, -3.4, -2.0, -1.1];
+
+function cardKind(msg) {
+  const n = msg.length;
+  if (n <= 14) return "kind-short";
+  if (n >= 54) return "kind-long";
+  return "kind-mid";
+}
+
+function cardHTML(d, i, plan) {
+  const cc = TAG_COLOR[d.tag] || "--c-doc";
+  return `<div class="card plan-${plan} ${cardKind(d.msg)}" style="--cc: var(${cc}); --stamp-rot: ${STAMP_ROT[i % STAMP_ROT.length]}deg; --stamp-shift: ${(i * 37) % 120}px">
+    <div class="front">
+      <div class="ava">${esc(d.ini)}</div>
+      <div class="say">${esc(d.msg)}</div>
+      <div class="more-hint">…続きは詳細で</div>
+      <div class="who-line">${esc(d.who)}</div>
+      <div class="c-foot"><span class="tagpill">${esc(d.tag)}</span><span class="c-time">${esc(d.time)}</span></div>
+    </div>
+  </div>`;
+}
+
+/* ---- 3案の名前と所見 ---- */
+const PLANS = [
+  {
+    key: "a", label: "A", name: "現行（場面タグごとに7色）",
+    where: "帯・タグピル・日付スタンプのインク＝場面タグの色",
+    good: "自分がどの場面で感謝されやすいか、一覧をめくるだけで色の偏りとして目に入る。カードが「同じものの繰り返し」に見えず、ページに賑わいが出る。",
+    bad: "9枚並ぶと7色の帯が横に走り、視線が本文より先に帯へ行く。色そのものに意味があると読めてしまい、実際には無い序列（暖色＝良い等）を想像させる。タグは可変で自動的に増えるので、増えた先で7色を割り当て直すと同じ色が別の場面に付き、一度覚えた対応が崩れる。",
+  },
+  {
+    key: "b", label: "B", name: "色分けなし（濃紺の1色）",
+    where: "帯・タグピル・スタンプすべて濃紺 #3A4A66（アバターと同じ色）",
+    good: "一覧が静かになり、目が最初に行くのは感謝の言葉そのものになる。カードが揃って「アルバムに綴じた紙の束」に見える。タグがいくつ増えても破綻しない。色の割り当てルールという未決事項（decision-log）が丸ごと不要になる。",
+    bad: "一覧を見渡したときの「場面の偏り」が色では読み取れなくなり、タグピルの文字を一枚ずつ読むことになる。カタチ画面（タグ内訳バー・上位タグ）と一覧のあいだで、色による手がかりの橋渡しが無くなる。",
+  },
+  {
+    key: "c", label: "C", name: "中間（帯は1色、ピルだけ色）",
+    where: "帯・スタンプ＝濃紺／タグピルだけ場面タグの色",
+    good: "面積の大きい帯が揃うので一覧は静かなまま、色の手がかりは残る。カードの下端に小さく色が点在するので、偏りは「どの色のピルが多いか」で拾える。カタチ画面の色ともつながる。",
+    bad: "帯と足元で色の主が変わるため、1枚だけを見ると少し落ち着かない。色は残るので、タグが増えたときの色の割り当てルールは結局決めることになる。",
+  },
+];
+
+function planHead(p) {
+  return `<div class="plan-head"><span class="plan-tag">${p.label}案</span><h3>${p.name}</h3></div>`;
+}
+function planNote(p) {
+  return `<dl class="note">
+    <dt>色を当てる場所</dt><dd>${p.where}</dd>
+    <dt>良くなること</dt><dd>${p.good}</dd>
+    <dt>失うもの</dt><dd>${p.bad}</dd>
+  </dl>`;
+}
+
+/* ---- 1枚だけ ---- */
+document.getElementById("single").innerHTML = PLANS.map(p =>
+  `<div class="plan-${p.key}">${planHead(p)}
+     <div class="album mini" style="margin-top:14px">${cardHTML(CARDS[0], 0, p.key)}</div>
+     ${planNote(p)}
+   </div>`).join("");
+
+/* ---- 一覧 ---- */
+const albums = document.getElementById("albums");
+function renderAlbums(view) {
+  const list = view === "stack" ? PLANS : PLANS.filter(p => p.key === view);
+  albums.innerHTML = list.map(p =>
+    `<div class="stack-block plan-${p.key}">
+       ${planHead(p)}
+       <div class="album"><div class="month">2026年 7月 – 6月</div>${CARDS.map((d, i) => cardHTML(d, i, p.key)).join("")}</div>
+     </div>`).join("");
+}
+renderAlbums("stack");
+
+document.querySelectorAll(".seg button").forEach(b => {
+  b.addEventListener("click", () => {
+    document.querySelectorAll(".seg button").forEach(o => o.setAttribute("aria-pressed", String(o === b)));
+    renderAlbums(b.dataset.view);
+    albums.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+});
+</script>
+</body>
+</html>

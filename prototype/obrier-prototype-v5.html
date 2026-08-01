@@ -346,8 +346,10 @@
     border-radius: 999px; padding: 3px 11px;
   }
   /* 日付＝ゴム印。白い紙に押すので、インクはタグ色を深くした濃色にする。
-     以前はノイズ画像をマスクに使っていたが、カードの枚数だけ再描画が走って
-     重かったため、傾きと薄い枠だけで判子らしさを出す */
+     判子らしさは、この濃色インク・薄い枠・カードごとに散らした傾き、そして
+     かすれ（この style の末尾「日付スタンプのかすれ（イシュー#21）」の節）で出す。
+     かすれは D-23 で一度取りやめている。同じ手（feTurbulence を要素ごとに）は
+     使わず、型を1枚だけ静的に持って全カードで使い回す方式に変えてある */
   .c-time {
     margin-left: auto; font-size: var(--fs-body); letter-spacing: .04em; padding: 3px 11px; border-radius: 3px;
     font-family: "Courier New", monospace; font-weight: 700;
@@ -1453,6 +1455,50 @@
     position: absolute; width: 1px; height: 1px;
     margin: 0; padding: 0; border: 0;
     overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+  /* ---- 日付スタンプのかすれ（イシュー#21） ----------------------------
+     日付のゴム印に、若干のかすれを入れる。
+
+     やり直しであることを踏まえる：D-17 で入れた feTurbulence の mask-image は、
+     ノイズを要素ごとに作り直すためカードの枚数だけ描画が走り、D-23 で取りやめた。
+     同じ手は戻さない。ここでは**型を1枚だけ静的に持ち、全カードで使い回す**。
+     画像は1つなので、ブラウザが読むのも刻むのも最初の一度きり。
+
+     つくり：
+       ① 欠けの型は 48×100 の SVG（黒地に、抜きの粒を34個）。
+          data URI の文字列が同じなので、30枚のカードが同じ1枚を共有する
+       ② 縦は mask-size の 100% で判子の丈に伸ばして当てる。
+          型の上下の端＝判子の枠、真ん中＝文字が並ぶ帯 に必ず対応する。
+          粒は端へ寄せて散らしてあり、欠けは全体の 7.2%、
+          文字の帯にかかるのは 1.7% だけ——枠から先に欠ける、実際の判子と同じ順
+       ③ 横だけ敷き詰め（repeat-x）、敷き始めをカードごとの --stamp-shift
+          （既存。d.id から決まる）でずらす。要素ごとに何かを作るのではなく、
+          同じ1枚の原点を動かすだけなので、枚数が増えても増えるのは原点の数だけ
+
+     濃さは触らない：抜けるところは 0、残るところは 1（中間を作らない）ので、
+     インクの色は color-mix(--cc 46%) のまま——最も薄いアイデア（黄）でも
+     紙に対し 4.89:1 で、本文の基準 4.5:1 を割らない。
+     かすれを「薄くする」で作るとこの余裕が消える（黄は 0.9 掛けで 4.01:1 まで
+     落ちる）。だから濃さではなく、欠ける面積で表す。
+
+     重さの実測（塗りの実時間・244コマ分のスクロール×12回・交互に測定、最小どうし）：
+       かすれ無し 41.3ms ／ この案 45.6ms（+11%＝1コマあたり +0.018ms、
+       1コマ16.7msの0.1%）。比べた他の案はグラデーションで作る案が +35%、
+       型は同じで中心を守る楕円をもう1枚足す案が +20%。いちばん軽い案を採った。
+       コマ落ち（20ms超のコマ数）と着地ずれは、前後で差が出なかった */
+  .c-time {
+    --stamp-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='100' viewBox='0 0 48 100' preserveAspectRatio='none'%3E%3Cmask id='k'%3E%3Crect width='48' height='100' fill='%23fff'/%3E%3Cg fill='%23000'%3E%3Cellipse cx='15.6' cy='50.8' rx='1.5' ry='2.3' transform='rotate(56 15.6 50.8)'/%3E%3Cellipse cx='15.0' cy='0.2' rx='1.4' ry='2.9' transform='rotate(134 15.0 0.2)'/%3E%3Cellipse cx='9.9' cy='95.5' rx='0.6' ry='2.6' transform='rotate(147 9.9 95.5)'/%3E%3Cellipse cx='14.8' cy='87.1' rx='1.3' ry='3.9' transform='rotate(141 14.8 87.1)'/%3E%3Cellipse cx='33.4' cy='76.5' rx='1.7' ry='2.8' transform='rotate(74 33.4 76.5)'/%3E%3Cellipse cx='40.2' cy='16.4' rx='1.6' ry='1.3' transform='rotate(137 40.2 16.4)'/%3E%3Cellipse cx='29.3' cy='80.7' rx='1.6' ry='2.2' transform='rotate(112 29.3 80.7)'/%3E%3Cellipse cx='29.4' cy='35.9' rx='1.5' ry='1.5' transform='rotate(179 29.4 35.9)'/%3E%3Cellipse cx='21.8' cy='98.8' rx='1.0' ry='2.0' transform='rotate(76 21.8 98.8)'/%3E%3Cellipse cx='22.4' cy='62.2' rx='1.4' ry='3.7' transform='rotate(112 22.4 62.2)'/%3E%3Cellipse cx='18.1' cy='20.1' rx='0.5' ry='1.4' transform='rotate(47 18.1 20.1)'/%3E%3Cellipse cx='23.2' cy='84.8' rx='1.0' ry='4.0' transform='rotate(150 23.2 84.8)'/%3E%3Cellipse cx='19.2' cy='96.4' rx='1.1' ry='3.7' transform='rotate(149 19.2 96.4)'/%3E%3Cellipse cx='2.3' cy='19.7' rx='1.9' ry='1.5' transform='rotate(136 2.3 19.7)'/%3E%3Cellipse cx='42.0' cy='3.1' rx='1.9' ry='3.7' transform='rotate(41 42.0 3.1)'/%3E%3Cellipse cx='14.0' cy='0.4' rx='0.7' ry='3.5' transform='rotate(170 14.0 0.4)'/%3E%3Cellipse cx='30.6' cy='86.4' rx='1.5' ry='1.5' transform='rotate(119 30.6 86.4)'/%3E%3Cellipse cx='30.5' cy='92.5' rx='1.4' ry='1.9' transform='rotate(94 30.5 92.5)'/%3E%3Cellipse cx='8.0' cy='86.9' rx='0.9' ry='3.2' transform='rotate(177 8.0 86.9)'/%3E%3Cellipse cx='34.4' cy='66.2' rx='0.7' ry='2.5' transform='rotate(52 34.4 66.2)'/%3E%3Cellipse cx='0.5' cy='78.7' rx='1.2' ry='3.3' transform='rotate(173 0.5 78.7)'/%3E%3Cellipse cx='8.9' cy='80.1' rx='1.1' ry='3.9' transform='rotate(101 8.9 80.1)'/%3E%3Cellipse cx='45.5' cy='81.1' rx='1.7' ry='1.8' transform='rotate(163 45.5 81.1)'/%3E%3Cellipse cx='22.3' cy='91.4' rx='1.1' ry='2.5' transform='rotate(122 22.3 91.4)'/%3E%3Cellipse cx='32.1' cy='97.5' rx='1.0' ry='1.9' transform='rotate(104 32.1 97.5)'/%3E%3Cellipse cx='41.8' cy='18.5' rx='1.8' ry='2.1' transform='rotate(102 41.8 18.5)'/%3E%3Cellipse cx='19.9' cy='4.2' rx='1.0' ry='1.3' transform='rotate(127 19.9 4.2)'/%3E%3Cellipse cx='28.6' cy='15.7' rx='1.5' ry='2.9' transform='rotate(42 28.6 15.7)'/%3E%3Cellipse cx='21.2' cy='84.0' rx='1.4' ry='2.2' transform='rotate(128 21.2 84.0)'/%3E%3Cellipse cx='42.2' cy='83.5' rx='1.4' ry='2.0' transform='rotate(58 42.2 83.5)'/%3E%3Cellipse cx='1.1' cy='8.6' rx='1.8' ry='3.7' transform='rotate(145 1.1 8.6)'/%3E%3Cellipse cx='44.5' cy='18.4' rx='0.7' ry='2.8' transform='rotate(112 44.5 18.4)'/%3E%3Cellipse cx='36.4' cy='13.4' rx='1.3' ry='2.6' transform='rotate(117 36.4 13.4)'/%3E%3Cellipse cx='44.2' cy='7.8' rx='1.0' ry='2.5' transform='rotate(97 44.2 7.8)'/%3E%3C/g%3E%3C/mask%3E%3Crect width='48' height='100' fill='%23000' mask='url(%23k)'/%3E%3C/svg%3E");
+    -webkit-mask-image: var(--stamp-mask);
+            mask-image: var(--stamp-mask);
+    -webkit-mask-size: 48px 100%;
+            mask-size: 48px 100%;
+    -webkit-mask-repeat: repeat-x;
+            mask-repeat: repeat-x;
+    -webkit-mask-position: var(--stamp-shift, 0px) center;
+            mask-position: var(--stamp-shift, 0px) center;
+  }
+  /* ハイコントラスト（Windows）では飾りを外し、読みやすさを優先する */
+  @media (forced-colors: active) {
+    .c-time { -webkit-mask-image: none; mask-image: none; }
   }
 </style>
 </head>
@@ -1496,7 +1542,7 @@
       <button data-role="boss" aria-pressed="false">上司</button>
       <button data-role="admin" aria-pressed="false">管理者</button>
     </div>
-    <div class="me" id="meBox"><span>YUKIYAMAさん</span><div class="ava-s">Y</div></div>
+    <div class="me" id="meBox"><span>ユーザーさん</span><div class="ava-s">ユ</div></div>
     <!-- どの版を見ているかを確かめるための表示。更新されていないと思ったときはここを見る -->
     <button class="build" id="buildTag" title="押すと自己診断（閉じる動作の重さを自動で測ります）">rev.18 UI/UX改善版</button>
   </div>
@@ -2025,16 +2071,16 @@ const DATA = [
     msg: "ありがとうございます。素早い対応助かります。確認しますね。", tag: "スピード対応", time: "たった今 15:58",
     summary: "上司さんからの資料作成の依頼に、約1分で完成版を共有。対応の速さに感謝が届きました。今月の「スピード対応」はこれで8回目です。",
     story: [
-      { who: "上司さん", ini: "上", time: "15:57", text: "@YUKIYAMA おつかれ、いい感じの資料つくっておいて" },
-      { who: "YUKIYAMA", ini: "Y", time: "15:58", mine: true, text: "@上司 おつかれさまです。ご確認をお願いします。", file: "すごい資料.xlsx" },
-      { who: "上司さん", ini: "上", time: "15:58", thanks: true, text: "@YUKIYAMA ありがとうございます。素早い対応助かります。確認しますね。" },
+      { who: "上司さん", ini: "上", time: "15:57", text: "@ユーザー おつかれ、いい感じの資料つくっておいて" },
+      { who: "ユーザー", ini: "ユ", time: "15:58", mine: true, text: "@上司 おつかれさまです。ご確認をお願いします。", file: "すごい資料.xlsx" },
+      { who: "上司さん", ini: "上", time: "15:58", thanks: true, text: "@ユーザー ありがとうございます。素早い対応助かります。確認しますね。" },
     ]},
   { who: "上司さん", ini: "上", ch: "#資料作成", src: "Slack", month: "2026年 7月",
     msg: "ありがとう、助かります。", tag: "スピード対応", time: "昨日 18:12",
     summary: "会議の前倒しで急遽必要になったアジェンダを当日中に作成。締切前倒しへの対応力に感謝が届きました。",
     story: [
       { who: "上司さん", ini: "上", time: "16:40", text: "明日の定例、先方の都合で1日早まった…アジェンダ今日中いける？" },
-      { who: "YUKIYAMA", ini: "Y", time: "17:26", mine: true, text: "アジェンダできました。論点は前回の持ち越し2件＋新規1件です。", file: "定例アジェンダ_0703.docx" },
+      { who: "ユーザー", ini: "ユ", time: "17:26", mine: true, text: "アジェンダできました。論点は前回の持ち越し2件＋新規1件です。", file: "定例アジェンダ_0703.docx" },
       { who: "上司さん", ini: "上", time: "18:12", thanks: true, text: "ありがとう、助かります。" },
     ]},
   { who: "佐藤さん", ini: "佐", ch: "#企画チーム", src: "Slack", month: "2026年 6月",
@@ -2042,7 +2088,7 @@ const DATA = [
     summary: "行き詰まっていた若年層向け企画に、逆転の発想（親世代から贈る導線）と参考事例2件を提案。着眼点に感謝が届きました。",
     story: [
       { who: "佐藤さん", ini: "佐", time: "10:31", text: "若年層向けの訴求、正直ネタ切れ気味…なんかいい案ないかな" },
-      { who: "YUKIYAMA", ini: "Y", time: "10:55", mine: true, text: "逆に「親世代から子どもへ贈る」導線はどうでしょう？本人向けに売らない、という切り口です。" },
+      { who: "ユーザー", ini: "ユ", time: "10:55", mine: true, text: "逆に「親世代から子どもへ贈る」導線はどうでしょう？本人向けに売らない、という切り口です。" },
       { who: "佐藤さん", ini: "佐", time: "11:04", thanks: true, text: "すごい、いいね。この切り口なかったわ。" },
     ]},
   { who: "田中さん", ini: "田", ch: "#プロジェクトA", src: "Slack", month: "2026年 6月",
@@ -2051,14 +2097,14 @@ const DATA = [
     story: [
       { who: "田中さん", ini: "田", time: "09:38", text: "先週の報告書、クライアントから「今までで一番わかりやすい」って言われたよ" },
       { who: "田中さん", ini: "田", time: "09:41", thanks: true, text: "さすがしごでき。今回もお願いしていい？" },
-      { who: "YUKIYAMA", ini: "Y", time: "09:45", mine: true, text: "よかったです…！もちろんです。" },
+      { who: "ユーザー", ini: "ユ", time: "09:45", mine: true, text: "よかったです…！もちろんです。" },
     ]},
   { who: "鈴木さん", ini: "鈴", ch: "新人サポート", src: "Teams", month: "2026年 6月",
     msg: "教えていただいたおかげで無事解決できました！本当にありがとうございます。", tag: "後輩サポート", time: "6/27 16:20",
     summary: "経費精算に迷っていた新人の鈴木さんに、手順メモ＋10分の画面共有でフォロー。寄り添う対応に感謝が届きました。",
     story: [
       { who: "鈴木さん", ini: "鈴", time: "14:02", text: "すみません、経費精算のやり方がどうしてもわからなくて…" },
-      { who: "YUKIYAMA", ini: "Y", time: "14:10", mine: true, text: "あれ最初わかりにくいですよね。手順メモを送ります。15時から10分だけ画面共有でやりましょうか。" },
+      { who: "ユーザー", ini: "ユ", time: "14:10", mine: true, text: "あれ最初わかりにくいですよね。手順メモを送ります。15時から10分だけ画面共有でやりましょうか。" },
       { who: "鈴木さん", ini: "鈴", time: "16:20", thanks: true, text: "教えていただいたおかげで無事解決できました！本当にありがとうございます。" },
     ]},
   /* 長文の感謝 */
@@ -2068,7 +2114,7 @@ const DATA = [
     summary: "急な依頼に対し、実現できる案と難しい案を切り分けて提示。社内合意と納品まで一気に進み、長文の感謝が届きました。",
     story: [
       { who: "岡田さん", ini: "岡", time: "6/24 09:12", text: "急ぎで相談です。来週の納品、仕様を一部変えられませんか…？" },
-      { who: "YUKIYAMA", ini: "Y", time: "6/24 11:40", mine: true, text: "できる案が2つ、難しい案が1つあります。影響範囲を添えて整理しました。" },
+      { who: "ユーザー", ini: "ユ", time: "6/24 11:40", mine: true, text: "できる案が2つ、難しい案が1つあります。影響範囲を添えて整理しました。" },
       { who: "岡田さん", ini: "岡", time: "6/26 20:12", thanks: true, text: "先日は本当にありがとうございました。急なお願いだったにもかかわらず、こちらの状況を丁寧に聞き取ってくださって、そのうえで実現できる案と難しい案をはっきり分けて示していただけたので、社内の合意もすぐに取れました。次の案件でもぜひご一緒させてください。" },
     ]},
   { who: "高橋さん", ini: "高", ch: "#営業連携", src: "Slack", month: "2026年 6月",
@@ -2076,7 +2122,7 @@ const DATA = [
     summary: "散らばっていた商談メモを論点別に再構成して共有。整理のわかりやすさに感謝が届きました。",
     story: [
       { who: "高橋さん", ini: "高", time: "13:30", text: "先週の商談メモってどこかにまとまってる？" },
-      { who: "YUKIYAMA", ini: "Y", time: "13:48", mine: true, text: "論点別にまとめ直したものがあります。決定事項・保留・宿題の3分類です。" },
+      { who: "ユーザー", ini: "ユ", time: "13:48", mine: true, text: "論点別にまとめ直したものがあります。決定事項・保留・宿題の3分類です。" },
       { who: "高橋さん", ini: "高", time: "13:55", thanks: true, text: "ありがとうございます。確認します。まとめ方きれいで助かる〜" },
     ]},
   { who: "伊藤さん", ini: "伊", ch: "#プロジェクトA", src: "Slack", month: "2026年 6月",
@@ -2084,7 +2130,7 @@ const DATA = [
     summary: "8人の関係者で決まらなかったレビュー会の日程を、候補3枠の調整表で1日で確定。段取り力に感謝が届きました。",
     story: [
       { who: "伊藤さん", ini: "伊", time: "6/23 15:02", text: "来週のレビュー会、関係者多すぎて日程が全然決まらない…" },
-      { who: "YUKIYAMA", ini: "Y", time: "6/24 09:58", mine: true, text: "木曜14時で全員◯になりました。招集かけますね。" },
+      { who: "ユーザー", ini: "ユ", time: "6/24 09:58", mine: true, text: "木曜14時で全員◯になりました。招集かけますね。" },
       { who: "伊藤さん", ini: "伊", time: "10:15", thanks: true, text: "調整ありがとう！全員参加できることになったよ" },
     ]},
   { who: "渡辺さん", ini: "渡", ch: "問い合わせ対応", src: "Teams", month: "2026年 6月",
@@ -2092,14 +2138,14 @@ const DATA = [
     summary: "他部署からの仕様に関する問い合わせに5分で回答。判断に必要な制約条件まで添えた即レスに感謝が届きました。",
     story: [
       { who: "渡辺さん", ini: "渡", time: "11:28", text: "この仕様って今からでも変更可能でしたっけ？" },
-      { who: "YUKIYAMA", ini: "Y", time: "11:33", mine: true, text: "可能です。ただし制約が2点：①来週火曜までに確定 ②画面Bに影響が出ます。" },
+      { who: "ユーザー", ini: "ユ", time: "11:33", mine: true, text: "可能です。ただし制約が2点：①来週火曜までに確定 ②画面Bに影響が出ます。" },
       { who: "渡辺さん", ini: "渡", time: "11:33", thanks: true, text: "レス早くて助かります！" },
     ]},
   { who: "山本さん", ini: "山", ch: "#企画チーム", src: "Slack", month: "2026年 6月",
     msg: "例のテンプレ、チームみんな使ってるよ。ありがとう", tag: "情報共有", time: "6/18 09:20",
     summary: "自作した議事録テンプレートがチーム標準として定着。仕組みで貢献する働きに感謝が届きました。",
     story: [
-      { who: "YUKIYAMA", ini: "Y", time: "6/10 17:15", mine: true, text: "議事録のテンプレ作ってみました。よければどうぞ。", file: "議事録テンプレ_v1.docx" },
+      { who: "ユーザー", ini: "ユ", time: "6/10 17:15", mine: true, text: "議事録のテンプレ作ってみました。よければどうぞ。", file: "議事録テンプレ_v1.docx" },
       { who: "山本さん", ini: "山", time: "6/18 09:20", thanks: true, text: "例のテンプレ、チームみんな使ってるよ。ありがとう" },
     ]},
   { who: "小林さん", ini: "小", ch: "プロジェクトA", src: "Teams", month: "2026年 6月",
@@ -2107,7 +2153,7 @@ const DATA = [
     summary: "複雑な構成案を1枚の図解に変換。役員説明にそのまま使われるクオリティに感謝が届きました。",
     story: [
       { who: "小林さん", ini: "小", time: "6/12 13:05", text: "この構成、文章だと伝わらなくて…図にできたりする？" },
-      { who: "YUKIYAMA", ini: "Y", time: "6/12 16:30", mine: true, text: "図解版を作りました。3層構造にしています。", file: "構成図解_v2.pptx" },
+      { who: "ユーザー", ini: "ユ", time: "6/12 16:30", mine: true, text: "図解版を作りました。3層構造にしています。", file: "構成図解_v2.pptx" },
       { who: "小林さん", ini: "小", time: "6/13 15:40", thanks: true, text: "資料の図解、そのまま役員説明に使わせてもらった。ありがとう！" },
     ]},
   { who: "森さん", ini: "森", ch: "新人サポート", src: "Teams", month: "2026年 6月",
@@ -2115,7 +2161,7 @@ const DATA = [
     summary: "後輩の初めての企画書を、良い点を先に伝えるスタイルでレビュー。育てる姿勢に感謝が届きました。",
     story: [
       { who: "森さん", ini: "森", time: "6/9 11:20", text: "初めて企画書を書いたんですが、提出前に見てもらえますか…？" },
-      { who: "YUKIYAMA", ini: "Y", time: "6/9 14:05", mine: true, text: "骨子とても良いです。提案コメントを3点だけ入れました。" },
+      { who: "ユーザー", ini: "ユ", time: "6/9 14:05", mine: true, text: "骨子とても良いです。提案コメントを3点だけ入れました。" },
       { who: "森さん", ini: "森", time: "6/11 10:08", thanks: true, text: "先日はレビューありがとうございました。めちゃくちゃ勉強になりました" },
     ]},
 ];
@@ -2187,7 +2233,7 @@ const MY_SHAPE = {
 /* 年間アルバム（decision-log No.11）のプレビュー用 */
 const ANNUAL = {
   title: "2025 – 2026　ありがとうの1年",
-  sub: "YUKIYAMA ／ 2025年8月 – 2026年7月",
+  sub: "ユーザー ／ 2025年8月 – 2026年7月",
   months: [["2025年8月",14],["9月",17],["10月",19],["11月",22],["12月",18],["2026年1月",21],["2月",24],["3月",26],["4月",29],["5月",31],["6月",34],["7月",9]],
 };
 
@@ -2195,7 +2241,7 @@ function mkShape(tags, memo, tops, groups, monthly, daily) {
   return { tags, memo, tops, groups, monthly, daily30: daily };
 }
 const MEMBERS = [
-  { key:"yuki", name:"YUKIYAMAさん", role:"企画・3年目", ini:"Y", alert:false, shape: MY_SHAPE,
+  { key:"yuki", name:"ユーザーさん", role:"企画・3年目", ini:"ユ", alert:false, shape: MY_SHAPE,
     reports:{
       "2026年6月": {
         digest:{ recv:52, sent:3, trendNote:"もらったありがとうは4か月連続で増えています。一方、おくった数は少しずつ減っています。", newSenders:["森さん"], upTag:"後輩サポート" },
@@ -2227,7 +2273,7 @@ const MEMBERS = [
         { title: "企画を、骨太に組み立てる", quote: "「コンペの構成、筋がいいね」", count: 41, tag: "企画構成" },
         { title: "会議を、前に進める", quote: "「今日の会議、進めやすかった」", count: 21, tag: "ファシリテーション" },
       ],
-      [{ dept: "企画チーム", people: [["山","山本さん",22],["上","上司さん",18],["Y","YUKIYAMAさん",11]] }],
+      [{ dept: "企画チーム", people: [["山","山本さん",22],["上","上司さん",18],["ユ","ユーザーさん",11]] }],
       genMonthly(7, 12, .3, 4, 12, .1), genDaily(7, 2)),
     reports:{
       "2026年6月": {
@@ -2245,12 +2291,12 @@ const MEMBERS = [
         { title: "頼まれたことを、正確に早く返す", quote: "「集計、正確で早い！」", count: 18, tag: "スピード対応" },
         { title: "細かいところに、気を配る", quote: "「朝会の準備いつも助かる」", count: 9, tag: "気配り" },
       ],
-      [{ dept: "企画チーム", people: [["Y","YUKIYAMAさん",14],["佐","佐藤さん",9]] }],
+      [{ dept: "企画チーム", people: [["ユ","ユーザーさん",14],["佐","佐藤さん",9]] }],
       genMonthly(11, 1, .35, 1.5, 3, .15), genDaily(11, 1.5)),
     reports:{
       "2026年6月": {
         digest:{ recv:9, sent:8, trendNote:"受け取りが毎月着実に増えています。入社1年目として良い立ち上がりです。", newSenders:["田中さん"], upTag:"正確さ" },
-        praises:[{ quote:"データ集計、正確で早い", from:"YUKIYAMAさん ・ 6/26", fact:"依頼されたデータ集計をミスなく前倒しで納品しました。", say:"集計の正確さ、先輩たちが頼りにしはじめてるよ。" }],
+        praises:[{ quote:"データ集計、正確で早い", from:"ユーザーさん ・ 6/26", fact:"依頼されたデータ集計をミスなく前倒しで納品しました。", say:"集計の正確さ、先輩たちが頼りにしはじめてるよ。" }],
         sign:null, signNote:"成長の実感につながる声かけが有効なタイミングです。",
         questions:["入社3か月、いちばん自信がついたことは？","次に挑戦してみたい仕事はある？"],
         carry:"（前回の持ち越しメモ）" },
@@ -2307,12 +2353,12 @@ const MEMBERS = [
         { title: "調べたことを、わかりやすくまとめる", quote: "「参考資料、わかりやすかった！」", count: 19, tag: "資料品質" },
         { title: "まわりを、そっと支える", quote: "「気づいてくれてありがとう」", count: 12, tag: "気配り" },
       ],
-      [{ dept: "企画チーム", people: [["Y","YUKIYAMAさん",8],["渡","渡辺さん",6]] }],
+      [{ dept: "企画チーム", people: [["ユ","ユーザーさん",8],["渡","渡辺さん",6]] }],
       genMonthly(41, 0, .3, 1, 2, .15), genDaily(41, 1)),
     reports:{
       "2026年6月": {
         digest:{ recv:11, sent:9, trendNote:"受け取りが大きく伸びた月でした。資料まわりの得意が早くも形になりつつあります。", newSenders:["渡辺さん","小林さん"], upTag:"資料品質" },
-        praises:[{ quote:"骨子とても良いです", from:"YUKIYAMAさん ・ 6/9", fact:"初めての企画書を書き上げ、先輩レビューで骨子を高く評価されました。", say:"初めての企画書、良かったって聞いてるよ。書いてみてどうだった？" }],
+        praises:[{ quote:"骨子とても良いです", from:"ユーザーさん ・ 6/9", fact:"初めての企画書を書き上げ、先輩レビューで骨子を高く評価されました。", say:"初めての企画書、良かったって聞いてるよ。書いてみてどうだった？" }],
         sign:null, signNote:"新しい送り主が2人増えており、関係の広がりが見えます。",
         questions:["初めての企画書、やってみて何が一番大変だった？","資料づくりの感謝が増えてるけど、本人の手応えは？"],
         carry:"（前回の持ち越しメモ）" },
@@ -2322,7 +2368,7 @@ const MEMBERS = [
 const MEMBER_CARDS = {
   sato: [{ who:"山本さん", ini:"山", ch:"#企画チーム", src:"Slack", month:"2026年 7月", msg:"企画書のたたき、方向性ばっちりでした！", tag:"企画構成", time:"7/3 14:20" },
          { who:"上司さん", ini:"上", ch:"#企画チーム", src:"Slack", month:"2026年 6月", msg:"コンペの構成、筋がいいね。ありがとう。", tag:"アイデア", time:"6/21 10:02" }],
-  suzuki: [{ who:"YUKIYAMAさん", ini:"Y", ch:"#企画チーム", src:"Slack", month:"2026年 6月", msg:"先週のデータ集計、正確で早くて助かりました。ありがとう！", tag:"正確さ", time:"6/26 17:40" }],
+  suzuki: [{ who:"ユーザーさん", ini:"ユ", ch:"#企画チーム", src:"Slack", month:"2026年 6月", msg:"先週のデータ集計、正確で早くて助かりました。ありがとう！", tag:"正確さ", time:"6/26 17:40" }],
   takahashi: [{ who:"中村さん", ini:"中", ch:"#営業連携", src:"Slack", month:"2026年 6月", msg:"引き継ぎ資料、丁寧で安心しました。ありがとうございます。", tag:"気配り", time:"6/28 15:30" }],
   tanaka: [{ who:"小林さん", ini:"小", ch:"プロジェクトA", src:"Teams", month:"2026年 7月", msg:"リスク整理、助かりました。", tag:"リスク管理", time:"7/1 16:45" }],
   mori: [{ who:"渡辺さん", ini:"渡", ch:"問い合わせ対応", src:"Teams", month:"2026年 7月", msg:"参考資料のまとめ、わかりやすかったです！", tag:"資料品質", time:"7/2 11:30" }],
@@ -2521,7 +2567,7 @@ ANNUAL.months = ALBUM_MONTHS.map(mo => [
   mo.m === 1 || mo === ALBUM_MONTHS[0] ? `${mo.y}年${mo.m}月` : `${mo.m}月`,
   MY_SHAPE.monthly.recv[mo.idx],
 ]);
-ANNUAL.sub = `YUKIYAMA ／ ${ALBUM_PERIOD}`;
+ANNUAL.sub = `ユーザー ／ ${ALBUM_PERIOD}`;
 
 /* 節目の知らせも実際の通数に合わせる（ここだけ別の数字が出ないように） */
 {
@@ -2555,7 +2601,7 @@ const ADMIN = {
   /* 過去ログの取り込み。done（完了）／ running（取り込み中）／ fail（失敗） */
   job: { state: "done", pct: 100, note: "過去1年分・2025-08-01" },
   people: [
-    { name: "YUKIYAMAさん", ini: "Y", team: "企画部 第2チーム", boss: "上司さん", role: "本人" },
+    { name: "ユーザーさん", ini: "ユ", team: "企画部 第2チーム", boss: "上司さん", role: "本人" },
     { name: "佐藤さん", ini: "佐", team: "企画部 第2チーム", boss: "上司さん", role: "本人" },
     { name: "鈴木さん", ini: "鈴", team: "企画部 第2チーム", boss: "上司さん", role: "本人" },
     { name: "高橋さん", ini: "高", team: "営業部 連携チーム", boss: "上司さん", role: "本人" },
@@ -2570,7 +2616,7 @@ const ADMIN = {
   audit: [
     { t: "2026-07-04 10:02", who: "上司さん（上司）", op: "アルバム閲覧", target: "高橋さん" },
     { t: "2026-07-04 09:58", who: "上司さん（上司）", op: "1on1準備メモ閲覧", target: "高橋さん・2026年6月" },
-    { t: "2026-07-03 18:20", who: "上司さん（上司）", op: "レポートPDF書き出し", target: "YUKIYAMAさん・2026年6月" },
+    { t: "2026-07-03 18:20", who: "上司さん（上司）", op: "レポートPDF書き出し", target: "ユーザーさん・2026年6月" },
     { t: "2026-07-03 11:44", who: "管理者さん（管理者）", op: "連携設定の変更", target: "Slack 解析対象チャンネル" },
     { t: "2026-07-01 09:12", who: "上司さん（上司）", op: "カタチ閲覧", target: "森さん" },
   ],
@@ -4272,7 +4318,7 @@ function setRole(role, quiet) {
   document.querySelectorAll("#roleSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.role === role)));
   $("personTabs").classList.toggle("hidden", role !== "person");
   $("demoBtn").classList.toggle("hidden", role !== "person" || !DEMO_UI);
-  $("meBox").innerHTML = role === "person" ? '<span>YUKIYAMAさん</span><div class="ava-s">Y</div>'
+  $("meBox").innerHTML = role === "person" ? '<span>ユーザーさん</span><div class="ava-s">ユ</div>'
     : role === "boss" ? '<span>上司さん（マネージャー）</span><div class="ava-s">上</div>'
     : '<span>管理者さん（情報システム部）</span><div class="ava-s">管</div>';
   hideAllViews();
