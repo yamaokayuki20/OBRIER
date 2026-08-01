@@ -1500,6 +1500,161 @@
   @media (forced-colors: active) {
     .c-time { -webkit-mask-image: none; mask-image: none; }
   }
+
+  /* ========================================================================
+     ---- ありがとうの広がり（イシュー#20） ----
+
+     送り主ごとの通数を、しゃぼん玉の大きさで表す。
+
+     大きさの決め方：面積が通数に比例するように、直径は平方根で決める
+     （円は直径をそのまま通数に比例させると、目には差が誇張されて見える）。
+     ものさしはパネル全体でひとつ——いちばん多い人を 1 とした比 --k（0〜1）を
+     JS 側で焼き込み、直径は
+       --d = 下限 + （上限 - 下限）× --k
+     で引く。下限を持たせるのは、いちばん小さいしゃぼん玉でも指で押せる
+     44px を割らないため（uiux-gate の当たり判定・スマホ44px／PC24px）。
+     上限だけを @media で切り替えれば、描き直さずに幅なりの大きさになる。
+
+     **順位ではない**：数字の順位（1位・2位）も「最多」「トップ」といった語も
+     出さない。差は大きさと並びだけで表す（設計原則6 非ランキング）。
+
+     色は人ごとに変えない（設計原則3。アバターが濃紺1色なのと同じ理由で、
+     場面タグの色と競合させない）。しゃぼん玉はすべて同じ薄い青で、
+     光のたまりと縁の明暗だけで球に見せる。
+
+     動きについて（decision-log D-25 の轍を踏まないための約束）：
+       ・動かすのは transform だけ。幅・位置・影は毎コマ触らない
+       ・浮くのは「画面に入っている間」だけ（IntersectionObserver）。
+         カタチ画面は display:none で隠れるので、他の画面では層も動きも消える
+       ・will-change は書かない（下の .is-floating の節に実測の理由）
+       ・触れている間は止める（animation-play-state: paused）。
+         読んでいるものが動き続けないし、そのぶん動く玉も減る
+       ・prefers-reduced-motion: reduce では浮かせない（下の @media）
+
+     名前について：この節の名前はすべて `spread-` で始める。
+     最初は `.bub` / `.bub-name` と付けていたが、この2つは**拡大詳細の
+     「やり取りの流れ」の吹き出しが先に使っていた名前**で、後から書いた
+     こちらの指定が向こうに当たっていた（吹き出しが `flex:1 1 0%` から
+     `0 0 auto` になって行幅467pxに対し最大597pxまではみ出し、話し手の名前が
+     13.5px→12px・左寄せ→中央寄せ・幅78%止まりになっていた）。
+     しかも**どちらが勝つかは節を並べた順で決まる**ので、取り込みのしかたで
+     壊れ方が変わる（上司のメンバー詳細でだけ 60x22・4x4 になる、など）。
+     名前がぶつかっている限り直し切れないので、名前のほうを分けた。
+     ======================================================================== */
+  .spread-field {
+    position: relative;
+    display: flex; flex-wrap: wrap; align-items: center;
+    gap: 12px;
+    /* 上の余白は、いちばん上の段のしゃぼん玉に添える札の居場所 */
+    padding: 34px 2px 4px;
+    --sp-min: 46px; --sp-max: 104px;
+  }
+  .spread-bub {
+    /* --k は JS が1つずつ焼き込むが、既定値をここに置いておく。
+       万一 --k が届かなくても calc() が壊れず、直径は下限（46px）になる。
+       既定を持たせないと計算が無効になって width/height が auto に落ち、
+       名前の無い玉が 4x4、名前のある玉が 60x22 まで潰れて
+       当たり判定（スマホ44px／PC24px）を割ってしまう */
+    --k: 0;
+    --d: calc(var(--sp-min, 46px) + (var(--sp-max, 104px) - var(--sp-min, 46px)) * var(--k));
+    position: relative; flex: none;
+    width: var(--d); height: var(--d);
+    padding: 0; border: none; background: none;
+    border-radius: 50%; cursor: pointer;
+    font-family: inherit; color: var(--navy);
+  }
+  .spread-ball {
+    position: absolute; inset: 0; border-radius: 50%;
+    display: grid; place-items: center;
+    /* 単色を先に置く：この地色の上で文字のコントラストを測れるようにするため
+       （上に重ねる階調は、中央ほど明るくなる向きにしてある） */
+    background-color: #eaf0f8;
+    /* いちばん下が球の階調。その上に、しゃぼん玉の膜の色を2つだけ、ごく薄く重ねる。
+       色は既にこの画面が持っているもの（--accent の飴色と --c-coord の水色）から
+       borrow していて、新しい色は増やしていない。人ごとに色は変えない（設計原則3） */
+    background-image:
+      radial-gradient(circle at 74% 78%, rgba(201, 138, 61, .16) 0%, rgba(201, 138, 61, 0) 46%),
+      radial-gradient(circle at 24% 82%, rgba(85, 183, 191, .16) 0%, rgba(85, 183, 191, 0) 44%),
+      radial-gradient(circle at 34% 26%,
+        #ffffff 0%, #f8fbff 30%, #e9f1fa 66%, #d8e4f3 100%);
+    border: 1px solid rgba(58, 74, 102, .20);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .75),
+                inset 0 -7px 14px rgba(58, 74, 102, .09),
+                inset 4px 6px 12px rgba(255, 255, 255, .9),
+                0 5px 12px rgba(58, 74, 102, .13);
+    transition: transform .18s ease, box-shadow .18s ease;
+  }
+  /* 光のたまり。ぼかし（filter）は使わない——玉の数だけ描き直しが増えるため、
+     階調のグラデーションで同じ見え方を作る */
+  .spread-ball::after {
+    content: ""; position: absolute; left: 20%; top: 15%; width: 30%; height: 22%;
+    border-radius: 50%; pointer-events: none;
+    background: radial-gradient(closest-side, rgba(255,255,255,.95), rgba(255,255,255,0));
+  }
+  .spread-name {
+    position: relative;
+    max-width: 78%; text-align: center;
+    font-size: var(--fs-note); font-weight: 700; line-height: 1.3;
+    letter-spacing: .02em;
+    /* 折り返しは、折ってよいところだけ。anywhere にすると
+       「YUKIYAMAさん」が「YUKIYAM／Aさん」と欧文の途中で切れてしまう。
+       既定のままなら、欧文と和文の境（YUKIYAMA／さん）で折れる */
+    overflow-wrap: normal; word-break: normal;
+  }
+  .spread-bub:hover .spread-ball, .spread-bub:focus-visible .spread-ball, .spread-bub.is-open .spread-ball {
+    transform: scale(1.06);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .75),
+                inset 0 -7px 14px rgba(58, 74, 102, .09),
+                inset 4px 6px 12px rgba(255, 255, 255, .9),
+                0 9px 20px rgba(58, 74, 102, .22);
+  }
+  .spread-bub:hover, .spread-bub:focus-visible, .spread-bub.is-open { z-index: 3; }
+
+  /* 名前と通数の札。指で押したときは押した玉に貼り付いたまま残る */
+  .spread-tip {
+    position: absolute; left: 0; top: 0; z-index: 4;
+    background: var(--navy); color: #fff;
+    border-radius: 10px; padding: 6px 11px;
+    font-size: var(--fs-cap); line-height: 1.5; white-space: nowrap;
+    box-shadow: 0 6px 16px rgba(20, 26, 40, .24);
+    pointer-events: none; opacity: 0;
+    transition: opacity .14s ease;
+  }
+  .spread-tip.is-on { opacity: 1; }
+  .spread-tip b { font-weight: 800; }
+  .spread-tip span { margin-left: 7px; color: #cdd6e8; font-variant-numeric: tabular-nums; }
+
+  @media (max-width: 640px) {
+    .spread-field { --sp-max: 92px; gap: 11px; }
+  }
+
+  /* ---- ふわふわ浮く ----
+     上下 6px までの往復だけ（段の間隔 12px より小さいので、
+     どの幅でもしゃぼん玉どうしが重ならない）。回さない・跳ねない・弾まない。
+     周期と位相は玉ごとに散らして、そろって動いて見えないようにする */
+  @keyframes spread-float {
+    0%   { transform: translate(0, 0); }
+    22%  { transform: translate(1.3px, -4.2px); }
+    48%  { transform: translate(-0.5px, -6px); }
+    74%  { transform: translate(-1.4px, -2.6px); }
+    100% { transform: translate(0, 0); }
+  }
+  /* will-change は書かない。transform のアニメーションが走っている間は
+     ブラウザが自分で合成の層に上げるので、書いても層は増減しなかった
+     （実測：広がりが見えている間の層は will-change あり24／なし24）。
+     効かないものを書き足すと、動きを止めたときに外す約束（D-25）が
+     1つ増えるだけになる */
+  .spread-field.is-floating .spread-bub {
+    animation: spread-float var(--dur) ease-in-out var(--dly) infinite;
+  }
+  .spread-field.is-floating .spread-bub:hover,
+  .spread-field.is-floating .spread-bub:focus-visible,
+  .spread-field.is-floating .spread-bub.is-open { animation-play-state: paused; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .spread-field.is-floating .spread-bub { animation: none; }
+    .spread-ball, .spread-tip { transition: none; }
+  }
 </style>
 </head>
 <body>
@@ -4186,8 +4341,99 @@ function tagBars(S, allowJump) {
     </${tag}>`).join("");
 }
 
+/* =========================================================================
+   ありがとうの広がり（イシュー#20）
+   送り主ごとの通数を、しゃぼん玉の大きさで表す。
+   ========================================================================= */
+
+/* 名前を玉の中に入れる閾値。いちばん多い人を 1 としたときの比（--k）で決める。
+   px で決めないのは、上限の直径が幅（@media）で変わるため——px を境にすると
+   同じ人がPCでは名前つき・スマホでは名前なし、と入れ替わってしまう */
+const BUB_NAME_K = 0.70;
+
+/* 浮かせるのは「画面に入っている間」だけ。
+   カタチ画面は display:none で隠れるので、他の画面を見ている間は is-floating が外れ、
+   animation ごと消える＝合成の層も残らない（実測：カタチ画面で広がりが画面外なら
+   層は改修前と同じ7、広がりが見えている間だけ24。D-25 の轍を踏まない） */
+const bubIO = "IntersectionObserver" in window
+  ? new IntersectionObserver(es => {
+      for (const e of es) {
+        /* 描き直しで捨てられた器は観察をやめる（メンバー詳細は開くたびに描き直す） */
+        if (!e.target.isConnected) { bubIO.unobserve(e.target); continue; }
+        e.target.classList.toggle("is-floating", e.isIntersecting);
+      }
+    }, { rootMargin: "80px" })
+  : null;
+
+/** そのカタチ（S）の中で、いちばん多い送り主の通数。大きさのものさしはパネルで1つ。
+    どのカタチ（本人・メンバー）でも同じ道を通るように、数でないものは 0 として数える */
+const bubMaxOf = S => Math.max(1, ...(S.groups || [])
+  .flatMap(g => (g.people || []).map(p => (Number.isFinite(+p[2]) ? +p[2] : 0))));
+
+function bubbleHTML(name, count, max, i) {
+  /* 面積が通数に比例するように、直径は平方根で引く。
+     ものさし（max）が欠けても 0〜1 の外へ出さない——外へ出ると calc() が
+     壊れて直径が auto に落ち、当たり判定を割る（上の CSS の --k の節） */
+  const c = Number.isFinite(+count) ? +count : 0;
+  const m = Number.isFinite(+max) && +max > 0 ? +max : 1;
+  const k = +Math.min(1, Math.max(0, Math.sqrt(c / m))).toFixed(4);
+  /* 周期と位相は名前から決める（毎回同じ・そろって動かない） */
+  const seed = [...name].reduce((a, c) => a + c.charCodeAt(0), i * 13);
+  const dur = (7 + (seed % 56) / 10).toFixed(1);   // 7.0〜12.5秒
+  const dly = (-(seed % 71) / 10).toFixed(1);      // 位相をずらす
+  /* 小さい玉には名前を入れない。読み上げ名には必ず名前と通数の両方を入れる
+     （見た目に出ていないものが、読み上げからも落ちないように） */
+  return `<button type="button" class="spread-bub" style="--k:${k}; --dur:${dur}s; --dly:${dly}s"
+    data-name="${name}" data-count="${count}" aria-label="${name}から、${count}通のありがとう">
+    <span class="spread-ball">${k >= BUB_NAME_K ? `<span class="spread-name">${name}</span>` : ""}</span>
+  </button>`;
+}
+
+/** しゃぼん玉に、指・マウス・キーボードのどれからでも名前と通数が出るようにする */
+function wireBubbles(root) {
+  root.querySelectorAll(".spread-field").forEach(field => {
+    const tip = field.querySelector(".spread-tip");
+    let pinned = null;
+
+    const place = b => {
+      tip.innerHTML = `<b>${b.dataset.name}</b><span>${b.dataset.count}通</span>`;
+      tip.classList.add("is-on");
+      /* 触れている玉は浮くのを止めてあるので、いま見えている位置をそのまま測れる
+         （浮いたまま測ると、札だけ取り残されて最大6pxずれる） */
+      const fr = field.getBoundingClientRect(), br = b.getBoundingClientRect();
+      const tw = tip.offsetWidth, th = tip.offsetHeight;
+      let x = br.left - fr.left + br.width / 2 - tw / 2;
+      x = Math.max(2, Math.min(x, Math.max(2, fr.width - tw - 2)));   // 枠からはみ出させない
+      tip.style.left = x + "px";
+      tip.style.top = Math.max(0, br.top - fr.top - th - 6) + "px";
+    };
+    const clear = () => { if (!pinned) tip.classList.remove("is-on"); };
+
+    field.querySelectorAll(".spread-bub").forEach(b => {
+      b.addEventListener("mouseenter", () => { if (!pinned) place(b); });
+      b.addEventListener("mouseleave", clear);
+      b.addEventListener("focus", () => { if (!pinned) place(b); });
+      b.addEventListener("blur", clear);
+      /* 指で触れる人はホバーが無い。押すと札が残り、もう一度押すと引っ込む */
+      b.addEventListener("click", () => {
+        const again = pinned === b;
+        field.querySelectorAll(".spread-bub.is-open").forEach(x => x.classList.remove("is-open"));
+        pinned = null;
+        if (again) { tip.classList.remove("is-on"); return; }
+        b.classList.add("is-open");
+        pinned = b;
+        place(b);
+      });
+    });
+    if (bubIO) bubIO.observe(field);
+  });
+}
+
 function renderShapeInto(el, S, allowJump) {
   const uid = "chart_" + Math.random().toString(36).slice(2, 8);
+  /* しゃぼん玉の大きさのものさし。グループをまたいで同じ尺度で見比べられるよう、
+     パネル全体でいちばん多い通数を 1 とする */
+  const bubMax = bubMaxOf(S);
 
   const topsHTML = list => list.map((t, i) => `
     <${allowJump ? "button" : "div"} class="top-card ${allowJump ? "jump" : ""}" style="--cc:${tagColor(t.tag)}" ${allowJump ? `data-jump="${t.tag}"` : ""}>
@@ -4248,14 +4494,18 @@ function renderShapeInto(el, S, allowJump) {
 
     <div class="panel">
       <h2>ありがとうの広がり</h2>
-      <div class="panel-sub">どこから届いているか（${ALBUM_PERIOD}・送り主ごとの通数）</div>
+      <div class="panel-sub">どこから届いているか（${ALBUM_PERIOD}）。しゃぼん玉の大きさは、その人から届いた通数です。押すか、カーソルを重ねると名前と通数が出ます</div>
       <div class="map-groups">${S.groups.map(g => `
-        <div class="map-group"><h3>${g.dept}</h3><div class="map-people">
-          ${g.people.map(([ini, name, c]) => `<span class="chip"><span class="ava-x">${ini}</span>${name}<small>（${c}通）</small></span>`).join("")}
-        </div></div>`).join("")}
+        <div class="map-group"><h3>${g.dept}</h3>
+          <div class="spread-field">
+            ${g.people.map(([, name, c], i) => bubbleHTML(name, c, bubMax, i)).join("")}
+            <span class="spread-tip" aria-hidden="true"></span>
+          </div>
+        </div>`).join("")}
       </div>
     </div>`;
 
+  wireBubbles(el);
   chartWidget(uid, S);
 
   /* もっと見る（TOP10まで） */
