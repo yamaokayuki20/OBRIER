@@ -10,4 +10,4 @@
 .idea/
 
 # Claude Code session worktrees
-.claude/
+.claude/worktrees/
