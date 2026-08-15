@@ -312,12 +312,24 @@
       color-mix(in srgb, var(--ink) 9%, transparent) 45%,
       color-mix(in srgb, var(--ink) 0%, transparent) 72%);
   }
-  /* ホバー時の光沢。ポインタの位置に淡く乗る */
+  /* ホバーした場所に出る、うすいドット。
+     白い光沢（旧 .glare）を置き換えた——地が紙から淡い色になったので、
+     白い塊を乗せるより、面の色を借りた点のほうが馴染む。
+
+     作りは2枚重ね。下に等間隔の点をびっしり敷き、その上から
+     「ポインタの位置を中心に、外へ向けて消えていく」マスクを掛ける。
+     点は本文と同じ濃い同系色（--ct）をごく薄く使うので、カードごとに色が揃う。
+     マスクを動かすだけなので、点の敷き直しは起きない */
   .glare {
     position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 3;
-    background: radial-gradient(330px circle at var(--gx, 50%) var(--gy, 50%), rgba(255,255,255,.75), rgba(255,255,255,0) 62%);
+    background-image: radial-gradient(color-mix(in srgb, var(--ct) 55%, transparent) 1.1px, transparent 1.2px);
+    background-size: 9px 9px;
+    -webkit-mask-image: radial-gradient(210px circle at var(--gx, 50%) var(--gy, 50%), #000 0%, rgba(0,0,0,.55) 42%, transparent 72%);
+            mask-image: radial-gradient(210px circle at var(--gx, 50%) var(--gy, 50%), #000 0%, rgba(0,0,0,.55) 42%, transparent 72%);
     opacity: var(--glare, 0);
   }
+  /* 触れない画面ではホバーそのものが無いので、点も出さない */
+  @media (hover: none) { .glare { display: none; } }
   .f-front .glare { display: none; }   /* 裏返し中は光沢を出さない */
   /* 奥行きを持たせるのはアバターだけ。地が紙ではなく淡い色になったので、
      まわりの白リングも地の色に合わせる */
@@ -863,6 +875,10 @@
 
   /* タグ内訳の数に単位を添える（A-47）。66px 固定だと「82通 +24」が入らないので、
      下限だけ残して伸びるようにする */
+  /* メンバー一覧の前期比。数の下に小さく添える */
+  .mt-delta { display: block; font-size: var(--fs-note); color: var(--stage-ink-soft);
+    font-variant-numeric: tabular-nums; margin-top: 2px; }
+
   .bar-count { width: auto; min-width: 72px; }
   .bar-unit { font-weight: 600; }
 
@@ -1015,8 +1031,10 @@
   .pt-sent { stroke: var(--line-sent); }
 
   /* チャートの下の注記。事実でない下落を、言葉のほうでも打ち消す */
-  .chart-note { font-size: var(--fs-cap); color: var(--stage-ink-soft); line-height: 1.8; margin-top: 8px; }
-  .chart-note[hidden] { display: none; }
+  /* 凡例と「累計で見る」を1行に並べる。狭いところでは折り返す */
+  .chart-head { display: flex; align-items: center; gap: 10px 16px; flex-wrap: wrap; }
+  .chart-cum { padding: 4px 10px; font-size: var(--fs-cap); }
+  @media (max-width: 640px) { .chart-cum { min-height: 44px; } }
 
   /* 数を出す表（A-04）。イシュー#18-14 で画面からは隠したが、読み上げには残る
      （隠し方は「分析画面の整理（イシュー#18）」の節の .vh-table） */
@@ -2380,7 +2398,6 @@
 <section id="viewTeam" class="hidden">
   <div class="hero">
     <h1>チームのダッシュボード ― 企画部 第2チーム</h1>
-    <h2 class="lead-line">チーム全体のようす</h2>
   </div>
   <div class="toolbar">
     <label class="vh-label" for="teamPeriod">期間</label>
@@ -2434,9 +2451,10 @@
          そのうえで「チームで希少な得意」と「人ごとの上位5つ」まで降りる。
          得意は場面タグから作る（感謝された場面の偏り＝その人の得意）。 -->
     <div class="panel">
+      <!-- 得意の一覧（何人が持っているか・希少なもの）は外した（ユーザー判断）。
+           「チーム全体のありがとうカテゴリ」を見ればおおよそ分かるため。
+           人ごとの内訳だけを残す -->
       <h2>チームの得意</h2>
-      <div id="skillMap"></div>
-      <h3 class="net-h3">人ごとの得意（上位5つ）</h3>
       <div id="skillPeople"></div>
     </div>
 
@@ -2515,12 +2533,6 @@
         <p class="panel-sub">チームの中でやり取りした相手ごとの通数です。チーム外とのやり取りは入りません</p>
         <div id="memberRel"></div>
       </div>
-    </div>
-
-    <div class="panel">
-      <h2>1on1で使えるエピソード</h2>
-      <p class="panel-sub">最新の準備メモに引用したぶんです。ありがとうのカードそのものは本人のもので、ここには並べません</p>
-      <div id="memberEpisodes"></div>
     </div>
 
     <div class="same-note">ここから下は、本人が見ている「分析」と同じものです。じぶんのメモは本人だけのもので、ここには表示されません。</div>
@@ -2723,7 +2735,7 @@ async function diagOnce(waitMs) {
      ・自己診断     … Alt + Shift + D（状態デモの Alt+Shift+S と同じ流儀）
    自己診断は押しボタンの文字を進み具合の表示に使うので、
    ボタンが無いときは同じ形をした仮の入れ物を渡す */
-const REV = "rev.29 ロゴ差し替え版";
+const REV = "rev.30 説明文整理版";
 window.__rev = REV;
 document.addEventListener("keydown", e => {
   if (e.altKey && e.shiftKey && (e.key === "D" || e.key === "d")) {
@@ -3681,7 +3693,9 @@ function tick(now) {
 
 /* ホバー：ポインタの位置に合わせて立体的に傾き、浮いて、光沢が乗る。
    傾きは控えめの6.5度まで（大きいとノイズになる） */
-const CONF = { liftY: -3, liftZ: 17, tilt: 6.5, glare: .28, shadY: 8, shadBlur: 18, shadA: .13 };
+/* glare は、いまはホバー位置に出るドットの濃さ（旧・白い光沢の名残りで名前はそのまま）。
+   .28 は白い光沢のための値で、点だと薄すぎたので上げた */
+const CONF = { liftY: -3, liftZ: 17, tilt: 6.5, glare: .62, shadY: 8, shadBlur: 18, shadA: .13 };
 /* カードはまっすぐ置く */
 const BASE_ROT   = [0];
 const TAPE_ROT   = [-3.6, 2.4, -1.8, 3.2, -2.6, 1.6, -4.2, 2.8];
@@ -5122,15 +5136,19 @@ function chartWidget(mount, shape, defaultPeriod = "1y") {
   const el = typeof mount === "string" ? $(mount) : mount;
   const cid = "chart" + (++chartSeq);
   let period = defaultPeriod;
+  let cum = true;                 // 累計で見るか（既定は累計）
   el.innerHTML = `
     <div class="chart-tabs">${PERIODS.map(([k, l]) =>
       `<button class="chart-tab ${k === period ? "active" : ""}" data-p="${k}">${l}</button>`).join("")}</div>
-    <div class="chart-legend"><span class="lg-recv">もらった（累計）</span><span class="lg-sent">おくった（累計）</span></div>
+    <div class="chart-head">
+      <div class="chart-legend" data-legend><span class="lg-recv">もらった（累計）</span><span class="lg-sent">おくった（累計）</span></div>
+      <!-- 累計と、その月ごとの数を行き来する。既定は累計（イシュー#18-9） -->
+      <label class="check chart-cum"><input type="checkbox" data-cum checked> 累計で見る</label>
+    </div>
     <div class="chart-scroll" data-scroll-region="チャート"><div class="chart-inner">
       <div class="cross-line"></div><div class="chart-tip"></div>
       <div class="chart-svg"></div>
     </div></div>
-    <p class="chart-note" data-note></p>
     <!-- 画面には出さないが読み上げには残す表（イシュー#18-14／A-04）。
          見えないので data-scroll-region は付けない——付けると、見えない場所に
          キーボードの止まり先ができてしまう -->
@@ -5139,6 +5157,18 @@ function chartWidget(mount, shape, defaultPeriod = "1y") {
   tabs.forEach(t => t.onclick = () => {
     period = t.dataset.p;
     tabs.forEach(x => x.classList.toggle("active", x === t));
+    hideTip();
+    draw();
+  });
+  /* 累計の入り／切り。凡例の言い方も合わせて変える
+     （「もらった（累計）」と出したまま各月の数を描くと、読み違える） */
+  const cumBox = el.querySelector("[data-cum]");
+  const legend = el.querySelector("[data-legend]");
+  cumBox.addEventListener("change", () => {
+    cum = cumBox.checked;
+    legend.innerHTML = cum
+      ? '<span class="lg-recv">もらった（累計）</span><span class="lg-sent">おくった（累計）</span>'
+      : '<span class="lg-recv">もらった</span><span class="lg-sent">おくった</span>';
     hideTip();
     draw();
   });
@@ -5152,11 +5182,15 @@ function chartWidget(mount, shape, defaultPeriod = "1y") {
     return { ...d, recv: run(d.recv), sent: run(d.sent), each: { recv: d.recv, sent: d.sent } };
   }
   function dataFor() {
-    if (period === "1w") return { d: cumulate(slice(shape.daily30, 7)) };
-    if (period === "1m") return { d: cumulate(slice(shape.daily30, 30)) };
-    if (period === "1y") return { d: cumulate(slice(shape.monthly, 12)) };
-    if (period === "3y") return { d: cumulate(slice(shape.monthly, 36)) };
-    return { d: cumulate(slice(shape.monthly, 60)) };
+    const raw = period === "1w" ? slice(shape.daily30, 7)
+      : period === "1m" ? slice(shape.daily30, 30)
+      : period === "1y" ? slice(shape.monthly, 12)
+      : period === "3y" ? slice(shape.monthly, 36)
+      : slice(shape.monthly, 60);
+    /* 累計を切ると、その時点ごとの数（増減がそのまま見える形）になる。
+       切ったときは each を自分自身にしておく——なぞったときに出す数を
+       各点の値から引いているので、ここが食い違うと表示と線がずれる */
+    return { d: cum ? cumulate(raw) : { ...raw, each: { recv: raw.recv, sent: raw.sent } } };
   }
   /* その点を言葉にしたもの。表・ツールチップ・読み上げで同じ言い方をそろえる。
      月次は年から書き起こす（ラベル文字列は1月にしか年が入っていないため） */
@@ -5225,15 +5259,9 @@ function chartWidget(mount, shape, defaultPeriod = "1y") {
     el.querySelector(".chart-inner").style.width = w + "px";
     el.querySelector(".chart-scroll").scrollLeft = w;   // 最新側へ
 
-    /* 集計中の注記（A-07）。累計にしたので線が下がることは無くなったが、
-       いちばん右がまだ確定していないことは変わらない。累計の最後の点は
-       「これ以上増えない到達点」に見えるので、そう読まれないよう言葉で示す
-       （イシュー#18-9） */
-    const note = el.querySelector("[data-note]");
-    note.textContent = partial
-      ? `いちばん右の ${pointName(d, n - 1)} は集計中です。累計にはこの月の途中までしか入っていないので、いちばん右はこれからまだ伸びます（破線と白丸の区間）。`
-      : "";
-    note.hidden = !partial;
+    /* 集計中であることの注記は画面に出さない（ユーザー判断。説明文はどのチャートでも置かない）。
+       線そのものが破線＋白丸で「まだ途中」を示しており、
+       読み上げには下の表の見出し（caption）が同じことを言葉で持っている */
 
     renderAltTable(d, n);
     refreshScrollRegions();
@@ -5360,196 +5388,10 @@ const BUB_COLORS = [
    分析画面は display:none で隠れるので、他の画面を見ている間は is-floating が外れ、
    animation ごと消える＝合成の層も残らない（実測：分析画面で広がりが画面外なら
    層は改修前と同じ7、広がりが見えている間だけ24。D-25 の轍を踏まない） */
-const bubIO = "IntersectionObserver" in window
-  ? new IntersectionObserver(es => {
-      for (const e of es) {
-        /* 描き直しで捨てられた器は観察をやめる（メンバー詳細は開くたびに描き直す） */
-        if (!e.target.isConnected) { bubIO.unobserve(e.target); continue; }
-        e.target.classList.toggle("is-floating", e.isIntersecting);
-        if (e.isIntersecting) packSpread(e.target);
-      }
-    }, { rootMargin: "80px" })
-  : null;
-
-/* 場の幅が変わったら置き直す。高さは packSpread が書くので、
-   同じ幅で呼ばれたときは何もしない（書く→また呼ばれる、の堂々巡りを断つ） */
-const bubRO = "ResizeObserver" in window
-  ? new ResizeObserver(es => {
-      for (const e of es) {
-        if (!e.target.isConnected) { bubRO.unobserve(e.target); continue; }
-        packSpread(e.target);
-      }
-    })
-  : null;
-
-/** その分析（S）の送り主を、部署の区切りを外してひとつに束ねる（#25-2）。
-    同じ人が2つの区切りに出ていたら足し合わせる */
-function spreadPeople(S) {
-  const sum = new Map();
-  for (const g of S.groups || [])
-    for (const p of g.people || []) {
-      const name = p[1], c = Number.isFinite(+p[2]) ? +p[2] : 0;
-      sum.set(name, (sum.get(name) || 0) + c);
-    }
-  return [...sum].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
-}
-
-/** 大きさのものさし。いちばん多い送り主の通数を 1 とする */
-const bubMaxOf = S => Math.max(1, ...spreadPeople(S).map(p => p.count));
-
-function bubbleHTML(name, count, max, i) {
-  /* 面積が通数に比例するように、直径は平方根で引く。
-     ものさし（max）が欠けても 0〜1 の外へ出さない——外へ出ると calc() が
-     壊れて直径が auto に落ち、当たり判定を割る（上の CSS の --k の節） */
-  const c = Number.isFinite(+count) ? +count : 0;
-  const m = Number.isFinite(+max) && +max > 0 ? +max : 1;
-  const k = +Math.min(1, Math.max(0, Math.sqrt(c / m))).toFixed(4);
-  /* 周期と位相、渦に入る角度は名前から決める（毎回同じ・そろって動かない） */
-  const seed = [...name].reduce((a, ch) => a + ch.charCodeAt(0), i * 13);
-  const dur = (7 + (seed % 56) / 10).toFixed(1);   // 7.0〜12.5秒
-  const dly = (-(seed % 71) / 10).toFixed(1);      // 位相をずらす
-  const [c1, c2] = BUB_COLORS[i % BUB_COLORS.length];
-  /* 極端に小さい玉には名前を入れない。読み上げ名には必ず名前と通数の両方を入れる
-     （見た目に出ていないものが、読み上げからも落ちないように） */
-  return `<button type="button" class="spread-bub" data-seed="${seed}"
-    style="--k:${k}; --dur:${dur}s; --dly:${dly}s; --sc1:${c1}; --sc2:${c2}"
-    data-name="${name}" data-count="${c}" aria-label="${name}から、${c}通のありがとう">
-    <span class="spread-ball">${k >= BUB_NAME_K ? `<span class="spread-name">${name}</span>` : ""}</span>
-  </button>`;
-}
-
-/**
- * しゃぼん玉を「大きいものが中央付近、小さいものがその周り」に散らす（#25-3）。
- *
- * 場の中心から外へ向かう渦をたどり、**大きいものから順に**空いている場所へ置く。
- * 先に置いた大きいものが中央を占めるので、小さいものは外へ押し出される。
- * 同心円に見えないよう、渦に入る角度（玉ごとの seed）と半径の伸び（同）を散らす。
- *
- * 重ならないこと・場からはみ出さないことは、置く前に確かめている（後から
- * 丸め込むと、確かめたはずの隙間が消える）。隙間14pxは、浮きの振れ幅6pxと
- * 触れたときの拡大（片側4.2px）を足しても触れ合わない量。
- *
- * 幅が測れないとき（画面が隠れている間）や詰め切れなかったときは false を返し、
- * .is-packed を付けない＝折り返しの並びのまま出る（重ならない安全側）。
- */
-function packSpread(field) {
-  const W = Math.round(field.clientWidth);
-  if (!W || W < 60) return false;
-  if (field.dataset.packedAt === String(W)) return true;   // 同じ幅なら置き直さない
-
-  const items = [...field.querySelectorAll(".spread-bub")];
-  if (!items.length) { field.dataset.packedAt = String(W); return true; }
-
-  const list = items.map(el => ({
-    el, r: (el.offsetWidth || 52) / 2, seed: +el.dataset.seed || 0,
-  })).sort((a, b) => b.r - a.r);
-
-  const GAP = 14, EDGE = 6, TOP = 10, BOT = 10;
-  /* たまりの形。横：縦の比を、広い画面では 2.4、狭い画面では 1.55 にする。
-     真円にすると縦へ間延びし、場の幅いっぱいに広げると一列に並んでしまうので、
-     その間を取っている（広い画面のほうが横に取れる余地が大きい） */
-  const ASP = W >= 760 ? 2.4 : 1.55;
-  /* 大きさの見当。玉の面積（隙間ぶんを含む）を詰まり具合0.55で割って場の面積とし、
-     上の比の楕円に収める。幅が足りないときは、幅で割って縦へ伸ばす。
-     足りなければ下の繰り返しで広げる */
-  const need = list.reduce((a, o) => a + Math.PI * (o.r + GAP / 2) ** 2, 0);
-  const target = need / 0.55, aMax = (W - EDGE * 2) / 2;
-  const ax = Math.sqrt(target * ASP / Math.PI);
-  const by = ax > aMax ? target / (W - EDGE * 2) / 2 : ax / ASP;
-  let H = Math.max(list[0].r * 2 + GAP, Math.ceil(by * 2));
-
-  for (let attempt = 0; attempt < 16; attempt++) {
-    const put = [];
-    let ok = true;
-    /* 渦の横伸びは「たまりの形」に合わせる（場の形ではない）。
-       場の形にすると、広い画面で一列に並んでしまう */
-    const cx = W / 2, cy = H / 2, asp = Math.min(W - EDGE * 2, H * ASP) / H;
-    for (const o of list) {
-      const j0 = (o.seed % 997) / 997;                        // 渦に入る角度
-      const j1 = 0.86 + ((o.seed >> 5) % 100) / 350;          // 半径の伸びのゆらぎ
-      let hit = null;
-      for (let s = 0; s < 2600; s++) {
-        const t = s * 0.27;
-        const rad = (3 + t * 1.9) * j1;
-        const ang = t * 0.83 + j0 * Math.PI * 2;
-        const x = cx + Math.cos(ang) * rad * asp;
-        const y = cy + Math.sin(ang) * rad;
-        if (x - o.r < EDGE || x + o.r > W - EDGE) continue;
-        if (y - o.r < 0 || y + o.r > H) continue;
-        if (put.some(q => Math.hypot(q.x - x, q.y - y) < q.r + o.r + GAP)) continue;
-        hit = { x, y, r: o.r, el: o.el }; break;
-      }
-      if (!hit) { ok = false; break; }
-      put.push(hit);
-    }
-    if (!ok) { H = Math.round(H * 1.14); continue; }
-
-    /* 置けた範囲を測って、場の中で横の真ん中へ寄せ、上に札のぶんの余白を残す */
-    const minX = Math.min(...put.map(q => q.x - q.r)), maxX = Math.max(...put.map(q => q.x + q.r));
-    const minY = Math.min(...put.map(q => q.y - q.r)), maxY = Math.max(...put.map(q => q.y + q.r));
-    const dx = (W - (maxX - minX)) / 2 - minX, dy = TOP - minY;
-    put.forEach(q => {
-      q.el.style.left = (q.x + dx - q.r).toFixed(1) + "px";
-      q.el.style.top = (q.y + dy - q.r).toFixed(1) + "px";
-    });
-    field.style.height = Math.ceil(maxY - minY + TOP + BOT) + "px";
-    field.classList.add("is-packed");
-    field.dataset.packedAt = String(W);
-    return true;
-  }
-  return false;
-}
-
-/** しゃぼん玉に、指・マウス・キーボードのどれからでも名前と通数が出るようにする */
-function wireBubbles(root) {
-  root.querySelectorAll(".spread-field").forEach(field => {
-    const tip = field.querySelector(".spread-tip");
-    let pinned = null;
-
-    const place = b => {
-      tip.innerHTML = `<b>${b.dataset.name}</b><span>${b.dataset.count}通</span>`;
-      tip.classList.add("is-on");
-      /* 触れている玉は浮くのを止めてあるので、いま見えている位置をそのまま測れる
-         （浮いたまま測ると、札だけ取り残されて最大6pxずれる） */
-      const fr = field.getBoundingClientRect(), br = b.getBoundingClientRect();
-      const tw = tip.offsetWidth, th = tip.offsetHeight;
-      let x = br.left - fr.left + br.width / 2 - tw / 2;
-      x = Math.max(2, Math.min(x, Math.max(2, fr.width - tw - 2)));   // 枠からはみ出させない
-      /* 上に出す。上が足りないときだけ下へ回す（場の外へ出さない） */
-      const above = br.top - fr.top - th - 6;
-      tip.style.left = x + "px";
-      tip.style.top = (above >= 0 ? above : br.bottom - fr.top + 6) + "px";
-    };
-    const clear = () => { if (!pinned) tip.classList.remove("is-on"); };
-
-    field.querySelectorAll(".spread-bub").forEach(b => {
-      b.addEventListener("mouseenter", () => { if (!pinned) place(b); });
-      b.addEventListener("mouseleave", clear);
-      b.addEventListener("focus", () => { if (!pinned) place(b); });
-      b.addEventListener("blur", clear);
-      /* 指で触れる人はホバーが無い。押すと札が残り、もう一度押すと引っ込む */
-      b.addEventListener("click", () => {
-        const again = pinned === b;
-        field.querySelectorAll(".spread-bub.is-open").forEach(x => x.classList.remove("is-open"));
-        pinned = null;
-        if (again) { tip.classList.remove("is-on"); return; }
-        b.classList.add("is-open");
-        pinned = b;
-        place(b);
-      });
-    });
-    packSpread(field);
-    if (bubIO) bubIO.observe(field);
-    if (bubRO) bubRO.observe(field);
-  });
-}
-
 function renderShapeInto(el, S, allowJump) {
   const uid = "chart_" + Math.random().toString(36).slice(2, 8);
   /* しゃぼん玉。部署の区切りを外してひとつの場に束ね（#25-2）、
      大きさのものさしは場でひとつ＝いちばん多い通数を 1 とする */
-  const people = spreadPeople(S);
-  const bubMax = bubMaxOf(S);
 
   const rep = S.report ? Object.keys(S.report.months) : [];
 
@@ -5564,22 +5406,11 @@ function renderShapeInto(el, S, allowJump) {
       </div>
       <div class="panel">
         <h2>ありがとうの推移</h2>
-        <!-- 累計で出す（イシュー#18-9）。「表で見る」の切り替えは画面から外した
-             （#18-14）が、表そのものは読み上げ用に残っている -->
-        <div class="panel-sub">期間のはじめからの累計です。チャートをなぞると、その時点までの数が見られます</div>
+        <!-- チャートの説明文は、どの画面でも置かない（ユーザー判断）。
+             累計かどうかは切り替えと凡例が示し、なぞると数が出ることは触れば分かる -->
         <div id="${uid}"></div>
       </div>
     </div>
-
-    ${S.reactions ? `<div class="panel" style="margin-bottom:16px;">
-      <h2>小さなありがとう</h2>
-      <div class="panel-sub">感謝の絵文字リアクションは、カードにはせず控えめに数えています</div>
-      <div class="react-row">
-        <div class="react-num">${S.reactions.count}<span style="font-size: var(--fs-ui); font-weight:400; color:var(--stage-ink-soft);"> 回</span></div>
-        <div class="react-emo">${S.reactions.emoji.map(e => `<span>${e}</span>`).join("")}</div>
-        <div class="mini-note" style="flex:1; min-width:200px;">言葉になる前の感謝として、場面と推移の集計にだけ含めています。</div>
-      </div>
-    </div>` : ""}
 
     ${rep.length ? `<div class="panel" style="margin-bottom:16px;">
       <h2>今月のレポート</h2>
@@ -5591,18 +5422,8 @@ function renderShapeInto(el, S, allowJump) {
       <div id="${uid}_rep"></div>
     </div>` : ""}
 
-    <!-- ありがとうの広がり（#25）。部署の区切りは持たず、ひとつの場に全員を置く。
-         説明文はユーザーの指示で外した（意味は玉の大きさと、触れたときに出る
-         名前・通数、読み上げ名で伝わる） -->
-    <div class="panel">
-      <h2>ありがとうの広がり</h2>
-      <div class="spread-field">
-        ${people.map((p, i) => bubbleHTML(p.name, p.count, bubMax, i)).join("")}
-        <span class="spread-tip" aria-hidden="true"></span>
-      </div>
-    </div>`;
+    `;
 
-  wireBubbles(el);
   chartWidget(uid, S);
 
   /* 場面タグのバーから、その場面で絞り込んだアルバムへ（イシュー#18-13）。
@@ -6214,6 +6035,15 @@ function paintSortState() {
   /* 同じ文言を入れ直すと、読み上げが同じことを繰り返す。変わったときだけ書く */
   if (line.textContent !== t) line.textContent = t;
 }
+/** 前の同じ期間からの増減。
+    比べているのは**その人の前の期間と今の期間**で、人どうしを並べてはいない。
+    上司の画面は順位を出してよい面（原則6の但し書き）だが、ここは順位ですらない。
+    煽らないよう色は付けず、記号（＋／−／±）と数だけを淡々と置く（原則11） */
+function deltaHTML(d, unit = "通") {
+  const sign = d > 0 ? "＋" : d < 0 ? "−" : "±";
+  return `<span class="mt-delta">前期比 ${sign}${Math.abs(d)}${unit}</span>`;
+}
+
 function periodSum(shape, months) {
   return {
     r: shape.monthly.recv.slice(-months).reduce((a, b) => a + b, 0),
@@ -6270,7 +6100,9 @@ function renderMembers() {
   const alertOnly = $("alertOnly").checked;
   let rows = MEMBERS.map((m, i) => ({
     m, i, ...periodSum(m.shape, months),
+    prev: periodSumPrev(m.shape, months),
     link: netNow ? netNow.by[m.key].partners.size : 0,
+    linkPrev: netPrev ? netPrev.by[m.key].partners.size : 0,
   })).filter(x => (!q || x.m.name.includes(q)) && (!alertOnly || x.m.alert));
   if (sortKey === "recv") rows.sort((a, b) => (a.r - b.r) * sortDir);
   if (sortKey === "sent") rows.sort((a, b) => (a.s - b.s) * sortDir);
@@ -6279,9 +6111,9 @@ function renderMembers() {
   $("memberRows").innerHTML = rows.map(x => `
     <tr class="clickable" tabindex="0" data-mi="${x.i}">
       <td><div class="mt-name"><div class="ava-s">${avaFace(x.m.name, x.m.ini)}</div><div>${x.m.name}${x.m.alert ? ' <span class="alert-chip">要確認</span>' : ""}<small>${x.m.role}</small></div></div></td>
-      <td><span class="mt-num">${x.r}<small>通</small></span></td>
-      <td><span class="mt-num" style="color:var(--line-sent)">${x.s}<small>通</small></span></td>
-      <td><span class="mt-num">${x.link}<small>人</small></span></td>
+      <td><span class="mt-num">${x.r}<small>通</small></span>${deltaHTML(x.r - x.prev.r)}</td>
+      <td><span class="mt-num" style="color:var(--line-sent)">${x.s}<small>通</small></span>${deltaHTML(x.s - x.prev.s)}</td>
+      <td><span class="mt-num">${x.link}<small>人</small></span>${deltaHTML(x.link - x.linkPrev, "人")}</td>
       <td>${sparkline(x.m.shape)}</td>
     </tr>`).join("") || '<tr><td colspan="5" style="text-align:center;color:var(--stage-ink-soft);">該当するメンバーがいません</td></tr>';
   $("memberRows").querySelectorAll("tr[data-mi]").forEach(tr => {
@@ -6427,14 +6259,6 @@ function renderStrengths() {
     || b[1].reduce((x, y) => x + y.count, 0) - a[1].reduce((x, y) => x + y.count, 0));
   const rare = new Set(rank.filter(([, who]) => who.length === 1).map(([n]) => n));
 
-  $("skillMap").innerHTML = rank.length ? `<div class="skill-map">${rank.map(([n, who]) => `
-    <div class="skill-chip${rare.has(n) ? " is-rare" : ""}" style="--cc:${tagColor(n)}"
-      title="${n}：${who.map(w => w.name).join("、")}">
-      <b>${n}</b><span>${who.length}人・${who.reduce((a, w) => a + w.count, 0)}通</span>
-      ${rare.has(n) ? `<span class="skill-rare">${who[0].name}だけ</span>` : ""}
-    </div>`).join("")}</div>`
-    : '<div class="ok-box">この期間、得意として数えられる場面がありません。</div>';
-
   $("skillPeople").innerHTML = `<div class="skill-people">${per.map(({ m, skills }) => `
     <div class="skill-row">
       <div class="skill-who"><span class="ava-s">${avaFace(m.name, m.ini)}</span>${m.name}</div>
@@ -6532,16 +6356,6 @@ function openMember(i) {
   /* 1on1で使えるエピソード（カードそのものは出さない） */
   const latest = months[0];
   const r = latest ? m.reports[latest] : null;
-  $("memberEpisodes").innerHTML = (r && r.praises.length)
-    ? r.praises.map(x => `
-        <div class="praise">
-          <div class="praise-quote">「${x.quote}」</div>
-          <div class="praise-from">${x.from} ― ${x.fact}</div>
-          <div class="praise-say"><b>伝え方の例</b>${x.say}</div>
-        </div>`).join("")
-      + `<p class="mini-note">${latest}の準備メモから引用しています。全文は上の「1on1の準備メモ」で読めます。</p>`
-    : '<div class="ok-box">引用できるエピソードは、まだ集まっていません。</div>';
-
   hideAllViews();
   $("viewMember").classList.remove("hidden");
   window.scrollTo({ top: 0 });
