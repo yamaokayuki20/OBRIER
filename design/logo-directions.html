@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>オブリエ / OBRIER — ロゴ デザインコンセプト</title>
+<meta name="description" content="感謝可視化サービス「オブリエ」のロゴデザインコンセプトと、5つの方向性（シンボル案・ロゴタイプ・カラー・展開）。">
+<style>
+  :root{
+    --bg:#f0e8d6; --paper:#fffdf7; --ink:#3d3229; --ink-2:#6f6355; --ink-3:#9b8f7e;
+    --accent:#c98a3d; --accent-deep:#8a5a1c; --accent-soft:#f3e3cb; --line:#e3d8c3;
+    --cyan:#10c4d3; --cyan-deep:#0a8e9b;
+    --goth:"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic","Noto Sans JP",sans-serif;
+    --min:"Hiragino Mincho ProN","Yu Mincho",YuMincho,"Noto Serif JP",serif;
+    --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,monospace;
+    --shadow:0 2px 10px rgba(61,50,41,.06);
+  }
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  body{
+    margin:0;color:var(--ink);font-family:var(--goth);line-height:1.75;
+    background:
+      radial-gradient(circle at 18% 8%, rgba(255,255,255,.55), transparent 42%),
+      radial-gradient(circle at 92% 78%, rgba(201,138,61,.07), transparent 52%),
+      radial-gradient(rgba(61,50,41,.028) 1px, transparent 1px),
+      var(--bg);
+    background-size:auto,auto,22px 22px,auto;
+  }
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.5;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.045'/%3E%3C/svg%3E");
+  }
+  .wrap{position:relative;z-index:1;max-width:1000px;margin:0 auto;padding:48px 22px 96px;}
+
+  /* --- 見出し --- */
+  .kicker{font-size:11px;letter-spacing:.26em;color:var(--accent-deep);font-weight:700;margin:0 0 10px;}
+  h1{font-size:clamp(26px,4.4vw,38px);line-height:1.34;margin:0 0 16px;font-weight:800;letter-spacing:.02em;}
+  h1 em{font-family:var(--min);font-style:normal;font-weight:400;}
+  .lede{max-width:62ch;color:var(--ink-2);font-size:15px;margin:0;}
+  .lede b{color:var(--ink);font-weight:700;}
+
+  h2{
+    font-size:19px;font-weight:800;letter-spacing:.06em;margin:0 0 6px;
+    display:flex;align-items:baseline;gap:12px;
+  }
+  h2 .num{font-family:var(--mono);font-size:11px;color:var(--accent-deep);letter-spacing:.14em;}
+  h3{font-size:15px;font-weight:800;letter-spacing:.04em;margin:0 0 8px;}
+  section{margin:56px 0 0;}
+  .sec-lede{color:var(--ink-2);font-size:14px;margin:0 0 22px;max-width:64ch;}
+  hr.rule{border:0;border-top:1px solid var(--line);margin:0 0 22px;}
+
+  .card{
+    background:var(--paper);border:1px solid var(--line);border-radius:14px;
+    padding:22px;box-shadow:var(--shadow);
+  }
+  .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;}
+  .grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;}
+
+  /* --- 由来 --- */
+  .origin{display:flex;align-items:center;gap:18px;flex-wrap:wrap;}
+  .origin .word{flex:1 1 200px;min-width:180px;}
+  .origin .word b{display:block;font-family:var(--min);font-size:22px;font-weight:400;letter-spacing:.04em;}
+  .origin .word span{font-size:12.5px;color:var(--ink-2);}
+  .origin .plus{font-size:20px;color:var(--accent);font-weight:300;}
+  .origin .root{
+    flex:1 1 200px;min-width:180px;background:var(--accent-soft);border-radius:12px;padding:14px 16px;
+  }
+  .origin .root b{display:block;font-family:var(--min);font-size:22px;font-weight:400;letter-spacing:.04em;color:var(--accent-deep);}
+  .origin .root span{font-size:12.5px;color:var(--accent-deep);}
+
+  ul.clean{margin:0;padding:0;list-style:none;}
+  ul.clean li{position:relative;padding:0 0 0 18px;font-size:13.5px;color:var(--ink-2);margin:0 0 7px;}
+  ul.clean li::before{content:"";position:absolute;left:2px;top:.72em;width:6px;height:6px;border-radius:50%;background:var(--accent);opacity:.5;}
+  ul.clean li b{color:var(--ink);font-weight:700;}
+
+  /* --- 原則 --- */
+  .principle{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow);}
+  .principle .p-no{font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--accent);}
+  .principle h3{margin:4px 0 6px;}
+  .principle p{margin:0;font-size:13px;color:var(--ink-2);line-height:1.8;}
+
+  /* --- 方向性 --- */
+  .dir{
+    background:var(--paper);border:1px solid var(--line);border-radius:16px;
+    box-shadow:var(--shadow);overflow:hidden;margin:0 0 18px;
+  }
+  .dir.rec{border-color:var(--accent);box-shadow:0 4px 18px rgba(201,138,61,.18);}
+  .dir-head{display:flex;gap:26px;padding:26px 24px;align-items:center;flex-wrap:wrap;}
+  .dir-stage{
+    width:150px;height:150px;flex:none;border-radius:14px;display:grid;place-items:center;
+    background:linear-gradient(160deg,#fffdf7,#f6ecda);border:1px solid var(--line);
+  }
+  .dir-stage svg{width:96px;height:96px;color:var(--accent-deep);}
+  .dir-body{flex:1 1 320px;min-width:260px;}
+  .dir-id{font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:var(--accent);margin:0 0 2px;}
+  .dir-name{font-size:21px;font-weight:800;letter-spacing:.05em;margin:0 0 2px;}
+  .dir-name .en{font-size:11px;letter-spacing:.2em;color:var(--ink-3);font-weight:600;margin-left:10px;}
+  .dir-copy{font-family:var(--min);font-size:15px;line-height:1.85;margin:8px 0 12px;color:var(--ink);}
+  .dir-note{font-size:13px;color:var(--ink-2);margin:0;}
+  .badge{
+    display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.1em;
+    background:var(--accent);color:#fff;border-radius:999px;padding:3px 11px;margin:0 0 8px;
+  }
+
+  .dir-detail{border-top:1px solid var(--line);padding:20px 24px 24px;background:linear-gradient(180deg,#fffdf7,#fdf9f0);}
+  .detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:20px;}
+  .detail-grid h4{font-size:11px;letter-spacing:.18em;color:var(--accent-deep);margin:0 0 8px;font-weight:800;}
+  .detail-grid p{margin:0;font-size:13px;color:var(--ink-2);line-height:1.85;}
+
+  /* --- 展開テスト --- */
+  .tests{display:flex;gap:12px;flex-wrap:wrap;margin:20px 0 0;}
+  .test{
+    border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--paper);
+    display:flex;flex-direction:column;align-items:center;gap:8px;min-width:104px;
+  }
+  .test-cap{font-size:10.5px;letter-spacing:.08em;color:var(--ink-3);}
+  .swatch-dark{background:var(--ink);border-color:var(--ink);}
+  .swatch-dark .test-cap{color:#b7ab99;}
+  .swatch-dark svg{color:#fffdf7;}
+  .test svg{color:var(--accent-deep);}
+  .mono svg{color:var(--ink);}
+  .appicon{
+    width:64px;height:64px;border-radius:16px;display:grid;place-items:center;
+    background:linear-gradient(145deg,#d89a48,#b9752c);box-shadow:0 3px 10px rgba(185,117,44,.4);
+  }
+  .appicon svg{width:38px;height:38px;color:#fff;}
+  .sizes{display:flex;align-items:flex-end;gap:14px;}
+  .sizes svg{color:var(--ink);}
+
+  /* --- ロゴタイプ --- */
+  .lock-col{display:flex;flex-direction:column;}
+  .lockup{
+    background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:26px 24px;
+    box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;min-height:132px;flex:1;
+  }
+  .lock-h{display:flex;align-items:center;gap:14px;}
+  .lock-h svg{width:44px;height:44px;color:var(--accent-deep);flex:none;}
+  .lock-v{display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;}
+  .lock-v svg{width:52px;height:52px;color:var(--accent-deep);}
+  .wordmark{font-size:27px;font-weight:700;letter-spacing:.2em;line-height:1;}
+  .wordmark small{
+    display:block;font-size:10px;letter-spacing:.34em;color:var(--ink-2);font-weight:600;margin-top:7px;
+  }
+  .wordmark-jp{font-size:25px;font-weight:800;letter-spacing:.14em;line-height:1;}
+  .tagline{font-family:var(--min);font-size:13px;letter-spacing:.1em;color:var(--ink-2);margin-top:10px;}
+  .cap{font-size:11px;letter-spacing:.1em;color:var(--ink-3);margin:8px 0 0;text-align:center;}
+
+  /* --- カラー --- */
+  .sw{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0 0;}
+  .chip{border-radius:12px;padding:14px 12px 12px;min-width:112px;flex:1 1 112px;border:1px solid rgba(0,0,0,.06);}
+  .chip b{display:block;font-size:12.5px;font-weight:700;}
+  .chip span{font-family:var(--mono);font-size:10.5px;opacity:.8;}
+
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;}
+  th{font-size:11px;letter-spacing:.12em;color:var(--accent-deep);font-weight:800;white-space:nowrap;}
+  td b{font-weight:700;}
+  .ng td:first-child{color:#a04a5a;font-weight:700;white-space:nowrap;}
+
+  .decide{background:var(--accent-soft);border:1px solid #e3c99c;border-radius:14px;padding:20px 22px;}
+  .decide h3{color:var(--accent-deep);}
+  .decide ol{margin:0;padding-left:1.2em;font-size:13.5px;color:var(--ink);}
+  .decide li{margin:0 0 9px;}
+  .decide li b{font-weight:700;}
+
+  footer{margin:64px 0 0;padding-top:20px;border-top:1px solid var(--line);font-size:12px;color:var(--ink-3);}
+
+  @media (max-width:560px){
+    .dir-stage{width:120px;height:120px;}
+    .dir-stage svg{width:76px;height:76px;}
+    .dir-head{gap:18px;padding:20px 18px;}
+    .dir-detail{padding:18px;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ========== シンボル定義 ========== -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <!-- A 綴じ糸のO -->
+  <symbol id="mark-a" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor" stroke-linecap="round">
+      <path d="M16.44 21.1 A19 19 0 1 1 16.44 42.9" stroke-width="5.5"/>
+      <path d="M14.6 27 L14.6 37" stroke-width="4" stroke-dasharray="0.1 4.9"/>
+    </g>
+  </symbol>
+  <!-- B o+r 合字 -->
+  <symbol id="mark-b" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="5.5">
+      <circle cx="25" cy="32" r="13"/>
+      <path d="M42 45 L42 20"/>
+      <path d="M42 26 C42 19.6 47 17.4 52.5 19.6"/>
+    </g>
+  </symbol>
+  <!-- C ひらくページ -->
+  <symbol id="mark-c" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="5.2">
+      <path d="M32 20 C26.5 14.4 19 12.4 12.4 14.4 C10.6 24 10.6 38 12.4 46.6 C19 44.6 26.5 45.4 32 50"/>
+      <path d="M32 20 C37.5 14.4 45 12.4 51.6 14.4 C53.4 24 53.4 38 51.6 46.6 C45 44.6 37.5 45.4 32 50"/>
+      <path d="M32 21.4 L32 49" stroke-width="3.4" stroke-dasharray="0.1 7.6"/>
+    </g>
+  </symbol>
+  <!-- D しおり -->
+  <symbol id="mark-d" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="5.2">
+      <rect x="12.5" y="11.5" width="39" height="41" rx="11"/>
+      <path d="M21.5 11.5 L21.5 32 L26 27.7 L30.5 32 L30.5 11.5"/>
+    </g>
+  </symbol>
+  <!-- E かさなる弧 -->
+  <symbol id="mark-e" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor" stroke-linecap="round">
+      <path d="M51.3 37.2 A20 20 0 1 1 37.2 12.7" stroke-width="5"/>
+      <path d="M44.6 35.4 A13 13 0 1 1 35.4 19.4" stroke-width="4"/>
+      <path d="M37.8 33.6 A6 6 0 1 1 33.6 26.2" stroke-width="3"/>
+    </g>
+  </symbol>
+</svg>
+
+<div class="wrap">
+
+<header>
+  <p class="kicker">OBRIER — LOGO DESIGN CONCEPT</p>
+  <h1>ありがとうを、<em>綴じる</em>。<br>オブリエのロゴ デザインコンセプト</h1>
+  <p class="lede">
+    ロゴが背負うのは「感謝を集めるツール」ではなく、<b>その人だけのアルバムが1冊ある</b>という感覚です。
+    ここでは、ブランドの核 → デザイン原則 → シンボル5方向 → ロゴタイプ・カラー・展開の順に、判断できるかたちで並べています。
+    <b>まず「方向性」を1つ選ぶ</b>のがこのドキュメントのゴールです。
+  </p>
+</header>
+
+<!-- ========== 1. ブランドの核 ========== -->
+<section>
+  <h2><span class="num">01</span>ブランドの核</h2>
+  <p class="sec-lede">名前がすでにコンセプトを持っています。ロゴはこの2語の合流点を描くのが最短距離です。</p>
+  <hr class="rule">
+
+  <div class="card">
+    <div class="origin">
+      <div class="word">
+        <b>obrigado</b>
+        <span>葡：ありがとう ／ 受け取る感謝</span>
+      </div>
+      <div class="plus">＋</div>
+      <div class="word">
+        <b>relier</b>
+        <span>仏：綴じる・結ぶ ／ 製本する</span>
+      </div>
+      <div class="plus">→</div>
+      <div class="root">
+        <b>ligare</b>
+        <span>羅：結ぶ。2語に共通する語源＝<b>ロゴの造形原理</b></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid2" style="margin-top:14px;">
+    <div class="card">
+      <h3>ロゴが表すべきこと</h3>
+      <ul class="clean">
+        <li><b>綴じられている</b>：ばらばらの言葉が1冊になる。単発の通知ではなく蓄積</li>
+        <li><b>結ばれている</b>：送った人と受け取った人。感謝は一方通行ではない</li>
+        <li><b>増えていく</b>のではなく<b>重なっていく</b>：数を誇るのではなく、層が厚くなる</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>ロゴが表してはいけないこと</h3>
+      <ul class="clean">
+        <li><b>順位・スコア</b>：星、王冠、メダル、上昇矢印、グラフの右肩上がり</li>
+        <li><b>監視・計測</b>：目、レーダー、ダッシュボード的なメーター表現</li>
+        <li><b>SaaSの一般語彙</b>：吹き出し＋チェック、ハート＋人型、抽象グラデ球</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ========== 2. デザイン原則 ========== -->
+<section>
+  <h2><span class="num">02</span>ロゴのデザイン原則</h2>
+  <p class="sec-lede">プロダクトの設計原則（アルバムの世界観／非ランキング／控えめな通知）をロゴの造形条件に翻訳したものです。</p>
+  <hr class="rule">
+
+  <div class="grid3">
+    <div class="principle">
+      <div class="p-no">01</div>
+      <h3>単色で成立する</h3>
+      <p>グラデーションや多色に頼らない。1色・線画で完成すること。Slack通知、メール、押印、刺繍まで同じ形で通る。</p>
+    </div>
+    <div class="principle">
+      <div class="p-no">02</div>
+      <h3>手の温度を1点だけ残す</h3>
+      <p>幾何学的に整えたうえで、綴じ糸・ページの反りなど「手で綴じた痕跡」を1箇所だけ入れる。多用すると手芸っぽくなる。</p>
+    </div>
+    <div class="principle">
+      <div class="p-no">03</div>
+      <h3>閉じた形を基本にする</h3>
+      <p>輪＝ligare。開いた矢印や上向きの動きは使わない。静かに閉じている形が「もう届いている」を意味する。</p>
+    </div>
+    <div class="principle">
+      <div class="p-no">04</div>
+      <h3>16pxで読める</h3>
+      <p>ファビコン・Slackアプリアイコン・メール署名が主戦場。細部が消える前提で、シルエットだけで識別できること。</p>
+    </div>
+    <div class="principle">
+      <div class="p-no">05</div>
+      <h3>主役はコンテンツ</h3>
+      <p>ロゴは画面の中で最も目立ってはいけない。本文（明朝の感謝の言葉）より前に出ない彩度・太さに抑える。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ========== 3. 方向性 ========== -->
+<section>
+  <h2><span class="num">03</span>シンボルの方向性（5案）</h2>
+  <p class="sec-lede">すべて同じグリッド（64pt・線幅5.5pt・角丸端）で描いています。比較は「16pxで何に見えるか」で行ってください。</p>
+  <hr class="rule">
+
+  <!-- A -->
+  <article class="dir rec">
+    <div class="dir-head">
+      <div class="dir-stage"><svg><use href="#mark-a"/></svg></div>
+      <div class="dir-body">
+        <span class="badge">推奨</span>
+        <p class="dir-id">DIRECTION A</p>
+        <p class="dir-name">綴じ糸のO<span class="en">BOUND O</span></p>
+        <p class="dir-copy">輪の左側に、3つの綴じ穴。<br>ばらばらの言葉が、糸で1冊に留められている。</p>
+        <p class="dir-note">和綴じ本の背をそのまま記号化した案。Oは obrigado の頭文字であり、ligare の輪でもある。輪の一部をあえて開け、そこを糸が留めることで「綴じる」という動詞が形に残る。</p>
+      </div>
+    </div>
+    <div class="dir-detail">
+      <div class="detail-grid">
+        <div>
+          <h4>造形の理屈</h4>
+          <p>正円のリングを左側で70°欠き、その欠けを3点のドット（綴じ穴＝糸）が縦に貫く。欠けが「まだ増える余地」、ドットが「留められた事実」を同時に持つ。</p>
+        </div>
+        <div>
+          <h4>強み</h4>
+          <p>製本のメタファーが直球で、名前の由来を説明しやすい。線1本＋点3つで構成が単純なため、16pxでもシルエットが崩れない。既存プロトタイプの琥珀色と最も相性が良い。</p>
+        </div>
+        <div>
+          <h4>弱み・要検証</h4>
+          <p>「C＋点」に見える可能性。ドットの間隔と欠け幅の詰めが要調整。ローディング表現に転用すると点が回りやすく、動的表現の設計は慎重に。</p>
+        </div>
+      </div>
+      <div class="tests">
+        <div class="test"><svg width="56" height="56"><use href="#mark-a"/></svg><span class="test-cap">基本（琥珀）</span></div>
+        <div class="test swatch-dark"><svg width="56" height="56"><use href="#mark-a"/></svg><span class="test-cap">反転</span></div>
+        <div class="test mono"><svg width="56" height="56"><use href="#mark-a"/></svg><span class="test-cap">モノクロ</span></div>
+        <div class="test"><div class="appicon"><svg><use href="#mark-a"/></svg></div><span class="test-cap">アプリアイコン</span></div>
+        <div class="test"><div class="sizes"><svg width="32" height="32"><use href="#mark-a"/></svg><svg width="24" height="24"><use href="#mark-a"/></svg><svg width="16" height="16"><use href="#mark-a"/></svg></div><span class="test-cap">32 / 24 / 16px</span></div>
+      </div>
+    </div>
+  </article>
+
+  <!-- B -->
+  <article class="dir">
+    <div class="dir-head">
+      <div class="dir-stage"><svg><use href="#mark-b"/></svg></div>
+      <div class="dir-body">
+        <p class="dir-id">DIRECTION B</p>
+        <p class="dir-name">o と r の合字<span class="en">LIGATURE</span></p>
+        <p class="dir-copy">obrigado の o と、relier の r。<br>2つの言葉が、1文字につながる。</p>
+        <p class="dir-note">oの右端がそのままrの軸に立ち上がる合字（リガチャ）。ligature と ligare は同じ語源で、「結ぶ」という意味がタイポグラフィそのものに宿る案。名前の由来を1秒で説明できる。</p>
+      </div>
+    </div>
+    <div class="dir-detail">
+      <div class="detail-grid">
+        <div>
+          <h4>造形の理屈</h4>
+          <p>oの円の右接線上にrのステムを重ねる。2画が1画を共有するため、切り離せない＝結ばれている状態が構造として成立する。小文字を使うことで「控えめさ」も担保。</p>
+        </div>
+        <div>
+          <h4>強み</h4>
+          <p>ロゴタイプとの一体感が最も高く、和欧混植でも浮かない。B2Bの落ち着きがあり、名刺・請求書・契約書に載っても違和感がない。</p>
+        </div>
+        <div>
+          <h4>弱み・要検証</h4>
+          <p>アルバムの情緒は薄く、機能的に見える。単体シンボルとしての記憶度が5案中もっとも低い。日本語話者には「or」と読まれ意味が生じない懸念。</p>
+        </div>
+      </div>
+      <div class="tests">
+        <div class="test"><svg width="56" height="56"><use href="#mark-b"/></svg><span class="test-cap">基本（琥珀）</span></div>
+        <div class="test swatch-dark"><svg width="56" height="56"><use href="#mark-b"/></svg><span class="test-cap">反転</span></div>
+        <div class="test mono"><svg width="56" height="56"><use href="#mark-b"/></svg><span class="test-cap">モノクロ</span></div>
+        <div class="test"><div class="appicon"><svg><use href="#mark-b"/></svg></div><span class="test-cap">アプリアイコン</span></div>
+        <div class="test"><div class="sizes"><svg width="32" height="32"><use href="#mark-b"/></svg><svg width="24" height="24"><use href="#mark-b"/></svg><svg width="16" height="16"><use href="#mark-b"/></svg></div><span class="test-cap">32 / 24 / 16px</span></div>
+      </div>
+    </div>
+  </article>
+
+  <!-- C -->
+  <article class="dir">
+    <div class="dir-head">
+      <div class="dir-stage"><svg><use href="#mark-c"/></svg></div>
+      <div class="dir-body">
+        <p class="dir-id">DIRECTION C</p>
+        <p class="dir-name">ひらくアルバム<span class="en">OPEN ALBUM</span></p>
+        <p class="dir-copy">見開きの2ページと、真ん中の綴じ。<br>読み返すための場所であることを、そのまま示す。</p>
+        <p class="dir-note">左右のページが向かい合い、全体としてOの輪郭を保つ。中央の点線が綴じ。「集める」より「読み返す」を前面に出した、もっとも説明の要らない案。</p>
+      </div>
+    </div>
+    <div class="dir-detail">
+      <div class="detail-grid">
+        <div>
+          <h4>造形の理屈</h4>
+          <p>外側のカーブを紙の反りとして残し、直線的な本アイコンとの差を作る。左＝受け取った感謝／右＝送った感謝、と二面性の説明にも使える。</p>
+        </div>
+        <div>
+          <h4>強み</h4>
+          <p>初見での理解が最速。導入企業への説明資料や営業現場で強い。「アルバムの世界観」という設計原則に対して最も忠実。</p>
+        </div>
+        <div>
+          <h4>弱み・要検証</h4>
+          <p>本アイコンは既視感が強く、ドキュメント管理・電子書籍サービスと混同されやすい。16pxでは中央の綴じ線と左右の差が消え、ただの角丸長方形に見えるリスク。</p>
+        </div>
+      </div>
+      <div class="tests">
+        <div class="test"><svg width="56" height="56"><use href="#mark-c"/></svg><span class="test-cap">基本（琥珀）</span></div>
+        <div class="test swatch-dark"><svg width="56" height="56"><use href="#mark-c"/></svg><span class="test-cap">反転</span></div>
+        <div class="test mono"><svg width="56" height="56"><use href="#mark-c"/></svg><span class="test-cap">モノクロ</span></div>
+        <div class="test"><div class="appicon"><svg><use href="#mark-c"/></svg></div><span class="test-cap">アプリアイコン</span></div>
+        <div class="test"><div class="sizes"><svg width="32" height="32"><use href="#mark-c"/></svg><svg width="24" height="24"><use href="#mark-c"/></svg><svg width="16" height="16"><use href="#mark-c"/></svg></div><span class="test-cap">32 / 24 / 16px</span></div>
+      </div>
+    </div>
+  </article>
+
+  <!-- D -->
+  <article class="dir">
+    <div class="dir-head">
+      <div class="dir-stage"><svg><use href="#mark-d"/></svg></div>
+      <div class="dir-body">
+        <p class="dir-id">DIRECTION D</p>
+        <p class="dir-name">しおり<span class="en">BOOKMARK</span></p>
+        <p class="dir-copy">その日に、印をつける。<br>言葉が届いたことを、静かに記録する。</p>
+        <p class="dir-note">アルバムの表紙にしおりが挟まっている状態。「今日も1件届いた」という日々の体験を象徴する案。UIアイコン言語（保存・ピン）と地続きで、プロダクト内での拡張が容易。</p>
+      </div>
+    </div>
+    <div class="dir-detail">
+      <div class="detail-grid">
+        <div>
+          <h4>造形の理屈</h4>
+          <p>角丸の面（表紙）に、しおりを背側へ寄せて挟む。左右対称を崩すことで荷物・保存アイコンとの差を作る。面を持つ唯一の案のため塗り面積を確保でき、小サイズでの視認性が最も高い。</p>
+        </div>
+        <div>
+          <h4>強み</h4>
+          <p>16px耐性が5案中最強。Slack・Teamsのアプリ一覧で埋もれない。ファビコン、通知バッジへの展開が容易。</p>
+        </div>
+        <div>
+          <h4>弱み・要検証</h4>
+          <p>しおり＝ブックマーク機能の汎用記号であり、ブランド固有性が最も低い。「綴じる／結ぶ」という核の意味が抜け落ち、名前の由来と接続しない。</p>
+        </div>
+      </div>
+      <div class="tests">
+        <div class="test"><svg width="56" height="56"><use href="#mark-d"/></svg><span class="test-cap">基本（琥珀）</span></div>
+        <div class="test swatch-dark"><svg width="56" height="56"><use href="#mark-d"/></svg><span class="test-cap">反転</span></div>
+        <div class="test mono"><svg width="56" height="56"><use href="#mark-d"/></svg><span class="test-cap">モノクロ</span></div>
+        <div class="test"><div class="appicon"><svg><use href="#mark-d"/></svg></div><span class="test-cap">アプリアイコン</span></div>
+        <div class="test"><div class="sizes"><svg width="32" height="32"><use href="#mark-d"/></svg><svg width="24" height="24"><use href="#mark-d"/></svg><svg width="16" height="16"><use href="#mark-d"/></svg></div><span class="test-cap">32 / 24 / 16px</span></div>
+      </div>
+    </div>
+  </article>
+
+  <!-- E -->
+  <article class="dir">
+    <div class="dir-head">
+      <div class="dir-stage"><svg><use href="#mark-e"/></svg></div>
+      <div class="dir-body">
+        <p class="dir-id">DIRECTION E</p>
+        <p class="dir-name">かさなる月<span class="en">STACKED MONTHS</span></p>
+        <p class="dir-copy">ひと月ずつ、綴じられていく。<br>数ではなく、層として厚くなる。</p>
+        <p class="dir-note">太さの異なる3本の弧が同心に重なる年輪状のマーク。増えることを「上昇」ではなく「堆積」で表す、非ランキング原則にもっとも忠実な抽象案。</p>
+      </div>
+    </div>
+    <div class="dir-detail">
+      <div class="detail-grid">
+        <div>
+          <h4>造形の理屈</h4>
+          <p>すべての弧の開口部を右上に揃え、視線の抜けを作る。内側ほど細く短い＝過去、外側ほど太い＝現在。推移チャートの世界観とも呼応する。</p>
+        </div>
+        <div>
+          <h4>強み</h4>
+          <p>5案でもっとも抽象度が高く、特定機能に縛られない。ブランドとしての寿命が長い。アニメーション（外側の弧が1本増える）が意味を持つ唯一の案。</p>
+        </div>
+        <div>
+          <h4>弱み・要検証</h4>
+          <p>Wi-Fi・電波・音声波形との混同リスク。16pxで3本の弧が潰れて同心円の塊になる。意味の説明が必要で、単体では伝わりにくい。</p>
+        </div>
+      </div>
+      <div class="tests">
+        <div class="test"><svg width="56" height="56"><use href="#mark-e"/></svg><span class="test-cap">基本（琥珀）</span></div>
+        <div class="test swatch-dark"><svg width="56" height="56"><use href="#mark-e"/></svg><span class="test-cap">反転</span></div>
+        <div class="test mono"><svg width="56" height="56"><use href="#mark-e"/></svg><span class="test-cap">モノクロ</span></div>
+        <div class="test"><div class="appicon"><svg><use href="#mark-e"/></svg></div><span class="test-cap">アプリアイコン</span></div>
+        <div class="test"><div class="sizes"><svg width="32" height="32"><use href="#mark-e"/></svg><svg width="24" height="24"><use href="#mark-e"/></svg><svg width="16" height="16"><use href="#mark-e"/></svg></div><span class="test-cap">32 / 24 / 16px</span></div>
+      </div>
+    </div>
+  </article>
+
+  <div class="card" style="margin-top:20px;">
+    <h3>比較表</h3>
+    <table>
+      <tr><th>案</th><th>由来との一致</th><th>記憶度</th><th>16px耐性</th><th>固有性</th><th>向いている場面</th></tr>
+      <tr><td><b>A 綴じ糸のO</b></td><td>◎</td><td>○</td><td>○</td><td>◎</td><td>ブランドの顔・全方位</td></tr>
+      <tr><td><b>B o+r合字</b></td><td>◎</td><td>△</td><td>○</td><td>○</td><td>名刺・契約書・請求書</td></tr>
+      <tr><td><b>C ひらくアルバム</b></td><td>○</td><td>○</td><td>△</td><td>△</td><td>営業資料・LP</td></tr>
+      <tr><td><b>D しおり</b></td><td>△</td><td>○</td><td>◎</td><td>△</td><td>アプリアイコン・通知</td></tr>
+      <tr><td><b>E かさなる月</b></td><td>○</td><td>○</td><td>△</td><td>○</td><td>長期ブランド・動的表現</td></tr>
+    </table>
+    <p style="font-size:13px;color:var(--ink-2);margin:14px 0 0;">
+      推奨は<b>A</b>。由来（綴じる）・原則（閉じた形／手の温度を1点）・小サイズ耐性の3つを同時に満たす唯一の案です。
+      Aで進めるなら、Dの「面のある形」をアプリアイコン専用の派生（Aのマークを角丸面に載せる）として併存させるのが現実的です。
+    </p>
+  </div>
+</section>
+
+<!-- ========== 4. ロゴタイプ ========== -->
+<section>
+  <h2><span class="num">04</span>ロゴタイプと組み合わせ</h2>
+  <p class="sec-lede">
+    プロダクト本文では明朝が「感謝の言葉」専用の書体です。ロゴタイプまで明朝にすると本文と競合するため、<b>欧文・和文ともにサンセリフ、タグラインのみ明朝</b>とし、情緒の担当をタグラインに預けます。
+  </p>
+  <hr class="rule">
+
+  <div class="grid2">
+    <div class="lock-col">
+      <div class="lockup">
+        <div class="lock-h">
+          <svg><use href="#mark-a"/></svg>
+          <div class="wordmark">OBRIER<small>オブリエ</small></div>
+        </div>
+      </div>
+      <p class="cap">横組み・基本形（ヘッダー、名刺）</p>
+    </div>
+    <div class="lock-col">
+      <div class="lockup">
+        <div class="lock-v">
+          <svg><use href="#mark-a"/></svg>
+          <div>
+            <div class="wordmark-jp">オブリエ</div>
+            <div class="tagline">ありがとうを、綴じる。</div>
+          </div>
+        </div>
+      </div>
+      <p class="cap">縦組み・和文主体（LP、資料表紙）</p>
+    </div>
+  </div>
+
+  <div class="grid2" style="margin-top:14px;">
+    <div class="card">
+      <h3>欧文：OBRIER</h3>
+      <ul class="clean">
+        <li>ジオメトリックサンセリフ、ウェイトは<b>Medium〜Bold</b></li>
+        <li>字間は<b>0.18〜0.22em</b>と広めに。詰めると強くなりすぎる</li>
+        <li>全て大文字。ただしシンボルB採用時のみ小文字ロゴタイプを検討</li>
+        <li>候補：Poppins / Jost / Futura系（要ライセンス確認）</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>和文：オブリエ</h3>
+      <ul class="clean">
+        <li>ゴシック体・W6前後。字間<b>0.12〜0.16em</b></li>
+        <li>候補：Noto Sans JP / 游ゴシック / ヒラギノ角ゴ</li>
+        <li>タグラインのみ明朝（Noto Serif JP / ヒラギノ明朝）</li>
+        <li>「オブリエ」を主、「OBRIER」を従とする（国内B2B向け）</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:14px;">
+    <h3>タグライン候補</h3>
+    <ul class="clean">
+      <li><b>ありがとうを、綴じる。</b> — 由来に忠実。動詞が入り、サービスの機能も伝わる（推奨）</li>
+      <li><b>届いた言葉は、残る。</b> — 蓄積と自己肯定感に寄せた表現</li>
+      <li><b>あなたのカタチが、見えてくる。</b> — 狙い②（得意の発見）に寄せた表現</li>
+      <li>NG：「感謝を見える化」「エンゲージメント向上」— 計測・管理の語彙は世界観を壊す</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ========== 5. カラー ========== -->
+<section>
+  <h2><span class="num">05</span>カラー — 先に決めるべき論点</h2>
+  <p class="sec-lede">
+    現状、リポジトリ内に<b>2つのパレットが併存</b>しています。ロゴを確定する前に、どちらがブランドカラーかを決める必要があります。
+  </p>
+  <hr class="rule">
+
+  <div class="grid2">
+    <div class="card">
+      <h3>案①：琥珀 × 墨（アルバム系）<span style="font-size:11px;color:var(--accent-deep);margin-left:8px;">推奨</span></h3>
+      <p style="font-size:13px;color:var(--ink-2);margin:0 0 6px;">プロトタイプv4で使われている紙・製本のパレット。設計原則1（アルバムの世界観）と完全に一致し、他の人事SaaSと最も差がつく。</p>
+      <div class="sw">
+        <div class="chip" style="background:#c98a3d;color:#fff;"><b>Amber</b><span>#c98a3d</span></div>
+        <div class="chip" style="background:#8a5a1c;color:#fff;"><b>Amber Deep</b><span>#8a5a1c</span></div>
+        <div class="chip" style="background:#3d3229;color:#fff;"><b>Ink</b><span>#3d3229</span></div>
+        <div class="chip" style="background:#fffdf7;color:#3d3229;"><b>Paper</b><span>#fffdf7</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>案②：シアン（ブライト系）</h3>
+      <p style="font-size:13px;color:var(--ink-2);margin:0 0 6px;">index.html / design/bright.html で使用中。明るく現代的だが、B2B SaaSで最も多い色域であり、アルバムの情緒とは距離がある。</p>
+      <div class="sw">
+        <div class="chip" style="background:#10c4d3;color:#fff;"><b>Cyan</b><span>#10c4d3</span></div>
+        <div class="chip" style="background:#0a8e9b;color:#fff;"><b>Cyan Deep</b><span>#0a8e9b</span></div>
+        <div class="chip" style="background:#1e2a32;color:#fff;"><b>Ink</b><span>#1e2a32</span></div>
+        <div class="chip" style="background:#eef3f7;color:#1e2a32;"><b>BG</b><span>#eef3f7</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:14px;">
+    <h3>折衷案</h3>
+    <p style="font-size:13px;color:var(--ink-2);margin:0;">
+      <b>ロゴ＝琥珀／UIのインタラクション色＝シアン</b>という分業も成立します。ロゴは「静かに佇む紙のブランド」、操作要素は「明快な現代のツール」。
+      ただしこの場合、ロゴの近傍にシアンを置かない余白ルールが必須です。デザイン原則1を優先するなら、統一して琥珀に寄せるほうが安全です。
+    </p>
+  </div>
+</section>
+
+<!-- ========== 6. 運用ルール ========== -->
+<section>
+  <h2><span class="num">06</span>使用ルール（確定後の骨子）</h2>
+  <hr class="rule">
+  <div class="grid2">
+    <div class="card">
+      <h3>守ること</h3>
+      <ul class="clean">
+        <li>アイソレーション：シンボルの<b>高さ1/2</b>を四方の最小余白とする</li>
+        <li>最小サイズ：シンボル単体<b>16px</b>／横組みロックアップ<b>96px幅</b></li>
+        <li>背景：紙・白・墨のみ。写真の上に直接置かない</li>
+        <li>単色版（墨・白・琥珀）を正とし、グラデーションはアプリアイコンのみ許可</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>禁止事項</h3>
+      <table class="ng">
+        <tr><td>変形</td><td>縦横比の変更、傾き、アーチ状の変形</td></tr>
+        <tr><td>装飾</td><td>ドロップシャドウ、光彩、立体化、縁取り</td></tr>
+        <tr><td>色</td><td>ブランドカラー以外での着色、多色分解</td></tr>
+        <tr><td>合成</td><td>星・王冠・矢印・数値バッジの併記（非ランキング原則）</td></tr>
+        <tr><td>再構成</td><td>シンボルとロゴタイプの位置・比率の変更</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ========== 7. 決めてほしいこと ========== -->
+<section>
+  <h2><span class="num">07</span>次のステップ</h2>
+  <hr class="rule">
+  <div class="decide">
+    <h3>この3点を決めてください</h3>
+    <ol>
+      <li><b>方向性</b>：A〜Eから1案（推奨はA。複数残す場合は最大2案まで）</li>
+      <li><b>ブランドカラー</b>：琥珀系／シアン系／折衷（推奨は琥珀系への統一）</li>
+      <li><b>和欧の主従</b>：「オブリエ」主体か「OBRIER」主体か</li>
+    </ol>
+    <p style="font-size:13px;color:var(--ink-2);margin:14px 0 0;">
+      決定後の作業：選定案のカーブ・線幅・グリッドの精緻化 → SVG／PNG／ファビコン一式の書き出し →
+      プロトタイプv4のヘッダー差し替え → ロゴガイドライン（1枚）の作成、の順で進めます。
+    </p>
+  </div>
+</section>
+
+<footer>
+  オブリエ / OBRIER — ロゴデザインコンセプト v1.0 ／ 本ページは検討用のたたき台です。数値・書体候補は確定値ではありません。
+</footer>
+
+</div>
+</body>
+</html>
