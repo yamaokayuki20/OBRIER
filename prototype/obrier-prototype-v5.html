@@ -816,6 +816,12 @@
     min-width: 38px; min-height: 38px; padding: 6px;
   }
   .sort-btn svg { display: block; }
+  /* この規則は上のスマホ用 @media より後ろにあるので、そちらの
+     .btn { min-height: 44px } を上書きしてしまう。ここでも同じ44pxを言い直す
+     （言わないと 38px のまま残り、スマホの当たり判定を割る） */
+  @media (max-width: 640px) {
+    .sort-btn { min-width: 44px; min-height: 44px; }
+  }
   /* 古い順のときだけ矢印を上下ひっくり返す。線は1本のまま */
   .sort-btn[data-sort="old"] svg { transform: scaleY(-1); }
 

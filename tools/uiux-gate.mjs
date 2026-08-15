@@ -766,7 +766,16 @@ for (const vw of [320, 375, 390, 768, 1280, 1920]) {
      実在する「削除の確認」「1on1準備メモ」は開き方が違うので、
      押す前の手順（open）を持たせて別に開く */
   const opens = [
-    { name: 'CSV', label: 'CSVで書き出す' },
+    /* CSV書き出しは rev.23 で外した。代わりに「カードの操作メニュー」を1つ足す。
+       ここが空になると焦点の復帰を測る口が削除の確認1つだけになってしまう */
+    { name: 'カードの操作メニュー', label: null, open: async () => {
+        await p.locator('#grid .card').first().click({ timeout: 3000 });
+        await p.waitForTimeout(800);
+        const m = p.locator('[data-card-menu]').first();
+        await m.focus(); await m.click();
+        await p.waitForTimeout(400);
+        return m;
+      } },
     { name: '削除の確認', label: null, open: async () => {
         await p.locator('#grid .card').first().click({ timeout: 3000 });
         await p.waitForTimeout(800);
