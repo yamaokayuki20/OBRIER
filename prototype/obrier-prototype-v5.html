@@ -303,7 +303,7 @@
        幅なりに伸び縮みするが、同じ行に並ぶ札はどれも同じ幅＝同じ丈になり、
        「全枚そろえる」（設計原則5）はそのまま保たれる */
     aspect-ratio: 91 / 55;
-    padding: 16px 20px 14px;
+    padding: 20px 22px 18px;
     display: flex; flex-direction: column; align-items: stretch; gap: 0; overflow: hidden;
   }
   /* 押した場所から広がる波紋。
@@ -332,17 +332,17 @@
   /* 奥行きを持たせるのはアバターだけ。地が紙ではなく淡い色になったので、
      まわりの白リングも地の色に合わせる */
   .ava {
-    width: 28px; height: 28px; border-radius: 50%; flex: none; background: var(--ava);
-    display: grid; place-items: center; color: #fff; font-size: var(--fs-note); font-weight: 800;
+    width: 38px; height: 38px; border-radius: 50%; flex: none; background: var(--ava);
+    display: grid; place-items: center; color: #fff; font-size: var(--fs-cap); font-weight: 800;
     box-shadow: 0 0 0 3px var(--cb), 0 3px 8px rgba(58,74,102,.20);
     transform: translateZ(20px); position: relative; z-index: 2;
   }
   /* 本文は明朝（セリフ）。参考にしたデザインの、いちばん効いている部分 */
   .say {
     font-family: var(--serif);
-    font-weight: 500; letter-spacing: .015em; line-height: 1.62; font-size: 17px;
+    font-weight: 500; letter-spacing: .015em; line-height: 1.6; font-size: 17px;
     text-align: left; position: relative; z-index: 2;
-    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+    display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden;
   }
   /* お気に入りの★は右上に出る。左寄せの本文が★の下へ潜らないよう、
      ★があるカードだけ本文の右をあけておく */
@@ -351,33 +351,41 @@
   /* ---- 中身の量でカードの見せ方を変える ----
      丈は変えず、行数で受け止める。長文は…で止めて、全文は拡大詳細で読む。
      どれも左寄せ・明朝のままで、変えるのは字の大きさと行数だけ */
-  .kind-short .say { font-size: 21px; line-height: 1.5; -webkit-line-clamp: 3; }
-  .kind-long .say { font-size: 14.5px; line-height: 1.62; -webkit-line-clamp: 4; }
-  .more-hint { display: none; font-size: var(--fs-note); letter-spacing: .08em; color: var(--ink-soft); align-self: flex-start; margin-top: -4px; position: relative; z-index: 2; }
-  .kind-long .more-hint { display: block; }
-  /* 足もとは右へ寄せ、送り主の名前・場面タグ・顔写真を縦に積む
-     （参考デザインの Name / Yelp Review ＋ 丸い顔写真と同じ並び）。
+  .kind-short .say { font-size: 21px; line-height: 1.5; -webkit-line-clamp: 4; }
+  .kind-long .say { font-size: 14px; line-height: 1.65; -webkit-line-clamp: 6; }
+  /* いちばん長いもの（100字以上）だけ、さらに落として全文を入れる。
+     12.5px は付随情報の下限（12px）の内側 */
+  .kind-xlong .say { font-size: 12.5px; line-height: 1.6; -webkit-line-clamp: 6; }
+  /* 足もとは左寄せ。左に顔写真、右に名前、名前の下に場面タグ。
      日付は出さない——いつ届いたかは拡大詳細に出る */
   .c-foot {
-    display: flex; flex-direction: column; align-items: flex-end;
-    margin: auto 0 0 auto; padding-top: 8px; position: relative; z-index: 2;
+    display: flex; align-items: center; gap: 10px;
+    margin-top: auto; padding-top: 12px; position: relative; z-index: 2;
   }
-  .c-who { text-align: right; line-height: 1.45; }
-  .c-who b { display: block; font-size: var(--fs-cap); font-weight: 600; color: var(--ink); }
-  .c-who span { display: block; font-size: var(--fs-note); color: var(--ink-soft); }
-  .c-foot .ava { align-self: flex-start; margin-top: 5px; }
+  .c-who { line-height: 1.3; min-width: 0; }
+  .c-who b { display: block; font-size: var(--fs-cap); font-weight: 700; color: var(--ink);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* 場面タグはタグらしく。地は白を強めに敷いて、文字はカードと同じ濃い同系色。
+     淡いカード地の上でも、白地に対する比（5.5〜8:1）がそのまま効く */
+  .c-tag {
+    display: inline-block; margin-top: 3px;
+    font-size: var(--fs-note); font-weight: 600; letter-spacing: .02em;
+    color: var(--ct); background: rgba(255,255,255,.82);
+    border: 1px solid color-mix(in srgb, var(--ct) 22%, transparent);
+    border-radius: 999px; padding: 2px 9px;
+  }
   .corner-new {
-    position: absolute; bottom: 15px; left: 20px; z-index: 5;
+    position: absolute; bottom: 20px; right: 22px; z-index: 5;
     font-size: var(--fs-note); font-weight: 800; letter-spacing: .14em; border-radius: 999px; padding: 4px 10px;
     background: rgba(255,255,255,.86); color: var(--ct);
   }
   /* お気に入り済みの目印は装飾ではなく情報なので、淡い金 #ffd66b（白地で1.37:1）
      ではなく、拡大詳細のお気に入りの印（.fav-mark）と同じ濃い琥珀色に揃えた */
   .fav-seal { position: absolute; top: 12px; right: 14px; z-index: 5; font-size: var(--fs-body); color: #8a6410; transform: rotate(9deg); }
-  .memo-dot { position: absolute; bottom: 21px; left: 20px; z-index: 5; width: 8px; height: 8px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 3px color-mix(in srgb, var(--ct) 30%, transparent); }
-  /* NEW と一緒に出る札では、印どうしが重ならないよう横へ逃がす
+  .memo-dot { position: absolute; bottom: 27px; right: 22px; z-index: 5; width: 8px; height: 8px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 3px color-mix(in srgb, var(--ct) 30%, transparent); }
+  /* NEW と一緒に出る札では、印どうしが重ならないよう上へ逃がす
      （NEW はカードのHTMLに、メモの印はそのあとに足されるので、この順で当たる） */
-  .corner-new ~ .memo-dot { left: 68px; }
+  .corner-new ~ .memo-dot { bottom: 56px; }
 
   /* ---------------- パネル ---------------- */
   /* min-width:0 がないと、チャートの実寸（inline width）がグリッド列を押し広げる */
@@ -735,25 +743,43 @@
   @media (max-width: 640px) {
     .bar { padding: 10px 13px; gap: 8px 10px; }
     .brand { font-size: var(--fs-body); }
-    /* スマホではタブを画面の下端へ置く。親指の届く範囲にあるほうが押しやすく、
-       ヘッダーが1行ぶん短くなって主役のカードが上へ戻る。
-       modal（z-index 60）より下に敷いて、詳細を開いたときは隠れるようにする。
-       画面の下端は端末のホームバーと重なるので safe-area のぶんだけ底上げする */
+    /* スマホのタブは、画面の下端に**浮かせた**丸い帯にする。
+       端に貼り付けず左右と下に余白を残し、白・全角丸・やわらかい影で
+       本文の上に乗っているように見せる（参考デザインに合わせた）。
+       modal（z-index 60）より下に敷いて、詳細を開いたときは隠れる。
+       ホームバーと重ならないよう safe-area のぶんだけ底上げする */
     .tabs {
-      position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
-      margin-left: 0; gap: 6px; padding: 6px 10px calc(6px + env(safe-area-inset-bottom, 0px));
-      background: color-mix(in srgb, var(--stage) 92%, #fff);
-      border-top: 1px solid color-mix(in srgb, var(--stage-ink) 14%, transparent);
-      backdrop-filter: blur(8px);
+      position: fixed; z-index: 30;
+      left: 50%; transform: translateX(-50%);
+      bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+      width: auto; max-width: calc(100vw - 32px);
+      margin-left: 0; gap: 4px; padding: 8px 10px;
+      background: #fff; border-radius: 999px;
+      box-shadow: 0 10px 30px rgba(20, 26, 40, .16), 0 2px 8px rgba(20, 26, 40, .08);
       overflow-x: visible;
     }
-    /* 2つで幅を等分する。高さ44pxは当たり判定の下限（DADS／SmartHR） */
-    .tab { flex: 1; padding: 7px 9px; min-height: 44px; display: flex; align-items: center; justify-content: center; }
+    /* 1つぶんは アイコンの下に文字。選んでいるものだけ黒く太く、
+       ほかは灰色（参考デザインの Location / Bicycle / Account と同じ出し分け） */
+    .tab {
+      flex: 1; min-width: 96px; min-height: 44px; border-radius: 999px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+      padding: 6px 14px; font-size: var(--fs-cap); font-weight: 500;
+      /* 参考デザインは選んでいないほうを薄い灰にしているが、その濃さ（#8b8f98）は
+         白地に対して 3.24:1 で本文の基準（4.5:1）を割る。読める濃さまで落とした
+         （#6b7280 ＝ 4.83:1）。選んでいるものとの差は、色の濃さと字の太さで十分つく */
+      color: #6b7280; background: none;
+    }
+    .tab .tab-ico { display: block; width: 24px; height: 24px; }
+    .tab:hover { background: none; }
+    /* 選んでいるものは黒。丸い塗りは敷かない（帯そのものが白い島なので、
+       中にもう1つ濃い島を作ると重くなる） */
+    .tab.active { background: none; color: #10131a; font-weight: 700; }
     .me span { display: none; }
-    /* 下のタブに本文が隠れないよう、そのぶんだけ底の余白を足す */
-    main { padding: 20px 13px calc(78px + env(safe-area-inset-bottom, 0px)); }
-    /* 知らせの帯もタブの上に出す */
-    .toast { bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
+    /* 浮いた帯に本文が隠れないよう、そのぶんだけ底の余白を足す
+       （帯は下から 14px 浮いていて高さ60px＝上端は下から74px） */
+    main { padding: 20px 13px calc(96px + env(safe-area-inset-bottom, 0px)); }
+    /* 知らせの帯・節目の帯も、浮いたメニューの上に出す */
+    .toast { bottom: calc(86px + env(safe-area-inset-bottom, 0px)); }
     .count { font-size: 40px; }
     .search-input { width: 100%; min-height: 44px; }
     .sheet-body, .dlg-body { padding-left: 16px; padding-right: 16px; }
@@ -772,6 +798,10 @@
      ここで枠を足すと当たり判定の寸法が変わってしまうので border は 0。
      背景は .tab.active / .tab:hover のほうが詳しいので、そちらが勝つ */
   .tab { appearance: none; -webkit-appearance: none; background: none; border: 0; font-family: inherit; text-align: center; }
+  /* アイコンはスマホの浮いた帯でだけ出す。PCのヘッダーは文字だけのピルのまま。
+     この規則はスマホ用の @media より後ろにあるので、出す側もここで言い直す */
+  .tab .tab-ico { display: none; }
+  @media (max-width: 640px) { .tab .tab-ico { display: block; width: 24px; height: 24px; } }
 
   /* ---- 件数と絞り込み（イシュー#11） ----
      画面が示す数と、実際に見えているもの・書き出されるものを一致させるための
@@ -1358,6 +1388,17 @@
       border-radius: 12px 12px 0 0; border-bottom: none;
       box-shadow: 0 -8px 22px rgba(61, 50, 41, .16);
     }
+  }
+
+  /* 浮いたメニューがある幅では、節目の帯もそのぶん持ち上げる。
+     ここは上の 899px のブロックより後ろに置くこと——同じ詳しさなので、
+     前に置くと bottom: 0 のほうが勝って帯がメニューの裏に潜る */
+  @media (max-width: 640px) {
+    .ms-host { bottom: calc(86px + env(safe-area-inset-bottom, 0px)); }
+    /* 画面の端に貼り付かなくなったので、角は4隅とも丸める。
+       帯の下に敷いていたぼかし（::after）も、浮いた今は出しっぱなしにしない */
+    .ms-host .ms { border-radius: 12px; box-shadow: 0 8px 22px rgba(61, 50, 41, .18); }
+    .ms-host::after { display: none; }
   }
 
   /* ========================================================================
@@ -2216,8 +2257,19 @@
            ・元から <nav> で囲まれており、行き先の選択という見立てと合う
          そのため「いま開いている行き先」を aria-current="page" で示す。 -->
     <nav class="tabs" id="personTabs" aria-label="画面の切り替え" data-scroll-region="画面の切り替えタブ">
-      <button type="button" class="tab active" data-v="album" aria-current="page">アルバム</button>
-      <button type="button" class="tab" data-v="shape">分析</button>
+      <button type="button" class="tab active" data-v="album" aria-current="page">
+        <svg class="tab-ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none"
+             stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4.5" width="18" height="15" rx="3"/>
+          <circle cx="8.6" cy="9.6" r="1.5"/>
+          <path d="M3.4 16.6l4.4-4a2 2 0 0 1 2.7 0l3.1 2.9m0 0l2-1.8a2 2 0 0 1 2.7 0l2.3 2.1m-7 -0.3l3.2 3"/>
+        </svg>アルバム</button>
+      <button type="button" class="tab" data-v="shape">
+        <svg class="tab-ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none"
+             stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 19.5V4.5"/><path d="M4 19.5h16"/>
+          <path d="M8 16.5v-4M12.6 16.5V8M17.2 16.5v-6"/>
+        </svg>分析</button>
     </nav>
     <div class="spacer"></div>
     <!-- 役割の切り替えは3つのうち1つだけが押された状態になる操作面。
@@ -2232,7 +2284,7 @@
     </div>
     <div class="me" id="meBox"><span>ユーザーさん</span><div class="ava-s">ユ</div></div>
     <!-- どの版を見ているかを確かめるための表示。更新されていないと思ったときはここを見る -->
-    <button class="build" id="buildTag" title="押すと自己診断（閉じる動作の重さを自動で測ります）">rev.26 カード刷新版</button>
+    <button class="build" id="buildTag" title="押すと自己診断（閉じる動作の重さを自動で測ります）">rev.27 浮遊メニュー版</button>
   </div>
 </header>
 
@@ -3720,6 +3772,7 @@ class CardMotion {
 function cardKind(d) {
   const len = String(d.msg || "").replace(/<br>/g, "").length;
   if (len <= 14) return "kind-short";
+  if (len >= 100) return "kind-xlong";
   if (len >= 54) return "kind-long";
   return "kind-mid";
 }
@@ -3801,10 +3854,9 @@ function cardHTML(d, opts) {
       ${d.isNew ? '<div class="corner-new">NEW</div>' : ""}
       ${(opts.fav && d.fav) ? '<div class="fav-seal" title="お気に入り">★</div>' : ""}
       <div class="say">${d.msg || ""}</div>
-      <div class="more-hint">…続きは詳細で</div>
       <div class="c-foot">
-        <div class="c-who"><b>${d.who}</b><span>${d.tag}</span></div>
         <div class="ava">${avaFace(d.who, d.ini)}</div>
+        <div class="c-who"><b>${d.who}</b><span class="c-tag">${d.tag}</span></div>
       </div>
       ${(opts.memo && d.myMemo) ? '<div class="memo-dot" title="じぶんのメモあり"></div>' : ""}
     </div>
