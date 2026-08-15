@@ -1904,6 +1904,9 @@
     background: var(--fill); border: 2px solid #fff;
     box-shadow: 0 2px 7px rgba(28,38,60,.18);
     transition: transform .18s ease, box-shadow .18s ease;
+    /* 顔写真を内側にぴたりと収めるための基準。写真が無い人は塗りのまま
+       （名前は玉のすぐ下に必ず出ているので、頭文字は置かない） */
+    position: relative; overflow: hidden;
   }
   /* 名札。狭い画面では玉が寄るので、重なっても読めるように地を**不透明**にする
      （半透明だと下の玉が透けて字が沈む・監査 A5-9）。選んでいる人の名札は
@@ -2264,7 +2267,7 @@
     </div>
     <div class="me" id="meBox"><span>ユーザーさん</span><div class="ava-s">ユ</div></div>
     <!-- どの版を見ているかを確かめるための表示。更新されていないと思ったときはここを見る -->
-    <button class="build" id="buildTag" title="押すと自己診断（閉じる動作の重さを自動で測ります）">rev.23 アルバム再構成版</button>
+    <button class="build" id="buildTag" title="押すと自己診断（閉じる動作の重さを自動で測ります）">rev.24 上司画面整理版</button>
   </div>
 </header>
 
@@ -2334,8 +2337,6 @@
     <h1>チームのダッシュボード ― 企画部 第2チーム</h1>
     <h2 class="lead-line">チーム全体のようす</h2>
   </div>
-  <div class="hero-note">上司だけが見る画面です。本人には表示されません。じぶんのメモは、上司からも管理者からも見られません。</div>
-
   <div class="toolbar">
     <label class="vh-label" for="teamPeriod">期間</label>
     <select class="select" id="teamPeriod">
@@ -2344,8 +2345,6 @@
       <option value="12">期間：直近1年</option>
     </select>
   </div>
-  <!-- 数の基準を書いておく（A-47） -->
-  <div class="mini-note" id="teamBasis"></div>
 
   <div class="net-stack">
     <!-- (A) チームの数 -->
@@ -2353,7 +2352,7 @@
 
     <!-- (B) 関係のネットワーク図 -->
     <div class="panel">
-      <h2>だれから だれへ ― ありがとうのやり取り</h2>
+      <h2>関係グラフ</h2>
       <!-- 説明文・凡例・選んだときの説明書きは、ユーザー判断で全部外した
            （2026-08-01。図は見れば分かるもので、読ませるものではない）。
            **読み上げには落とさない**——玉のボタンの `aria-label` が、相手ごとの
@@ -2376,13 +2375,11 @@
     <!-- (D) 場面とチーム全体の推移 -->
     <div class="two-col">
       <div class="panel">
-        <h2>チームで生まれている場面</h2>
-        <p class="panel-sub">チーム全員ぶんを合算した場面タグです。人ごとの内訳はメンバー詳細で見られます</p>
+        <h2>チーム全体のありがとうカテゴリ</h2>
         <div class="tag-bars" id="teamTags"></div>
       </div>
       <div class="panel">
         <h2>チーム全体の推移</h2>
-        <p class="panel-sub">全員ぶんの合計です。誰か1人が落ちているとき、チーム全体も同じ時期に落ちているかを見分けるための線です</p>
         <div id="teamChart"></div>
       </div>
     </div>
@@ -2392,8 +2389,7 @@
          そのうえで「チームで希少な得意」と「人ごとの上位5つ」まで降りる。
          得意は場面タグから作る（感謝された場面の偏り＝その人のカタチ）。 -->
     <div class="panel">
-      <h2>メンバーの得意</h2>
-      <p class="panel-sub" id="skillSub"></p>
+      <h2>チームの得意</h2>
       <div id="skillMap"></div>
       <h3 class="net-h3">人ごとの得意（上位5つ）</h3>
       <div id="skillPeople"></div>
@@ -2402,14 +2398,12 @@
     <!-- (E) 気にかけたいサイン -->
     <div class="panel">
       <h2>気にかけたいサイン</h2>
-      <p class="panel-sub">1on1の準備メモにサインが出ているメンバーです。本人には通知していません</p>
       <div id="teamSigns"></div>
     </div>
 
     <!-- (F) メンバーごとに見る -->
     <div class="panel">
       <h2>メンバーごとに見る</h2>
-      <p class="panel-sub">行を押すと、そのメンバーの詳細と1on1の準備メモを開きます</p>
       <div class="toolbar">
         <!-- 検索欄には接頭辞を置けないので、ラベルを見えるかたちで左に置く（A-31）。
              プレースホルダは例示に回し、ラベルの代わりには使わない -->
@@ -2420,7 +2414,11 @@
       <div class="chart-legend"><span class="lg-recv">もらった</span><span class="lg-sent">おくった</span></div>
       <!-- いまどう並んでいるかを言葉でも出す（A-05）。並び替えは見出しの
            矢印だけでは伝わらず、読み上げでは何も起きていないのと同じだった -->
-      <div class="mini-note sort-state" id="sortState" role="status" aria-live="polite"></div>
+      <!-- 並び順の一文は画面からは外した（ユーザー判断）。ただし要素ごと消すと、
+           並べ替えたことが読み上げに一度も伝わらなくなる（矢印と aria-sort は
+           見出しの中にあり、押した瞬間には読み上げられない）。
+           目には見えない生きた領域として残し、変わったときだけ知らせる -->
+      <div class="vh-label" id="sortState" role="status" aria-live="polite"></div>
       <div class="table-scroll" data-scroll-region="メンバー一覧の表">
         <table class="tbl wide member-tbl">
           <thead><tr>
@@ -5780,7 +5778,7 @@ function netDraw(force) {
     <button type="button" class="net-node" data-k="${o.key}"
       style="--d:${(o.r * 2).toFixed(1)}px; --fill:${o.fill}; left:${o.x.toFixed(1)}px; top:${o.y.toFixed(1)}px"
       aria-label="${netNodeLabel(o.key)}">
-      <span class="net-ball"></span>
+      <span class="net-ball">${netFace(o.d.name)}</span>
       <span class="net-label"><b>${o.d.name}</b><span>${o.d.partners.size}人・${o.v}通</span></span>
     </button>`).join("");
 
@@ -5799,6 +5797,14 @@ function netDraw(force) {
     b.addEventListener("click", () => { netPinned = netPinned === k ? null : k; netPaintPick(); });
   });
   netPaintPick();
+}
+
+/** 玉の中の顔写真。カードや一覧と同じ表引き（AVA_PHOTOS）を使うので、
+    誰がどの写真かは画面をまたいでそろう。写真が無い人は塗りのままにする。
+    読み込みに失敗した img は捕捉の段で取り除かれ、そのまま塗りに戻る */
+function netFace(name) {
+  const src = AVA_PHOTOS[avaKey(name)];
+  return src ? `<img class="ava-photo" src="${src}" alt="" draggable="false">` : "";
 }
 
 /** 玉の読み上げ名。図から読み取れることを、全部ことばにしておく（A-04） */
@@ -6162,7 +6168,7 @@ function renderMembers() {
      数の基準の注記も消す。数が出ていないのに「数字は直近3か月の…」だけ
      残ると、読めない数について説明していることになる */
   if (screenState($("memberRows"), "rows", renderMembers)) {
-    $("teamBasis").textContent = ""; $("sortState").textContent = ""; return;
+    $("sortState").textContent = ""; return;
   }
   const months = teamMonths();
   const q = $("teamSearch").value.trim();
@@ -6175,13 +6181,6 @@ function renderMembers() {
   if (sortKey === "sent") rows.sort((a, b) => (a.s - b.s) * sortDir);
   if (sortKey === "link") rows.sort((a, b) => (a.link - b.link) * sortDir);
   paintSortState();
-  /* 何の数か・どのものさしかを書く（A-47）。スパークラインは行ごとに縦の目盛が違う。
-     いちばん新しい月がまだ途中だということも書く（A-07）。書かないと、
-     全員の推移がそろって落ちて見え、チーム全体が減っていると読まれてしまう */
-  $("teamBasis").textContent =
-    `この画面の数字は${teamPeriodLabel()}（${SERIES_END.y}年${SERIES_END.m}月まで）に届いた／おくった通数です。`
-    + `${SERIES_END.m}月は集計中で、月の途中までの数が入っています。`
-    + "「つながり」は、チームの中でありがとうをやり取りした相手の人数です（チーム外とのやり取りは入りません）。";
   $("memberRows").innerHTML = rows.map(x => `
     <tr class="clickable" tabindex="0" data-mi="${x.i}">
       <td><div class="mt-name"><div class="ava-s">${avaFace(x.m.name, x.m.ini)}</div><div>${x.m.name}${x.m.alert ? ' <span class="alert-chip">要確認</span>' : ""}<small>${x.m.role}</small></div></div></td>
@@ -6332,13 +6331,6 @@ function renderStrengths() {
     b[1].length - a[1].length
     || b[1].reduce((x, y) => x + y.count, 0) - a[1].reduce((x, y) => x + y.count, 0));
   const rare = new Set(rank.filter(([, who]) => who.length === 1).map(([n]) => n));
-
-  const thick = rank.filter(([, w]) => w.length >= 3).length;
-  $("skillSub").textContent = rank.length
-    ? `${teamPeriodLabel()}に感謝された場面から見た得意です。`
-      + `チームには${rank.length}種類あり、3人以上が持っているものが${thick}種類、`
-      + `1人だけが持っているものが${rare.size}種類あります。`
-    : `${teamPeriodLabel()}に、得意として数えられる場面がありません。`;
 
   $("skillMap").innerHTML = rank.length ? `<div class="skill-map">${rank.map(([n, who]) => `
     <div class="skill-chip${rare.has(n) ? " is-rare" : ""}" style="--cc:${tagColor(n)}"
@@ -6994,6 +6986,22 @@ $("clearFilter").addEventListener("click", clearAlbumFilter);
 $("teamPeriod").addEventListener("change", renderTeamSummary);
 $("teamSearch").addEventListener("input", renderMembers);
 $("alertOnly").addEventListener("change", renderMembers);
+/* 玉を選んだ状態は、玉以外のどこかを押したら解除する。
+   これまでは「もう一度同じ玉を押す」しか解除の手が無く、選びっぱなしになると
+   関係の無い玉が薄いままの画面に取り残された。
+   捕捉の段（capture）ではなく通常の段で聞き、玉自身の click（選び直し・
+   同じ玉での取り消し）が先に済んでから判定する。
+   Escape でも解除する——キーボードだけの人には押す先の「外」が無いため */
+document.addEventListener("pointerdown", e => {
+  if (netPinned && !e.target.closest(".net-node")) { netPinned = null; netPaintPick(); }
+});
+document.addEventListener("keydown", e => {
+  /* 詳細やダイアログが開いているときの Escape は、そちらが先に受け取る */
+  if (e.key === "Escape" && netPinned && !document.querySelector(".overlay")) {
+    netPinned = null; netPaintPick();
+  }
+});
+
 /* 関係の図は幅が変わったときだけ置き直す（ふだんは一切動かない）。
    同じ幅で呼ばれたら netDraw の中で何もせずに戻る */
 {
