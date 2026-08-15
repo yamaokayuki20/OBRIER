@@ -245,9 +245,12 @@
   .filter-chip button { border: none; background: none; cursor: pointer; color: inherit; font-size: var(--fs-ui); font-weight: 800; }
 
   /* ---------------- アルバムグリッド ---------------- */
-  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px 20px; align-items: start; padding-top: 14px; }
-  @media (max-width: 880px) { .grid { grid-template-columns: repeat(2, 1fr); } }
-  @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
+  /* 列の数を幅で決め打ちにせず、カード1枚の下限（300px）から決める。
+     カードは名刺の縦横比（91:55）で高さが幅なりに決まるので、
+     列数を決め打ちにすると幅の狭いところで札が極端に平たくなる
+     （実測：900pxで3列だと幅273px＝高さ165px。中身が入らない）。
+     下限を置いて数のほうを動かせば、どの幅でも札の丈が名刺なりに収まる */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px 20px; align-items: start; padding-top: 14px; }
   .month {
     grid-column: 1 / -1; display: flex; align-items: center; gap: 12px;
     font-size: var(--fs-ui); letter-spacing: .18em; font-weight: 700; color: var(--stage-ink-soft);
@@ -285,8 +288,12 @@
     position: relative;
     background: var(--paper); color: var(--ink); border-radius: 12px;
     border-top: 7px solid var(--cc);
-    padding: 24px 22px 16px; height: var(--card-h, 320px);
-    display: flex; flex-direction: column; align-items: center; gap: 13px; overflow: hidden;
+    /* 丈は名刺（91×55mm）と同じ縦横比で決める。高さを固定しないので
+       幅なりに伸び縮みするが、同じ行に並ぶ札はどれも同じ幅＝同じ丈になり、
+       「全枚そろえる」（設計原則5）はそのまま保たれる */
+    aspect-ratio: 91 / 55;
+    padding: 15px 20px 12px;
+    display: flex; flex-direction: column; align-items: center; gap: 7px; overflow: hidden;
   }
   /* 押した場所から広がる波紋。
      以前はカードごとに場面タグの色を使っていたが、押した合図に色の意味は要らない
@@ -313,26 +320,26 @@
   .f-front .glare { display: none; }   /* 裏返し中は光沢を出さない */
   /* 奥行きを持たせるのはアバターだけ */
   .ava {
-    width: 48px; height: 48px; border-radius: 50%; flex: none; background: var(--ava);
-    display: grid; place-items: center; color: #fff; font-size: var(--fs-lead); font-weight: 800;
-    box-shadow: 0 0 0 5px var(--paper), 0 5px 12px rgba(58,74,102,.22);
+    width: 42px; height: 42px; border-radius: 50%; flex: none; background: var(--ava);
+    display: grid; place-items: center; color: #fff; font-size: var(--fs-body); font-weight: 800;
+    box-shadow: 0 0 0 4px var(--paper), 0 5px 12px rgba(58,74,102,.22);
     transform: translateZ(20px); position: relative; z-index: 2;
   }
   /* 本文はゴシック */
   .say {
-    font-weight: 600; letter-spacing: .06em; line-height: 2.05; font-size: var(--fs-body);
+    font-weight: 600; letter-spacing: .05em; line-height: 1.75; font-size: var(--fs-ui);
     text-align: center; position: relative; z-index: 2;
-    display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
   }
 
   /* ---- 中身の量でカードの見せ方を変える ----
      丈は変えず、行数で受け止める。長文は…で止めて、全文は拡大詳細で読む */
   /* 短い一言は面で受け止めるので、本文よりさらに上げる。
      長文は行数を稼ぐため本文より落とすが、付随情報の下限（14px）は割らない */
-  .kind-short .say { font-size: var(--fs-head); line-height: 1.9; letter-spacing: .08em; -webkit-line-clamp: 3; }
+  .kind-short .say { font-size: var(--fs-body); line-height: 1.7; letter-spacing: .07em; -webkit-line-clamp: 2; }
   .kind-long .say {
-    text-align: left; font-size: var(--fs-ui); line-height: 1.8; letter-spacing: .01em; font-weight: 500;
-    -webkit-line-clamp: 4;
+    text-align: left; font-size: var(--fs-cap); line-height: 1.7; letter-spacing: .01em; font-weight: 500;
+    -webkit-line-clamp: 3;
   }
   .more-hint { display: none; font-size: var(--fs-note); letter-spacing: .08em; color: var(--ink-soft); align-self: flex-start; margin-top: -4px; position: relative; z-index: 2; }
   .kind-long .more-hint { display: block; }
@@ -386,51 +393,13 @@
   .note-box b { color: var(--stage-ink); }
   .mini-note { font-size: var(--fs-cap); color: var(--stage-ink-soft); line-height: 1.8; }
 
-  /* タグ内訳バー（可変）。押せる形にする指定は「カタチの整理（イシュー#18）」の節に置いた */
+  /* タグ内訳バー（可変）。押せる形にする指定は「分析画面の整理（イシュー#18）」の節に置いた */
   .bar-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
   .bar-label { width: 108px; font-size: var(--fs-ui); font-weight: 700; flex: none; }
   .bar-track { flex: 1; height: 13px; background: var(--panel-soft); border-radius: 999px; position: relative; }
   .bar-fill { height: 100%; border-radius: 999px; background: var(--cc); opacity: .85; }
   .bar-count { width: 66px; text-align: right; font-size: var(--fs-ui); font-weight: 700; flex: none; font-variant-numeric: tabular-nums; }
 
-  /* よく感謝される場面 */
-  .top-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
-  @media (max-width: 780px) { .top-grid { grid-template-columns: 1fr; } }
-  .top-card {
-    background: #fff; border-radius: 12px; padding: 15px 16px 14px;
-    display: flex; flex-direction: column; gap: 7px;
-    border: 1px solid var(--panel-line); border-left: 4px solid var(--cc);
-    transition: transform .15s, box-shadow .15s, border-color .15s, background .15s;
-    text-align: left; font-family: inherit;
-  }
-  /* 押せることが見た目で分かるように、枠・矢印・ホバーの反応を付ける */
-  .top-card.jump { cursor: pointer; }
-  .top-card.jump:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(44,51,69,.12); border-color: var(--cc); }
-  .top-card.jump:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; }
-  /* ホバーでタグ色のベタ塗り＋白文字にしていたが、場面タグの7色は明るい色が
-     多く、白を乗せると 8枚中8枚が 4.5:1 を割っていた（アイデアの黄で 1.55:1・
-     監査 A5-2）。**地を塗りつぶすのをやめ、淡い色地＋濃い文字**に変える。
-     色は付くので「押せる」ことは伝わり、文字は静止時と同じ濃さのまま */
-  .top-card.jump:hover .top-go {
-    background: color-mix(in srgb, var(--cc) 20%, #fff);
-    border-color: var(--cc);
-  }
-  .top-go {
-    align-self: flex-start; margin-top: 2px;
-    display: inline-flex; align-items: center; gap: 5px;
-    font-size: var(--fs-cap); font-weight: 700; border-radius: 999px; padding: 4px 11px;
-    border: 1px solid var(--panel-line); background: var(--panel-bg);
-    /* 55% だと 3.73:1 まで落ちる色があった。35% まで濃くすると、
-       7色すべてがパネル地でも淡い色地でも 5.9:1 以上になる */
-    color: color-mix(in srgb, var(--cc) 35%, #1d2430);
-    transition: background .15s, color .15s, border-color .15s;
-  }
-  .top-go::after { content: "→"; font-weight: 800; }
-  .top-rank { font-size: var(--fs-cap); font-weight: 800; letter-spacing: .12em; color: color-mix(in srgb, var(--cc) 35%, #1d2430); }
-  .top-title { font-size: var(--fs-body); font-weight: 800; line-height: 1.6; color: var(--stage-ink); }
-  .top-quote { font-size: var(--fs-cap); color: var(--stage-ink-soft); line-height: 1.7; }
-  .top-count { font-size: var(--fs-cap); font-weight: 700; color: var(--navy); margin-top: auto; }
-  .top-count span { font-weight: 400; color: var(--stage-ink-soft); }
 
   /* 広がりマップ */
   .map-groups { display: flex; flex-wrap: wrap; gap: 14px; }
@@ -844,6 +813,18 @@
   .bar-count { width: auto; min-width: 72px; }
   .bar-unit { font-weight: 600; }
 
+  /* 今月のレポートの頭に置く、その月のもらった／おくった。
+     前月比は自分の中での前後の比較なので、増減に色は付けない（煽らない） */
+  .rep-counts { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+  .rep-cell {
+    flex: 1; min-width: 150px; background: #fff; border: 1px solid var(--panel-line);
+    border-radius: 12px; padding: 12px 14px;
+  }
+  .rep-lab { font-size: var(--fs-cap); color: var(--stage-ink-soft); letter-spacing: .08em; }
+  .rep-num { font-size: 30px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.3; color: var(--stage-ink); }
+  .rep-num small { font-size: var(--fs-ui); font-weight: 400; color: var(--stage-ink-soft); margin-left: 3px; }
+  .rep-delta { font-size: var(--fs-cap); color: var(--stage-ink-soft); font-variant-numeric: tabular-nums; }
+
   /* ---- 状態の表示（イシュー#12） ----------------------------------------
      これまで、この画面には「うまくいっているとき」しか無かった。
      読込中・失敗・権限なし・0件・連携の失効を、通常時と同じ静かさで描く。
@@ -985,7 +966,7 @@
   .chart-note[hidden] { display: none; }
 
   /* 数を出す表（A-04）。イシュー#18-14 で画面からは隠したが、読み上げには残る
-     （隠し方は「カタチの整理（イシュー#18）」の節の .vh-table） */
+     （隠し方は「分析画面の整理（イシュー#18）」の節の .vh-table） */
   .chart-table-wrap { margin-top: 10px; max-height: 300px; overflow: auto; }
   .chart-table { font-variant-numeric: tabular-nums; }
   .chart-table caption {
@@ -1387,7 +1368,7 @@
      ======================================================================== */
 
   /* ---- N3-6 見出しの階層を、大きさでも読み取れるようにする ----
-     h3 は 13.5〜14px で、本文（16px）より小さかった。カタチ画面の「企画チーム」、
+     h3 は 13.5〜14px で、本文（16px）より小さかった。分析画面の「企画チーム」、
      1on1準備メモの ①〜⑤ が、見出しなのに本文より細く小さく見える。
      h1 24 ＞ h2 20 ＞ h3 17.5 ＞ 本文 16 の順に並べ直す。
      大きくするのは h3 だけで、上の2つは触らない（D-51 の寸法をそのまま使う）。
@@ -1402,7 +1383,7 @@
      （#viewAlbum .hero、560px以下）、見出しに使える幅は264pxしかない。
      21px以上にすると折り返し、そのぶん主役のカードが30px下へ押し出される
      （D-51 の実測。初画面の2枚目が 47px → 19px）。
-     数と1行に置いていない他の画面（カタチ・おくった・チーム・管理者・
+     数と1行に置いていない他の画面（分析・おくった・チーム・管理者・
      メンバー詳細）には、この制約が無いので h1 22px ＞ h2 20px が成り立つ。
      アルバムでは見出しの右に数が並ぶため、h1 と h2 が隣り合って見える場面は無い */
   @media (max-width: 640px) {
@@ -1441,7 +1422,7 @@
     }
   }
 
-  /* ---- カタチの整理（イシュー#18） ---------------------------------------
+  /* ---- 分析画面の整理（イシュー#18） ---------------------------------------
 
      ユーザーの指摘どおり、この画面から余計なものを外した。
        -6  左右のパネルの上端・下端がそろっていなかった
@@ -1590,7 +1571,7 @@
      ---- 動き（decision-log D-25 の轍を踏まないための約束） ----
        ・動かすのは transform だけ。幅・位置・影は毎コマ触らない
        ・浮くのは「画面に入っている間」だけ（IntersectionObserver）。
-         カタチ画面は display:none で隠れるので、他の画面では層も動きも消える
+         分析画面は display:none で隠れるので、他の画面では層も動きも消える
        ・will-change は書かない（下の .is-floating の節に実測の理由）
        ・触れている間は止める（animation-play-state: paused）
        ・prefers-reduced-motion: reduce では浮かせない（下の @media）
@@ -2100,7 +2081,7 @@
      ---- 実測（1280x900 / CPUを4倍遅い端末に見立てる / 5回の中央値） ----
      同じファイルの、この節の「しゃぼん玉」ぶんだけを外した版と入れた版を比べた
      （写真アバターはどちらにも入れてあるので、差は玉の塗りだけ）。
-       ① 初回に玉を描くとき（カタチを開いて玉が並ぶまで）
+       ① 初回に玉を描くとき（分析を開いて玉が並ぶまで）
             Paint   35.0 → 52.8 ms（+17.8）
             Raster 131.1 → 158.8 ms（+27.7）
        ② 浮いている5秒間（12個が動きっぱなし）
@@ -2267,7 +2248,7 @@
     </div>
     <div class="me" id="meBox"><span>ユーザーさん</span><div class="ava-s">ユ</div></div>
     <!-- どの版を見ているかを確かめるための表示。更新されていないと思ったときはここを見る -->
-    <button class="build" id="buildTag" title="押すと自己診断（閉じる動作の重さを自動で測ります）">rev.24 上司画面整理版</button>
+    <button class="build" id="buildTag" title="押すと自己診断（閉じる動作の重さを自動で測ります）">rev.25 名刺カード版</button>
   </div>
 </header>
 
@@ -2315,10 +2296,10 @@
   <div class="grid" id="grid"></div>
 </section>
 
-<!-- ============ S02 本人：あなたのカタチ ============ -->
+<!-- ============ S02 本人：ありがとうの分析 ============ -->
 <section id="viewShape" class="hidden">
   <div class="hero">
-    <h1>あなたのカタチ</h1>
+    <h1>ありがとうの分析</h1>
     <h2 class="lead-line">もらったありがとうから見えてきた、あなたの得意</h2>
   </div>
   <!-- 見出しの下の説明文は置かない（イシュー#18-11）。
@@ -2387,7 +2368,7 @@
     <!-- (D-2) メンバーの得意（2026-08-01 ユーザー指示で新設）
          「チーム全体としてどんな得意を持つ人が多いか」を一目で見て、
          そのうえで「チームで希少な得意」と「人ごとの上位5つ」まで降りる。
-         得意は場面タグから作る（感謝された場面の偏り＝その人のカタチ）。 -->
+         得意は場面タグから作る（感謝された場面の偏り＝その人の得意）。 -->
     <div class="panel">
       <h2>チームの得意</h2>
       <div id="skillMap"></div>
@@ -2478,7 +2459,7 @@
       <div id="memberEpisodes"></div>
     </div>
 
-    <div class="same-note">ここから下は、本人が見ている「あなたのカタチ」と同じものです。じぶんのメモは本人だけのもので、ここには表示されません。</div>
+    <div class="same-note">ここから下は、本人が見ている「分析」と同じものです。じぶんのメモは本人だけのもので、ここには表示されません。</div>
     <div id="memberSub"></div>
   </div>
 </section>
@@ -2996,14 +2977,14 @@ const MILESTONES = [
   { id: "year", on: "2026年7月31日", mark: "1年", text: "オブリエと過ごして、<b>1年</b>になりました。" },
 ];
 
-/* 本人のカタチ */
+/* 本人の分析 */
 const MY_SHAPE = {
   tags: [["スピード対応",82],["資料品質",68],["調整力",55],["気配り",42],["後輩サポート",28],["情報共有",22],["アイデア",18],["正確さ",12]],
   /* 「過去のじぶんと重ねる」は画面から外した（イシュー#18-8）ので、
      比較用の過去データ（past）も持たない */
   reactions: { count: 124, emoji: ["🙏", "✨", "👏"] },
   memo: "「対応の速さ」への感謝が最多です。最近は「後輩サポート」が増えていて、頼られる範囲が広がっています。",
-  /* 月次カタチレポート（decision-log No.13） */
+  /* 今月のレポート（decision-log No.13） */
   report: {
     months: {
       "2026年6月": {
@@ -3364,7 +3345,7 @@ function buildAlbumFrom(shape, keep, seed, series = "recv") {
 }
 
 /**
- * カードの中身から、カタチ（場面タグ・よく感謝される場面・広がり）を数え直す。
+ * カードの中身から、分析（場面タグ・広がり）を数え直す。
  * 画面に出る数字が、並んでいるカードと必ず一致するようにするため。
  */
 function recountShape(shape, list) {
@@ -3457,6 +3438,47 @@ ANNUAL.sub = `ユーザー ／ ${ALBUM_PERIOD}`;
 }
 
 /** 推移データから、その月ぶんの通数を引く（1on1準備メモ用） */
+/** その月の1つ前の月の見出し（「2026年6月」→「2026年5月」） */
+function prevMonthLabel(label) {
+  const m = /(\d{4})年\s?(\d{1,2})月/.exec(label);
+  if (!m) return null;
+  let y = +m[1], mo = +m[2] - 1;
+  if (mo === 0) { mo = 12; y--; }
+  return `${y}年${mo}月`;
+}
+
+/**
+ * レポートの頭に置く「その月のもらった／おくった」と前月比。
+ *
+ * 前月比を出すのは**自分の先月と今月を比べるだけ**で、人と人を並べていない。
+ * 非ランキング原則（原則6）は個人間の順位付けを禁じるもので、自分の中での
+ * 前後の比較はそこに当たらない（2026-08-15 ユーザー判断）。
+ * 増減を煽らないよう、色は付けず記号と数だけを淡々と置く。
+ */
+function repCounts(shape, label) {
+  const now = monthlyAt(shape, label);
+  if (!now) return "";
+  const before = monthlyAt(shape, prevMonthLabel(label));
+  const delta = (a, b) => {
+    if (b == null) return '<span class="rep-delta">前月のぶんはありません</span>';
+    const d = a - b;
+    const sign = d > 0 ? "＋" : d < 0 ? "−" : "±";
+    return `<span class="rep-delta">前月比 ${sign}${Math.abs(d)}通</span>`;
+  };
+  return `<div class="rep-counts">
+    <div class="rep-cell">
+      <div class="rep-lab">もらった</div>
+      <div class="rep-num">${now.r}<small>通</small></div>
+      ${delta(now.r, before && before.r)}
+    </div>
+    <div class="rep-cell">
+      <div class="rep-lab">おくった</div>
+      <div class="rep-num">${now.s}<small>通</small></div>
+      ${delta(now.s, before && before.s)}
+    </div>
+  </div>`;
+}
+
 function monthlyAt(shape, label) {
   const m = /(\d{4})年\s?(\d{1,2})月/.exec(label);
   if (!m) return null;
@@ -4160,7 +4182,7 @@ function initTagFilter() {
 }
 function gotoAlbumWithTag(tag) {
   showPersonView("album");
-  /* カタチから飛んでくるのは「もらった」ぶんの場面。おくった側を見ていたら戻す */
+  /* 分析から飛んでくるのは「もらった」ぶんの場面。おくった側を見ていたら戻す */
   if (SERIES !== "recv") setSeries("recv");
   $("tagFilter").value = tag;
   applyFilters();
@@ -5192,7 +5214,7 @@ function chartWidget(mount, shape, defaultPeriod = "1y") {
 }
 
 /* =========================================================================
-   8. カタチ（本人・メンバー共通のコンポーネント）
+   8. 分析（本人・メンバー共通のコンポーネント）
    ========================================================================= */
 /* 場面タグの横バー。
    イシュー#18 で直したこと
@@ -5245,8 +5267,8 @@ const BUB_COLORS = [
 ];
 
 /* 浮かせるのは「画面に入っている間」だけ。
-   カタチ画面は display:none で隠れるので、他の画面を見ている間は is-floating が外れ、
-   animation ごと消える＝合成の層も残らない（実測：カタチ画面で広がりが画面外なら
+   分析画面は display:none で隠れるので、他の画面を見ている間は is-floating が外れ、
+   animation ごと消える＝合成の層も残らない（実測：分析画面で広がりが画面外なら
    層は改修前と同じ7、広がりが見えている間だけ24。D-25 の轍を踏まない） */
 const bubIO = "IntersectionObserver" in window
   ? new IntersectionObserver(es => {
@@ -5270,7 +5292,7 @@ const bubRO = "ResizeObserver" in window
     })
   : null;
 
-/** そのカタチ（S）の送り主を、部署の区切りを外してひとつに束ねる（#25-2）。
+/** その分析（S）の送り主を、部署の区切りを外してひとつに束ねる（#25-2）。
     同じ人が2つの区切りに出ていたら足し合わせる */
 function spreadPeople(S) {
   const sum = new Map();
@@ -5439,15 +5461,6 @@ function renderShapeInto(el, S, allowJump) {
   const people = spreadPeople(S);
   const bubMax = bubMaxOf(S);
 
-  const topsHTML = list => list.map((t, i) => `
-    <${allowJump ? "button" : "div"} class="top-card ${allowJump ? "jump" : ""}" style="--cc:${tagColor(t.tag)}" ${allowJump ? `data-jump="${t.tag}"` : ""}>
-      <div class="top-rank">${i + 1}</div>
-      <div class="top-title">${t.title}</div>
-      <div class="top-quote">${t.quote}</div>
-      <div class="top-count">${t.count}通のありがとう</div>
-      ${allowJump ? '<span class="top-go">アルバムで見る</span>' : ""}
-    </${allowJump ? "button" : "div"}>`).join("");
-
   const rep = S.report ? Object.keys(S.report.months) : [];
 
   el.innerHTML = `
@@ -5468,26 +5481,18 @@ function renderShapeInto(el, S, allowJump) {
       </div>
     </div>
 
-    <div class="panel" style="margin-bottom:16px;">
-      <h2>よく感謝される場面</h2>
-      <div class="panel-sub">${allowJump ? "押すと、その場面のありがとうをアルバムで見られます" : "順位ではなく、届いた回数の多い場面です"}</div>
-      <div class="top-grid" id="${uid}_tops">${topsHTML(S.tops.slice(0, 3))}</div>
-      ${S.tops.length > 3 ? `<div style="text-align:center; margin-top:14px;"><button class="btn" data-more>もっと見る（TOP${Math.min(S.tops.length, 10)}まで）</button></div>` : ""}
-    </div>
-
     ${S.reactions ? `<div class="panel" style="margin-bottom:16px;">
       <h2>小さなありがとう</h2>
       <div class="panel-sub">感謝の絵文字リアクションは、カードにはせず控えめに数えています</div>
       <div class="react-row">
         <div class="react-num">${S.reactions.count}<span style="font-size: var(--fs-ui); font-weight:400; color:var(--stage-ink-soft);"> 回</span></div>
         <div class="react-emo">${S.reactions.emoji.map(e => `<span>${e}</span>`).join("")}</div>
-        <div class="mini-note" style="flex:1; min-width:200px;">言葉になる前の感謝として、カタチと推移の集計にだけ含めています。</div>
+        <div class="mini-note" style="flex:1; min-width:200px;">言葉になる前の感謝として、場面と推移の集計にだけ含めています。</div>
       </div>
     </div>` : ""}
 
     ${rep.length ? `<div class="panel" style="margin-bottom:16px;">
-      <h2>今月のカタチレポート</h2>
-      <div class="panel-sub">カタチの変化と、その月を代表するエピソードをオブリエが言葉にしています</div>
+      <h2>今月のレポート</h2>
       <div class="toolbar" style="margin-bottom:12px;">
         <!-- 月の選択にもラベルを紐づける（A-31）。ここは幅に余裕があるので見えるラベルにする -->
         <span class="field"><label for="${uid}_repsel">表示する月</label>
@@ -5510,33 +5515,18 @@ function renderShapeInto(el, S, allowJump) {
   wireBubbles(el);
   chartWidget(uid, S);
 
-  /* もっと見る（TOP10まで） */
-  const more = el.querySelector("[data-more]");
-  if (more) more.addEventListener("click", () => {
-    $(uid + "_tops").innerHTML = topsHTML(S.tops.slice(0, 10));
-    wireJumps();
-    more.remove();
-  });
-  /* 「よく感謝される場面」のカード。ここだけを見に行く（もっと見るで
-     描き直されるのはこの中だけなので、二重に結び直すことがない） */
-  function wireJumps() {
-    $(uid + "_tops").querySelectorAll("[data-jump]").forEach(b =>
-      b.addEventListener("click", () => gotoAlbumWithTag(b.dataset.jump)));
-  }
-  if (allowJump) wireJumps();
-
   /* 場面タグのバーから、その場面で絞り込んだアルバムへ（イシュー#18-13）。
      描き直さないので、ここで一度だけ結ぶ */
   if (allowJump) el.querySelectorAll("[data-barjump]").forEach(b =>
     b.addEventListener("click", () => gotoAlbumWithTag(b.dataset.barjump)));
 
-  /* 月次カタチレポート */
+  /* 今月のレポート */
   const sel = $(uid + "_repsel");
   if (sel) {
     const drawRep = () => {
       const r = S.report.months[sel.value];
-      $(uid + "_rep").innerHTML = `
-        <div class="note-box" style="margin-bottom:10px;"><b>カタチの変化</b>${r.change}</div>
+      $(uid + "_rep").innerHTML = repCounts(S, sel.value)
+        + `<div class="note-box" style="margin-bottom:10px;"><b>サマリー</b>${r.change}</div>
         <div class="note-box" style="margin-bottom:10px;"><b>代表エピソード</b>${r.episode}</div>
         <div class="note-box"><b>ひとこと</b>${r.word}</div>`;
     };
@@ -6007,7 +5997,7 @@ const hideAllViews = () => ALL_VIEWS.forEach(v => $(v).classList.add("hidden"));
 /**
  * 画面をまるごと入れ替えたあとの着地（監査 A5-5）。
  *
- * 一覧からメンバー詳細へ、カタチからアルバムへ、のように**押した要素ごと
+ * 一覧からメンバー詳細へ、分析からアルバムへ、のように**押した要素ごと
  * 消える**入れ替えでは、焦点が `<body>` へ落ちる。読み上げを使っている人には
  * 「何かが起きた」ことも「どこに来たのか」も伝わらないまま、次の Tab が
  * ヘッダーの先頭から始まる。
@@ -6380,7 +6370,7 @@ let currentMember = null;
      ③ 何を見たかを監査ログで説明しやすくなる（サマリ／メンバー詳細／準備メモの3つ）
    そのぶん、称賛の材料は「1on1で使えるエピソード」として画面に残している。
    MEMBER_CARDS / MEMBER_SENT は残す——recountShape がそこから場面タグの
-   通数を作り直しており、消すとカタチの数が推移データと合わなくなるため。 */
+   通数を作り直しており、消すと分析の数が推移データと合わなくなるため。 */
 
 function openMember(i) {
   const m = MEMBERS[i];
@@ -6451,7 +6441,7 @@ function openMember(i) {
   $("viewMember").classList.remove("hidden");
   window.scrollTo({ top: 0 });
   landOnView("viewMember", `${m.name}のようす`);
-  /* カタチは幅を測ってから描くので、画面を出したあとに描く */
+  /* 分析は幅を測ってから描くので、画面を出したあとに描く */
   renderShapeInto($("memberSub"), m.shape, false);
   logAudit("メンバー詳細閲覧", m.name);
 }
@@ -6919,7 +6909,7 @@ function initStateDemo() {
 /* =========================================================================
    14. 起動
    ========================================================================= */
-/* 見出しの下の説明文は本人の画面には置かない（アルバム・カタチとも）。
+/* 見出しの下の説明文は本人の画面には置かない（アルバム・分析とも）。
    数の出どころはカードの実体ひとつ（A-06／A-20）。 */
 
 $("demoBtn").classList.toggle("hidden", !DEMO_UI);
