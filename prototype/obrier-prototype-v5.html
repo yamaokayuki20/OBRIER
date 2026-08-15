@@ -288,14 +288,21 @@
     padding: 24px 22px 16px; height: var(--card-h, 320px);
     display: flex; flex-direction: column; align-items: center; gap: 13px; overflow: hidden;
   }
-  /* 押した場所から広がる波紋。紙にインクがにじむように、色は場面タグの色を使う。
-     中心をやや濃く、外へ向けて消していく */
+  /* 押した場所から広がる波紋。
+     以前はカードごとに場面タグの色を使っていたが、押した合図に色の意味は要らない
+     （色は上端の帯とタグピルが既に持っている）。全カード共通の1色にした。
+
+     色の根拠は Material Design の state layer。マテリアルでは押下の波紋は
+     独自の色を持たず、**その面の on-surface 色を低い不透明度で重ねる**と決まっている
+     （M2 のリップルは明るい面で 12%、M3 の pressed state layer は 10%）。
+     この画面の面は紙（--paper）、その上の文字色は --ink なので、
+     --ink を 12% で重ねる＝薄いグレーに見える、が素直な当てはめになる。 */
   .ripple {
     position: absolute; border-radius: 50%; pointer-events: none; z-index: 1;
     background: radial-gradient(circle,
-      color-mix(in srgb, var(--cc) 42%, transparent) 0%,
-      color-mix(in srgb, var(--cc) 26%, transparent) 45%,
-      color-mix(in srgb, var(--cc) 0%, transparent) 72%);
+      color-mix(in srgb, var(--ink) 12%, transparent) 0%,
+      color-mix(in srgb, var(--ink) 9%, transparent) 45%,
+      color-mix(in srgb, var(--ink) 0%, transparent) 72%);
   }
   /* ホバー時の光沢。ポインタの位置に淡く乗る */
   .glare {
@@ -790,8 +797,16 @@
      画面が示す数と、実際に見えているもの・書き出されるものを一致させるための
      表示を足す。色・余白・文字サイズは既存の変数をそのまま借りる。 */
 
-  /* 並び順。ツールバーの右端に置き、押せるものとして select で出す */
-  .sort-select { margin-left: auto; }
+  /* 並び順。ツールバーの右端。アイコンだけのボタンで、矢印の向きが今の並びを示す。
+     文字を持たないので、読み上げ用の名前（aria-label）と
+     マウス用の説明（title）を必ず持たせる。当たり判定は PC 24px／スマホ 44px。 */
+  .sort-btn {
+    margin-left: auto; display: inline-flex; align-items: center; justify-content: center;
+    min-width: 38px; min-height: 38px; padding: 6px;
+  }
+  .sort-btn svg { display: block; }
+  /* 古い順のときだけ矢印を上下ひっくり返す。線は1本のまま */
+  .sort-btn[data-sort="old"] svg { transform: scaleY(-1); }
 
   /* 絞り込みを解除する導線。状態の表示はコントロール自身（select・チェック）が
      受け持ち、ここは「解除する」という動作だけを持つ（状態の二重表示をしない） */
@@ -2217,8 +2232,7 @@
          そのため「いま開いている行き先」を aria-current="page" で示す。 -->
     <nav class="tabs" id="personTabs" aria-label="画面の切り替え" data-scroll-region="画面の切り替えタブ">
       <button type="button" class="tab active" data-v="album" aria-current="page">アルバム</button>
-      <button type="button" class="tab" data-v="shape">あなたのカタチ</button>
-      <button type="button" class="tab" data-v="sent">おくった ありがとう</button>
+      <button type="button" class="tab" data-v="shape">分析</button>
     </nav>
     <div class="spacer"></div>
     <!-- 役割の切り替えは3つのうち1つだけが押された状態になる操作面。
@@ -2242,11 +2256,10 @@
 <!-- ============ S01 本人：アルバム ============ -->
 <section id="viewAlbum">
   <div class="hero">
-    <h1>あなたに届いたありがとう</h1>
+    <h1 id="albumTitle">あなたに届いたありがとう</h1>
     <div class="count-wrap"><div class="count" id="count">0</div><div class="count-unit">通</div></div>
   </div>
-  <!-- 数の基準（いつからいつまでの何の数か）を必ず添える（A-47） -->
-  <div class="hero-note" id="albumLead">Slack・Teams のやり取りから、あなた宛ての感謝を自動で見つけて集めています。カードを押すと、その言葉が生まれた経緯が見られます。</div>
+
   <!-- 節目の知らせ（F09・イシュー#10）。
        アルバムの流れの中には置かない（置くと主役のカードが画面外へ出る）。
        降りてきて数秒で静かに引っ込む帯として、本文の上に重ねて出す。
@@ -2257,22 +2270,27 @@
          見えているラベルは select の中の「場面：すべて」「並び順：新しい順」で、
          label はそれと同じ語を読み上げ名として渡す。画面の見た目は変えない
          （見えるラベルを外に出すと、幅が増えてスマホでツールバーが1行増える） -->
+    <!-- もらった／おくった の切り替え。画面（タブ）を分けず、アルバムの中で入れ替える。
+         同じ「カードが並ぶ面」なので、行き先ではなく表示の切り替えとして seg で置く -->
+    <div class="seg seg-series" id="seriesSeg" role="group" aria-label="もらった・おくったの切り替え">
+      <button type="button" data-series="recv" aria-pressed="true">もらった</button>
+      <button type="button" data-series="sent" aria-pressed="false">おくった</button>
+    </div>
     <label class="vh-label" for="tagFilter">場面</label>
     <select class="select" id="tagFilter"><option value="">場面：すべて</option></select>
-    <label class="check"><input type="checkbox" id="favFilter"> お気に入りのみ</label>
-    <!-- 絞り込みの状態は select とチェックが持つ。ここは解除という「動作」だけ（A-41） -->
+    <!-- 絞り込みの状態は select が持つ。ここは解除という「動作」だけ（A-41） -->
     <button class="btn clear-filter" id="clearFilter">絞り込みを解除</button>
-    <button class="btn" id="btnCsv">CSVで書き出す</button>
-    <!-- 「年間アルバム」「これまでの節目」「1年前の今日」はユーザー判断で取りやめた
-         （イシュー#22）。節目そのものは帯として一度だけ静かに降りる形で残る -->
-    <!-- 「新しい順」は以前ただの div で、押せそうに見えて押せなかった（A-40）。
-         押せない見た目に落とすのではなく、期待どおり押せるようにした。
-         並び替えるのは時系列だけで、人どうしの順位づけではないため原則6に反しない。 -->
-    <label class="vh-label" for="albumSort">並び順</label>
-    <select class="select sort-select" id="albumSort">
-      <option value="new">並び順：新しい順</option>
-      <option value="old">並び順：古い順</option>
-    </select>
+    <!-- 「お気に入りのみ」の絞り込みはやめ、お気に入りを先頭へ寄せる形にした。
+         絞ると他のカードが消えるが、寄せるだけなら消えない -->
+    <!-- 並び順はアイコンだけ。矢印の向きが今の並び（下向き＝新しい順）を示す。
+         並び替えるのは時系列だけで、人どうしの順位づけではないため原則6に反しない -->
+    <button type="button" class="btn sort-btn" id="albumSort" data-sort="new">
+      <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" focusable="false"
+           fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5.5 2.6v12.8M2.6 12.5l2.9 2.9 2.9-2.9"/>
+        <path d="M11 4.2h4.4M11 8.2h3.4M11 12.2h2.4"/>
+      </svg>
+    </button>
   </div>
   <div class="grid" id="grid"></div>
 </section>
@@ -2288,16 +2306,6 @@
        言葉で繰り返していただけだった。数の基準（いつからいつまでのぶんか）は
        「ありがとうの広がり」と各パネルの中で示している -->
   <div id="myShape"></div>
-</section>
-
-<!-- ============ S03 本人：おくったありがとう ============ -->
-<section id="viewSent" class="hidden">
-  <div class="hero">
-    <h1>あなたがおくったありがとう</h1>
-    <div class="count-wrap"><div class="count" id="sentCount">0</div><div class="count-unit">通</div></div>
-  </div>
-  <div class="hero-note" id="sentLead">あなたが伝えた感謝も、ここに残しています。</div>
-  <div class="grid" id="sentGrid"></div>
 </section>
 
 <!-- ============ S06 上司：チーム全体サマリ（イシュー#27） ============
@@ -3158,11 +3166,6 @@ Object.values(MEMBER_CARDS).forEach(list => list.forEach((d, i) => { d.id = 800 
    「オブリエのメモ」とやり取りの流れを持たせる。無くても1件のふきだしで開けるが、
    1on1の準備という目的では、その言葉がどこから出てきたのかが読めることが要る。
    ここはデモ用の作りなので、機械で作るカードと同じ形（summary / story）で足すだけにする */
-Object.values(MEMBER_CARDS).forEach(list => list.forEach(d => {
-  const day = (d.time || "").split(" ")[0];
-  d.summary = `${d.ch} でのやり取りから、「${d.tag}」の場面として ${d.who} からの感謝を見つけました。`;
-  d.story = [{ who: d.who, ini: d.ini, time: day, thanks: true, text: d.msg }];
-}));
 
 /* =========================================================================
    1-b. 数の出どころを1つにする（イシュー#11：A-06／A-20／A-47）
@@ -3228,6 +3231,78 @@ const FILL_SAY_DEFAULT = ["ありがとうございます！", "対応ありが�
 const FILL_CH = [["#企画チーム", "Slack"], ["#プロジェクトA", "Slack"], ["#営業連携", "Slack"],
   ["#資料作成", "Slack"], ["問い合わせ対応", "Teams"], ["新人サポート", "Teams"]];
 
+/* やり取りの流れの「肝」——感謝の一言の前に何があったか。
+
+   これまで機械で作ったカードは、詳細を開いても感謝のふきだしが1つ出るだけで、
+   「何に対するありがとうなのか」が読めなかった。全文を持たせる必要はないが、
+   **頼み → 返し → 感謝** の3つが揃わないと流れにならない。
+   場面タグごとに、頼みと返しをそれぞれ2通りずつ置いて組み合わせる。
+   file を持つものは、返した中身が物として残る場面（資料・情報共有）だけに付ける。 */
+const FILL_FLOW = {
+  "スピード対応": {
+    ask: ["これ今日中って厳しいですか…？", "急ぎで恐縮です、いま手が空いていたりしますか？"],
+    reply: [{ t: "いま見ます。30分で戻せます。" }, { t: "大丈夫です、先にこちらを片付けますね。" }],
+  },
+  "資料品質": {
+    ask: ["来週の説明用の資料、お願いできますか？", "この内容、資料に落とせたりします？"],
+    reply: [{ t: "できました。要点を3枚にまとめています。", f: "説明資料_v1.pptx" },
+            { t: "図を足して整理し直しました。ご確認ください。", f: "整理版_v2.pptx" }],
+  },
+  "調整力": {
+    ask: ["関係者が多くて日程が決まらなくて…", "先方とこちらで言っていることが食い違っていて困っています"],
+    reply: [{ t: "候補を3枠に絞って当たってみます。" }, { t: "間に入ります。まず双方の前提をそろえますね。" }],
+  },
+  "気配り": {
+    ask: ["（この件、まだ誰にも相談できていない）", "今週ちょっと立て込んでいて…"],
+    reply: [{ t: "先にこちら側で引き取っておきました。手が空いたら見てください。" },
+            { t: "こちらで巻き取れるぶんは進めておきます。無理しないでください。" }],
+  },
+  "後輩サポート": {
+    ask: ["すみません、ここでつまずいていて…", "初歩的なことを聞いてしまうのですが、いいですか？"],
+    reply: [{ t: "全然大丈夫です。順番にいきましょう、まず全体像から。" },
+            { t: "そこは最初みんな迷うところです。手順を書き出しますね。" }],
+  },
+  "情報共有": {
+    ask: ["この件の経緯って、どこかに残っていますか？", "先方の状況、共有もらえると助かります"],
+    reply: [{ t: "経緯をまとめたものがあります。共有します。", f: "経緯まとめ.md" },
+            { t: "先に流しておきます。決定事項と保留を分けています。", f: "共有メモ.docx" }],
+  },
+  "アイデア": {
+    ask: ["正直ネタ切れ気味で、何かないですかね…", "この切り口だと弱い気がしていて"],
+    reply: [{ t: "逆から考えてみるのはどうでしょう。前提をひとつ外してみます。" },
+            { t: "近い事例が2件あります。そこから輪郭を借りられそうです。" }],
+  },
+};
+const FILL_FLOW_DEFAULT = {
+  ask: ["お願いしたい件があるのですが、いけますか？", "こちらの件、見ていただけますか？"],
+  reply: [{ t: "承知しました。本日中に戻します。" }, { t: "確認しました。こちらで進めます。" }],
+};
+
+/**
+ * 頼み → 返し → 感謝 の3つで、やり取りの肝だけを組み立てる。
+ * toward=true（おくった側）は向きが逆で、動いたのは相手、礼を言うのが自分になる。
+ */
+function fillStory(tag, name, ini, day, thanks, rnd, toward) {
+  const f = FILL_FLOW[tag] || FILL_FLOW_DEFAULT;
+  const ask = f.ask[Math.floor(rnd() * f.ask.length)];
+  const rp = f.reply[Math.floor(rnd() * f.reply.length)];
+  const them = { who: name, ini };
+  const me = { who: "ユーザー", ini: "ユ", mine: true };
+  return toward
+    ? [{ ...me, time: day, text: ask },
+       { ...them, time: day, text: rp.t, ...(rp.f ? { file: rp.f } : {}) },
+       { ...me, time: day, thanks: true, text: thanks }]
+    : [{ ...them, time: day, text: ask },
+       { ...me, time: day, text: rp.t, ...(rp.f ? { file: rp.f } : {}) },
+       { ...them, time: day, thanks: true, text: thanks }];
+}
+
+Object.values(MEMBER_CARDS).forEach(list => list.forEach(d => {
+  const day = (d.time || "").split(" ")[0];
+  d.summary = `${d.ch} でのやり取りから、「${d.tag}」の場面として ${d.who} からの感謝を見つけました。`;
+  d.story = fillStory(d.tag, d.who, d.ini, day, d.msg, seeded(d.id * 31 + 7), false);
+}));
+
 /**
  * 手書きのカード（keep）を残したまま、月ごとの枚数が
  * shape.monthly.recv と一致するようカードを補う。
@@ -3258,9 +3333,7 @@ function buildAlbumFrom(shape, keep, seed, series = "recv") {
         who, ini, ch, src, month: mo.label, msg, tag,
         time: `${mo.m}/${Math.max(1, day)} ${hh}:${String(mm).padStart(2, "0")}`,
         summary: `${ch} でのやり取りから、「${tag}」の場面として ${who} からの感謝を見つけました。`,
-        story: [
-          { who, ini, time: `${mo.m}/${Math.max(1, day)}`, thanks: true, text: msg },
-        ],
+        story: fillStory(tag, name, ini, `${mo.m}/${Math.max(1, day)}`, msg, rnd, toward),
       });
     }
     /* 月の中では手書きのカードが先（いちばん新しい）。そのあとに補ったぶんを日付順で置く */
@@ -3323,6 +3396,14 @@ MY_SHAPE.groups[2].people.push(["岡", "岡田さん", 1], ["伊", "伊藤さん
 /* おくったありがとう（S03）も同じ推移データから作る。
    ここだけ3枚のままだと、一覧の「おくった ◯通」と数が合わなくなる */
 {
+  /* 手書きの3枚には流れが無く、開いても自分のふきだしが1つ出るだけだった。
+     機械で作るぶんと同じ形（頼み→返し→感謝）を持たせる。向きは「おくった」側 */
+  SENT.forEach((d, i) => {
+    if (d.story) return;
+    const name = String(d.who).replace(/へ$/, "");
+    d.summary = `${d.ch} でのやり取りから、「${d.tag}」の場面として ${name} へおくった感謝を見つけました。`;
+    d.story = fillStory(d.tag, name, d.ini, (d.time || "").split(" ")[0], d.msg, seeded(i * 29 + 11), true);
+  });
   const keep = SENT.slice();
   const built = buildAlbumFrom(MY_SHAPE, keep, 5, "sent");
   SENT.length = 0; SENT.push(...built);
@@ -3961,60 +4042,85 @@ function renderAlbumFoot(el) {
 /* 本人のアルバム（S01） */
 const SELF_OPTS = { clickable: true, memo: true, del: true, fav: true, list: DATA, emptyKind: "self" };
 const SENT_OPTS = { clickable: true, memo: false, del: false, fav: false, emptyKind: "sent" };
-const filter = { tag: "", fav: false, sort: "new" };
+const filter = { tag: "", sort: "new" };
+/* アルバムの中で「もらった」「おくった」を入れ替える。画面（タブ）は分けない */
+let SERIES = "recv";
+const seriesList = () => (SERIES === "sent" ? SENT : DATA);
+const seriesOpts = () => (SERIES === "sent" ? SENT_OPTS : SELF_OPTS);
 
-/** いま画面に出ている（＝絞り込み・並び替え後の）カード。書き出しもこれを使う（A-08） */
+/** いま画面に出ている（＝絞り込み・並び替え後の）カード */
 function visibleAlbum() {
-  const list = DATA.filter(d => (!filter.tag || d.tag === filter.tag) && (!filter.fav || d.fav));
+  const list = seriesList().filter(d => !filter.tag || d.tag === filter.tag);
   /* 並び替えるのは時系列だけ。人どうしを並べて比べさせる表示はしない（原則6） */
-  return filter.sort === "old" ? list.slice().reverse() : list;
+  const byTime = filter.sort === "old" ? list.slice().reverse() : list.slice();
+  /* お気に入りは先頭へ寄せる。「お気に入りのみ」で絞ると他が消えてしまうが、
+     寄せるだけなら消えない。中での前後は、いま選ばれている時系列のまま保つ
+     （sort は安定なので、同じ組の中の並びは触られない） */
+  return byTime.sort((a, b) => (b.fav ? 1 : 0) - (a.fav ? 1 : 0));
 }
 
-/** いまの絞り込みを一言で。書き出しの副題・件数表示・0件の案内で使い、言い方をそろえる */
+/** いまの絞り込みを一言で。件数表示・0件の案内で使い、言い方をそろえる */
 function filterNote() {
-  const on = [];
-  if (filter.tag) on.push(`場面：${filter.tag}`);
-  if (filter.fav) on.push("お気に入りのみ");
-  return on.join(" ／ ");
+  return filter.tag ? `場面：${filter.tag}` : "";
 }
 
 /** 読込中・失敗・権限なしのときは、下の件数と続きの導線も出しっぱなしにしない */
 function clearAlbumFoot(el) { albumFootOf(el).innerHTML = ""; }
 
+/** 並び順ボタンの見た目と読み上げ名をいまの状態に合わせる。
+    文字を持たないボタンなので、名前は「いまどちらか」と「押すとどうなるか」を両方言う */
+function paintAlbumSort() {
+  const b = $("albumSort");
+  const now = filter.sort === "old" ? "古い順" : "新しい順";
+  const next = filter.sort === "old" ? "新しい順" : "古い順";
+  b.dataset.sort = filter.sort;
+  b.setAttribute("aria-label", `並び順：${now}。押すと${next}にします`);
+  b.title = `並び順：${now}（押すと${next}）`;
+}
+
 function applyFilters() {
   filter.tag = $("tagFilter").value;
-  filter.fav = $("favFilter").checked;
-  filter.sort = $("albumSort").value;
+  paintAlbumSort();
   const list = visibleAlbum();
   const note = filterNote();
   /* 絞り込みの状態を出すのは select とチェックボックスの1か所だけにする。
      以前あったチップは同じ状態の二重表示だったのでやめ、
      代わりに「すべての条件をまとめて外す」ボタンだけを置く（A-41） */
   $("clearFilter").classList.toggle("on", !!note);
-  /* 見出しの通数もここで出し直す。カードを削除したのに「533通」のまま、を防ぐ */
-  $("count").textContent = String(DATA.length);
+  /* 見出しと通数も、いま見ている側のものに出し直す。
+     カードを削除したのに「533通」のまま、を防ぐ */
+  const all = seriesList();
+  $("albumTitle").textContent = SERIES === "sent" ? "あなたがおくったありがとう" : "あなたに届いたありがとう";
+  $("count").textContent = String(all.length);
   /* 読み込めていないときは、カードの代わりに状態を描いて終わる（イシュー#12） */
   if (screenState($("grid"), "cards", applyFilters)) { clearAlbumFoot($("grid")); return; }
-  renderAlbumInto($("grid"), list, SELF_OPTS, {
-    totalAll: DATA.length,
+  renderAlbumInto($("grid"), list, seriesOpts(), {
+    totalAll: all.length,
     filterNote: note,
-    empty: "self",
+    empty: SERIES === "sent" ? "sent" : "self",
   });
 }
 
-function renderSent() {
-  if (screenState($("sentGrid"), "cards", renderSent)) { clearAlbumFoot($("sentGrid")); return; }
-  renderAlbumInto($("sentGrid"), SENT, SENT_OPTS, { totalAll: SENT.length, empty: "sent" });
+/** もらった／おくった の入れ替え。同じ面の中身を差し替えるだけで、行き先は変わらない */
+function setSeries(next) {
+  if (next === SERIES) return;
+  SERIES = next;
+  document.querySelectorAll("#seriesSeg button").forEach(b =>
+    b.setAttribute("aria-pressed", String(b.dataset.series === next)));
+  /* 場面の選択肢は、いま見ている側にあるタグだけにする。
+     もらった側にしか無いタグを選んだままおくった側へ移ると、0件の面に着いてしまう */
+  $("tagFilter").value = "";
+  initTagFilter();
+  applyFilters();
 }
 
 function clearAlbumFilter() {
   $("tagFilter").value = "";
-  $("favFilter").checked = false;
   applyFilters();
   toast("絞り込みを解除しました");
 }
 function initTagFilter() {
-  const tags = [...new Set(DATA.map(d => d.tag))];
+  const tags = [...new Set(seriesList().map(d => d.tag))];
   const keep = $("tagFilter").value;
   /* 選択肢ひとつひとつに「場面：」を足すことも試したが、select の幅は
      いちばん長い選択肢で決まるため、スマホでツールバーが1行増えて
@@ -4029,6 +4135,8 @@ function initTagFilter() {
 }
 function gotoAlbumWithTag(tag) {
   showPersonView("album");
+  /* カタチから飛んでくるのは「もらった」ぶんの場面。おくった側を見ていたら戻す */
+  if (SERIES !== "recv") setSeries("recv");
   $("tagFilter").value = tag;
   applyFilters();
   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -4492,7 +4600,7 @@ function openThread(d, fromCard, opts) {
           <p class="sheet-summary">${d.summary}</p>
         </section>` : ""}
         <section class="sheet-block">
-          <h3 class="sheet-sec">やり取りの流れ</h3>
+          <h3 class="sheet-sec">やり取りの流れ（抜粋）</h3>
           ${story}
           <div class="sheet-actions">
             <button class="mini-btn" data-open-src>${d.src}で開く${EXT_ICON}</button>
@@ -4826,37 +4934,6 @@ function openFlight(ov, card) {
   };
   return { close };
 }
-
-/* =========================================================================
-   6. 書き出し（F13・年間アルバム）
-   ========================================================================= */
-/* 書き出しは「いま見えているもの」を対象にする（要件F13／A-08）。
-   以前は DATA を直に見ていたため、3件に絞っていても「12件」と出て、
-   絞り込みを無視して全部書き出すように見えていた */
-function openCsvDialog() {
-  const list = visibleAlbum();
-  const note = filterNote();
-  const rows = list.slice(0, 4).map(d =>
-    `${d.time.replace(/\s/g, "_")},${d.who},${d.tag},${d.src},"${String(d.msg || "").replace(/<br>/g, "").slice(0, 18)}…"`).join("\n");
-  openDialog({
-    title: "CSVで書き出す",
-    sub: `アルバム ${list.length}件${note ? `（絞り込み：${note}）` : "（絞り込みなし・全件）"} ／ じぶんのメモは含めません`,
-    body: `<p class="dlg-text">いま画面に出ている ${list.length}件を、受け取った日・送り主・場面タグ・出典・本文の順で書き出します。${note ? `絞り込み（${note}）はそのまま引き継ぎます。` : ""}じぶんのメモは、あなただけのものなので含めません。</p>
-      ${list.length ? `<div class="prev" data-scroll-region="書き出す中身の見本"><pre>受取日,送り主,場面タグ,出典,本文
-${esc(rows)}
-…（ほか ${Math.max(0, list.length - 4)}件）</pre></div>` : '<p class="dlg-text">いま書き出せるカードがありません。絞り込みを外してからお試しください。</p>'}`,
-    actions: [{ label: "閉じる" }, {
-      label: "書き出す", primary: true, task: true, busy: "書き出しています…",
-      failHead: "CSVを書き出せませんでした", failWhy: "書き出しの途中で通信が途切れたためです。",
-      run: () => mockToast(`カードを${list.length}件、CSVに書き出しました`),
-    }],
-  });
-}
-
-/* 「実績として書き出す（STAR形式）」はカタチ画面から外した（イシュー#18-7）。
-   ダイアログを開く入口が画面に無くなったので、ここも残さない。
-   エクスポート（F13）はアルバムのCSVと年間アルバムPDFが引き続き担う */
-
 
 /* =========================================================================
    7. 推移チャート（期間タブ・横スクロール・なぞるとクロスヘア＋数値）
@@ -5888,8 +5965,10 @@ function netInsights(label) {
    9. ロール・画面切替
    ========================================================================= */
 let ROLE = "person";
-const PERSON_VIEWS = { album: "viewAlbum", shape: "viewShape", sent: "viewSent" };
-const ALL_VIEWS = ["viewAlbum", "viewShape", "viewSent", "viewTeam", "viewMember", "viewAdmin"];
+const PERSON_VIEWS = { album: "viewAlbum", shape: "viewShape" };
+/* スワイプで隣へ移るときの並び。タブの並びと同じにしておく */
+const PERSON_ORDER = ["album", "shape"];
+const ALL_VIEWS = ["viewAlbum", "viewShape", "viewTeam", "viewMember", "viewAdmin"];
 const hideAllViews = () => ALL_VIEWS.forEach(v => $(v).classList.add("hidden"));
 
 /**
@@ -5927,8 +6006,7 @@ function showPersonView(name) {
     // いま開いている行き先を支援技術にも伝える（見た目の .active と対）
     if (on) t.setAttribute("aria-current", "page"); else t.removeAttribute("aria-current");
   });
-  landOnView(PERSON_VIEWS[name],
-    { album: "ありがとうのアルバム", shape: "あなたのカタチ", sent: "おくったありがとう" }[name]);
+  landOnView(PERSON_VIEWS[name], { album: "ありがとうのアルバム", shape: "分析" }[name]);
 }
 
 /** ヘッダー右上の「いま誰として見ているか」。
@@ -6781,7 +6859,7 @@ const STATE_DEMO = [
 function redrawCurrentScreen() {
   if (ROLE === "admin") showAdmin(currentAdminTab);
   else if (ROLE === "boss") renderTeamSummary();
-  else { applyFilters(); renderSent(); }
+  else applyFilters();
 }
 
 function syncStateDemo() {
@@ -6822,16 +6900,8 @@ function initStateDemo() {
 /* =========================================================================
    14. 起動
    ========================================================================= */
-/* 画面の見出しに出る数は、すべてカードの実体から出す（A-06／A-20／A-47）。
-   以前は 264／265／12 と、同じものを指すはずの数が3つ食い違っていた */
-$("sentCount").textContent = String(SENT.length);
-/* 説明は1〜2行に収める（A-27）。長いほど主役のカードが下へ押し出される。
-   数の基準（いつからいつまでのぶんか）は残す（A-47）。
-   カードを押すと詳細が開くことは、押せば分かるので書かない */
-$("albumLead").textContent =
-  `Slack・Teams から、あなた宛ての感謝を自動で集めています（${ALBUM_PERIOD}に届いたぶん）。`;
-$("sentLead").textContent = `あなたが伝えた感謝も、ここに残しています（${ALBUM_PERIOD}におくったぶん）。`;
-/* カタチの見出しの下の説明文は置かない（イシュー#18-11） */
+/* 見出しの下の説明文は本人の画面には置かない（アルバム・カタチとも）。
+   数の出どころはカードの実体ひとつ（A-06／A-20）。 */
 
 $("demoBtn").classList.toggle("hidden", !DEMO_UI);
 renderMe(ROLE);   /* 起動時は setRole() を通らないので、ここで本人のアバターを出す */
@@ -6840,7 +6910,6 @@ initStateDemo();
 initTagFilter();
 applyFilters();
 renderMilestones();
-renderSent();
 renderShapeInto($("myShape"), MY_SHAPE, true);
 
 document.querySelectorAll("#personTabs .tab").forEach(t =>
@@ -6850,10 +6919,15 @@ $("roleSeg").addEventListener("click", e => {
   setRole(b.dataset.role);
 });
 $("tagFilter").addEventListener("change", applyFilters);
-$("favFilter").addEventListener("change", applyFilters);
-$("albumSort").addEventListener("change", applyFilters);
+$("albumSort").addEventListener("click", () => {
+  filter.sort = filter.sort === "old" ? "new" : "old";
+  applyFilters();
+});
+$("seriesSeg").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  setSeries(b.dataset.series);
+});
 $("clearFilter").addEventListener("click", clearAlbumFilter);
-$("btnCsv").addEventListener("click", openCsvDialog);
 $("teamPeriod").addEventListener("change", renderTeamSummary);
 $("teamSearch").addEventListener("input", renderMembers);
 $("alertOnly").addEventListener("change", renderMembers);
