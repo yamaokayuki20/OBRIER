@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>オブリエ | 届いたありがとうを、あなたのアルバムに</title>
+<!-- 生成物：直さないこと。正は prototype/obrier-prototype-v5.html -->
+<title>オブリエ アルバム</title>
 <style>
   :root {
     /* 紙・インク（カード面で使う） */
@@ -2514,7 +2515,7 @@ const DEMO_UI = new URLSearchParams(location.search).get("demo") === "1";
 /* 役割を固定して配る用の目印。空なら3つとも切り替えられる開発用の画面。
    tools/build-roles.mjs がこの行だけを書き換えて、本人・上司・管理者の
    3つのファイル（＝3つのURL）を作る。中身はこの1本が正で、写しは持たない */
-const ROLE_LOCK = "";   /* BUILD:ROLE_LOCK */
+const ROLE_LOCK = "person";   /* BUILD:ROLE_LOCK */
 /** いまの時刻（15:58）。保存した時刻の表示に使う */
 const hhmm = () => { const d = new Date(), p = n => String(n).padStart(2, "0"); return `${p(d.getHours())}:${p(d.getMinutes())}`; };
 

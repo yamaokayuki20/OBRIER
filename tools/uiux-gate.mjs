@@ -100,12 +100,39 @@ async function visitAll(p, collect) {
   const take = async label => out.push(...(await collect()).map(x => ({ ...x, screen: label })));
   const wait = ms => p.waitForTimeout(ms);
 
-  // ---- 本人の3画面 ----
-  for (const v of ['album', 'shape', 'sent']) {
+  // ---- 本人の2画面（rev.23 で「おくった」はアルバムの中の切り替えへ移った） ----
+  for (const v of ['album', 'shape']) {
     await p.locator(`.tab[data-v="${v}"]`).click();
     await wait(700);
     await take(v);
   }
+
+  // ---- アルバムの「おくった」側。切り替えた先も1場面として測る ----
+  await p.locator(`.tab[data-v="album"]`).click();
+  await wait(600);
+  try {
+    await p.locator('#seriesSeg button[data-series="sent"]').click({ timeout: 3000 });
+    await wait(800);
+    await take('アルバム（おくった）');
+    /* おくった側のカードは操作の選択肢が違う（お気に入り・削除を持たない）ので
+       詳細も別に測る */
+    await p.locator('#grid .card').first().click({ timeout: 3000 });
+    await wait(900);
+    await take('拡大詳細（おくった）');
+    await p.keyboard.press('Escape');
+    await wait(700);
+    await p.locator('#seriesSeg button[data-series="recv"]').click({ timeout: 3000 });
+    await wait(700);
+  } catch { out.__missed.push('アルバムのおくった側'); }
+
+  // ---- 並び順（古い順に倒した状態）。矢印が反転し、読み上げ名も入れ替わる ----
+  try {
+    await p.locator('#albumSort').click({ timeout: 2500 });
+    await wait(600);
+    await take('アルバム（古い順）');
+    await p.locator('#albumSort').click({ timeout: 2500 });
+    await wait(600);
+  } catch { out.__missed.push('並び順の切り替え'); }
 
   // ---- 拡大詳細（カードの中身。ボタン・注記・やり取りが全部ここにある） ----
   await p.locator(`.tab[data-v="album"]`).click();
@@ -121,7 +148,8 @@ async function visitAll(p, collect) {
   // ---- ダイアログ群 ----
   // いま実在するダイアログだけを並べる。消えた画面を並べたままにすると、
   // 開けないのが当たり前になって「開けない」の意味が薄れる
-  const dialogs = [['CSVで書き出す', 'CSV']];
+  // （CSV書き出しは rev.23 で外したので、ここからも外した）
+  const dialogs = [];
   for (const [label, name] of dialogs) {
     try {
       await p.locator('button', { hasText: label }).first().click({ timeout: 2500 });
