@@ -748,32 +748,58 @@
        本文の上に乗っているように見せる（参考デザインに合わせた）。
        modal（z-index 60）より下に敷いて、詳細を開いたときは隠れる。
        ホームバーと重ならないよう safe-area のぶんだけ底上げする */
+    /* 寸法は Apple の Human Interface Guidelines のタブバーに合わせた。
+       あちらは アイコン約25pt・ラベル10pt・バーの高さ49pt。
+       ラベルだけは10ptにできない（この画面の文字の下限は12px）ので、
+       12px に留めてそのぶんアイコンを22pxに詰め、1つぶんの高さを44px
+       （当たり判定の下限）ちょうどに収めた。バー全体は56pxになる */
     .tabs {
       position: fixed; z-index: 30;
       left: 50%; transform: translateX(-50%);
       bottom: calc(14px + env(safe-area-inset-bottom, 0px));
       width: auto; max-width: calc(100vw - 32px);
-      margin-left: 0; gap: 4px; padding: 8px 10px;
+      margin-left: 0; gap: 0; padding: 6px;
       background: #fff; border-radius: 999px;
       box-shadow: 0 10px 30px rgba(20, 26, 40, .16), 0 2px 8px rgba(20, 26, 40, .08);
       overflow-x: visible;
     }
-    /* 1つぶんは アイコンの下に文字。選んでいるものだけ黒く太く、
-       ほかは灰色（参考デザインの Location / Bicycle / Account と同じ出し分け） */
+    /* 1つぶんは アイコンの下に文字。選んでいるものは紺の地に白 */
     .tab {
-      flex: 1; min-width: 96px; min-height: 44px; border-radius: 999px;
-      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
-      padding: 6px 14px; font-size: var(--fs-cap); font-weight: 500;
-      /* 参考デザインは選んでいないほうを薄い灰にしているが、その濃さ（#8b8f98）は
-         白地に対して 3.24:1 で本文の基準（4.5:1）を割る。読める濃さまで落とした
-         （#6b7280 ＝ 4.83:1）。選んでいるものとの差は、色の濃さと字の太さで十分つく */
+      flex: 1; min-width: 92px; min-height: 44px; border-radius: 999px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+      padding: 4px 16px; font-size: 12px; line-height: 1.25; font-weight: 500;
+      /* 選んでいないほうの灰。参考デザインの #8b8f98 は白地に 3.24:1 で
+         本文の基準（4.5:1）を割るので、#6b7280（4.83:1）まで濃くした */
       color: #6b7280; background: none;
     }
-    .tab .tab-ico { display: block; width: 24px; height: 24px; }
+    .tab .tab-ico { display: block; width: 22px; height: 22px; }
     .tab:hover { background: none; }
-    /* 選んでいるものは黒。丸い塗りは敷かない（帯そのものが白い島なので、
-       中にもう1つ濃い島を作ると重くなる） */
-    .tab.active { background: none; color: #10131a; font-weight: 700; }
+    /* 下に敷く紺の丸。左右へ滑って移る。
+       ・幅と位置は JS が測って入れる（タブの文字数で幅が違うため）
+       ・字とアイコンが丸に隠れないよう、タブ側を上（z-index 1）に置く
+       ・最初の1回は滑らせない（.no-anim。画面を開いた瞬間に左から走ってこない） */
+    .tab-pill {
+      display: block; position: absolute; top: 6px; bottom: 6px; left: 0;
+      width: 0; border-radius: 999px; background: var(--navy); z-index: 0;
+      transform: translateX(0);
+      transition: transform .34s cubic-bezier(.22,.61,.36,1), width .34s cubic-bezier(.22,.61,.36,1);
+    }
+    .tab-pill.no-anim { transition: none; }
+    .tab { position: relative; z-index: 1; }
+    /* 選んでいるものは、下に敷いた紺の丸（.tab-pill）の上に白で乗る。
+       あわせて**タブ自身にも同じ紺を敷く**。滑っている丸は兄弟要素なので、
+       白い字の「下に何色があるか」を機械（判定器）も支援技術も辿れない
+       ——実際に測ると 1:1 と出る。自分の地として持てば、辿れる形になる。
+       ただし敷くのは丸が着いてから（.34s 遅らせる）。すぐ敷くと、
+       丸がまだ走っている間に行き先だけ先に紺くなって、紺が2つ見える。
+       外すときは遅らせない（下の .tab が遅れ0を持っている） */
+    .tab { transition: background-color 0s linear 0s; }
+    .tab.active {
+      background-color: var(--navy); color: #fff; font-weight: 700;
+      transition-delay: .34s;
+    }
+    /* 動きを減らす設定では丸が瞬時に移るので、地も待たせない */
+    @media (prefers-reduced-motion: reduce) { .tab.active { transition-delay: 0s; } }
     .me span { display: none; }
     /* 浮いた帯に本文が隠れないよう、そのぶんだけ底の余白を足す
        （帯は下から 14px 浮いていて高さ60px＝上端は下から74px） */
@@ -790,6 +816,8 @@
     .ms-x { min-width: 44px; min-height: 44px; }
     .check input[type="checkbox"] { min-width: 44px; min-height: 44px; }
   }
+  /* 動きを減らす設定では滑らせない。位置は同じところへ、瞬時に移る */
+  @media (prefers-reduced-motion: reduce) { .tab-pill { transition: none; } }
   @media (prefers-reduced-motion: reduce) { .card3d { transition: none; } }
 
   /* ---- キーボード操作まわり（イシュー#8） ----
@@ -801,7 +829,11 @@
   /* アイコンはスマホの浮いた帯でだけ出す。PCのヘッダーは文字だけのピルのまま。
      この規則はスマホ用の @media より後ろにあるので、出す側もここで言い直す */
   .tab .tab-ico { display: none; }
-  @media (max-width: 640px) { .tab .tab-ico { display: block; width: 24px; height: 24px; } }
+  /* 紺の丸もスマホの帯でだけ。PCのヘッダーは .tab.active の塗りがそのまま担う。
+     この規則はスマホ用の @media より後ろにあるので、出す側もここで言い直す */
+  .tab-pill { display: none; }
+  @media (max-width: 640px) { .tab-pill { display: block; } }
+  @media (max-width: 640px) { .tab .tab-ico { display: block; width: 22px; height: 22px; } }
 
   /* ---- 件数と絞り込み（イシュー#11） ----
      画面が示す数と、実際に見えているもの・書き出されるものを一致させるための
@@ -2257,6 +2289,9 @@
            ・元から <nav> で囲まれており、行き先の選択という見立てと合う
          そのため「いま開いている行き先」を aria-current="page" で示す。 -->
     <nav class="tabs" id="personTabs" aria-label="画面の切り替え" data-scroll-region="画面の切り替えタブ">
+      <!-- 選んでいるものの下に敷く紺の丸。位置と幅は JS が測って入れる（syncTabPill）。
+           装飾なので読み上げからは外す -->
+      <span class="tab-pill" id="tabPill" aria-hidden="true"></span>
       <button type="button" class="tab active" data-v="album" aria-current="page">
         <svg class="tab-ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none"
              stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
@@ -2284,7 +2319,7 @@
     </div>
     <div class="me" id="meBox"><span>ユーザーさん</span><div class="ava-s">ユ</div></div>
     <!-- どの版を見ているかを確かめるための表示。更新されていないと思ったときはここを見る -->
-    <button class="build" id="buildTag" title="押すと自己診断（閉じる動作の重さを自動で測ります）">rev.27 浮遊メニュー版</button>
+    <button class="build" id="buildTag" title="押すと自己診断（閉じる動作の重さを自動で測ります）">rev.28 メニュー整形版</button>
   </div>
 </header>
 
@@ -4624,6 +4659,12 @@ function openThread(d, fromCard, opts) {
   ov.className = "overlay";
   ov.style.setProperty("--cc", tagColor(d.tag));
   ov.style.setProperty("--ci", tagInk(d.tag));
+  /* カードの地と文字の色も渡す。
+     これが無いと、飛ぶ複製が**透明になる**——複製しているのは .card3d だけで、
+     --cb / --ct を持っているのは1つ外側の .card（buildCard が付ける）。
+     複製の中の `background: var(--cb)` が解決できず、地が消えていた */
+  ov.style.setProperty("--cb", tagBg(d.tag));
+  ov.style.setProperty("--ct", tagText(d.tag));
   const story = d.story ? d.story.map(s => `
     <div class="bub-row ${s.mine ? "mine" : ""} ${s.thanks ? "is-thanks" : ""}">
       <div class="ava">${avaFace(s.who, s.ini)}</div>
@@ -6060,6 +6101,20 @@ function landOnView(viewId, title) {
   h.focus({ preventScroll: true });
 }
 
+/** 選んでいるタブの下の紺の丸を、そのタブの位置と幅に合わせる。
+    タブの文字数で幅が違うので、決め打ちの割合ではなく実測で置く。
+    first=true のときは滑らせない（起動時・幅が変わったとき） */
+function syncTabPill(first) {
+  const pill = $("tabPill"), on = document.querySelector("#personTabs .tab.active");
+  if (!pill || !on) return;
+  if (first) pill.classList.add("no-anim");
+  pill.style.width = on.offsetWidth + "px";
+  pill.style.transform = `translateX(${on.offsetLeft}px)`;
+  /* クラスを外すのは、位置を書いた次のコマ。同じコマで外すと
+     いま書いた位置から滑ってしまう */
+  if (first) requestAnimationFrame(() => requestAnimationFrame(() => pill.classList.remove("no-anim")));
+}
+
 function showPersonView(name) {
   if (ROLE !== "person") setRole("person", true);
   hideAllViews();
@@ -6070,6 +6125,7 @@ function showPersonView(name) {
     // いま開いている行き先を支援技術にも伝える（見た目の .active と対）
     if (on) t.setAttribute("aria-current", "page"); else t.removeAttribute("aria-current");
   });
+  syncTabPill();
   landOnView(PERSON_VIEWS[name], { album: "ありがとうのアルバム", shape: "分析" }[name]);
 }
 
@@ -6964,6 +7020,10 @@ renderShapeInto($("myShape"), MY_SHAPE, true);
 
 document.querySelectorAll("#personTabs .tab").forEach(t =>
   t.addEventListener("click", () => showPersonView(t.dataset.v)));
+/* 起動時と、幅が変わったとき（PCとスマホの行き来・回転）に置き直す。
+   スマホでしか出ないものなので、幅が変わると位置も幅も変わる */
+syncTabPill(true);
+window.addEventListener("resize", () => syncTabPill(true));
 
 /* 左右のスワイプでも アルバム ⇄ 分析 を行き来できるようにする（スマホ）。
    指を横に払うのは、下のタブを狙って押すより速い。

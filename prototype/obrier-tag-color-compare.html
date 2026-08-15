@@ -122,8 +122,6 @@
   }
   .kind-short .say { font-size: var(--fs-head); line-height: 1.9; letter-spacing: .08em; -webkit-line-clamp: 3; }
   .kind-long .say { text-align: left; font-size: var(--fs-ui); line-height: 1.8; letter-spacing: .01em; font-weight: 500; -webkit-line-clamp: 4; }
-  .more-hint { display: none; font-size: var(--fs-note); letter-spacing: .08em; color: var(--ink-soft); align-self: flex-start; margin-top: -4px; }
-  .kind-long .more-hint { display: block; }
   .who-line { margin-top: auto; font-size: var(--fs-cap); letter-spacing: .12em; font-weight: 700; opacity: .72; }
   .c-foot { display: flex; align-items: center; gap: 8px; width: 100%; padding-top: 4px; }
   .tagpill {
@@ -257,7 +255,6 @@ function cardHTML(d, i, plan) {
     <div class="front">
       <div class="ava">${esc(d.ini)}</div>
       <div class="say">${esc(d.msg)}</div>
-      <div class="more-hint">…続きは詳細で</div>
       <div class="who-line">${esc(d.who)}</div>
       <div class="c-foot"><span class="tagpill">${esc(d.tag)}</span><span class="c-time">${esc(d.time)}</span></div>
     </div>

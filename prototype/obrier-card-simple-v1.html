@@ -270,17 +270,12 @@
   /* 短い一言：大きく見せて、余白で受ける */
   .kind-short .say { font-size: 17px; line-height: 1.95; letter-spacing: .08em; }
 
-  /* 長文：左寄せにして行数で止める。続きは詳細で読む */
+  /* 長文：左寄せにして行数で止める。切れたことは line-clamp の「…」が示す */
   .kind-long .front { padding-top: 30px; }
   .kind-long .say {
     text-align: left; font-size: 13px; line-height: 1.9; letter-spacing: .01em; font-weight: 500;
     display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden;
   }
-  .more-hint {
-    display: none; font-size: 10px; letter-spacing: .08em; color: var(--ink-soft);
-    align-self: flex-start; margin-top: -6px;
-  }
-  .kind-long .more-hint { display: block; }
 
   /* リアクションだけの「小さなありがとう」：丈を詰めて控えめに置く */
   .kind-stamp .front { min-height: 172px; gap: 12px; padding: 30px 22px 16px; }
@@ -812,7 +807,6 @@ function cardHTML(d) {
       <div class="stamp-face">${d.reaction || ""}</div>
       <div class="stamp-note">リアクションの、小さなありがとう</div>
       <div class="say">${d.msg || ""}</div>
-      <div class="more-hint">…続きは詳細で</div>
       <div class="who-line">${d.who}<span class="wl-tag">　/　${d.tag}</span></div>
       <div class="c-foot"><span class="tagpill">${d.tag}</span><span class="c-time">${d.time}</span></div>
       ${d.myMemo ? '<div class="memo-dot" title="じぶんのメモあり"></div>' : ""}
