@@ -146,12 +146,9 @@
     border-bottom: 1px solid color-mix(in srgb, var(--stage-ink) 12%, transparent);
   }
   .bar { max-width: 1140px; margin: 0 auto; padding: 11px 20px; display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap; }
-  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; letter-spacing: .12em; font-size: var(--fs-body); flex: none; }
-  /* 元は #d89a48→#b9752c（白文字が薄い方の端で 2.4:1 まで落ちる）。
-     暖色のまま両端とも白文字 4.5:1 以上を確保できる濃さに直した */
-  .brand-mark { width: 28px; height: 28px; border-radius: 9px; background-color: #724a10; background-image: linear-gradient(145deg, #96591a, #724a10); display: grid; place-items: center; color: #fff; font-size: var(--fs-body); font-weight: 800; }
-  /* opacity で薄めると背景ごとに実効コントラストが変わるため、色そのものを調整 */
-  .brand small { display: block; font-size: var(--fs-note); letter-spacing: .2em; color: var(--stage-ink-soft); font-weight: 600; }
+  .brand { display: flex; align-items: center; flex: none; }
+  /* 高さで置いて、横は比率なり。ロゴの縦横比は 223.44 : 75.31（約 2.97:1） */
+  .brand-logo { display: block; height: 34px; width: auto; }
   .tabs { display: flex; gap: 4px; margin-left: 8px; overflow-x: auto; scrollbar-width: none; }
   .tabs::-webkit-scrollbar { display: none; }
   .tab { padding: 7px 14px; border-radius: 999px; font-size: var(--fs-ui); color: var(--stage-ink-soft); cursor: pointer; white-space: nowrap; transition: background .15s, color .15s; }
@@ -163,12 +160,6 @@
   .seg button:hover { background: color-mix(in srgb, var(--stage-ink) 9%, transparent); opacity: 1; }
   .seg button[aria-pressed="true"] { background: var(--stage-ink); color: #fff; opacity: 1; font-weight: 700; }
   .me { display: flex; align-items: center; gap: 8px; font-size: var(--fs-ui); color: var(--stage-ink-soft); flex: none; }
-  /* opacity .5 だと 1.8:1 まで落ちるため外した。当たり判定は見た目を変えず
-     min-height だけで PC 24px 以上を確保（スマホでは非表示のまま） */
-  .build { font-size: var(--fs-note); letter-spacing: .06em; color: var(--stage-ink-soft); flex: none;
-    font-variant-numeric: tabular-nums; background: none; border: none; cursor: pointer; font-family: inherit;
-    padding: 2px 4px; min-height: 24px; display: inline-flex; align-items: center; }
-  .build:hover { text-decoration: underline; }
   /* 自己診断の結果パネル */
   .diag { position: fixed; right: 16px; bottom: 16px; z-index: 90; width: min(360px, calc(100vw - 32px));
     background: #fff; border: 1px solid var(--panel-line); border-radius: 14px; box-shadow: 0 18px 40px rgba(20,26,40,.24);
@@ -183,7 +174,6 @@
   .diag .pass { background: #e6f4ec; color: #1f7a4d; }
   .diag .fail { background: #fce9e7; color: #b3261e; }
   .diag .x { position: absolute; top: 10px; right: 12px; border: none; background: none; cursor: pointer; color: var(--navy-soft); font-size: var(--fs-ui); }
-  @media (max-width: 640px) { .build { display: none; } }
   .ava-s { width: 28px; height: 28px; border-radius: 50%; background: var(--ava); color: #fff; display: grid; place-items: center; font-size: var(--fs-cap); font-weight: 800; flex: none; }
 
   /* ---------------- 本体 ---------------- */
@@ -687,8 +677,9 @@
   .memo-ta::placeholder { color: var(--navy-soft); opacity: 1; }
   .memo-ta:focus { border-color: var(--navy-soft); }
   .memo-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
-  .memo-row small { font-size: var(--fs-note); color: var(--navy-soft); }
-  .memo-row .mini-btn { margin-left: auto; }
+  /* 「このメモはあなただけに表示されます」の断り書きは外した（ユーザー判断）。
+     左端が空くので、状態と保存ボタンをまとめて右へ寄せる */
+  .memo-row .memo-state { margin-left: auto; }
   /* .sheet-danger（本文の下に「報告する」「削除する」を並べていた帯）は、
      イシュー#24 で無くなった。削除は日付の右の ⋯ の中へ、報告そのものは廃止 */
   .danger-btn { font-family: inherit; font-size: var(--fs-cap); font-weight: 700; cursor: pointer; border: 1px solid #e3b9b3; background: #fff; color: #b0432f; border-radius: 999px; padding: 6px 14px; }
@@ -742,7 +733,7 @@
 
   @media (max-width: 640px) {
     .bar { padding: 10px 13px; gap: 8px 10px; }
-    .brand { font-size: var(--fs-body); }
+    .brand-logo { height: 28px; }
     /* スマホのタブは、画面の下端に**浮かせた**丸い帯にする。
        端に貼り付けず左右と下に余白を残し、白・全角丸・やわらかい影で
        本文の上に乗っているように見せる（参考デザインに合わせた）。
@@ -2273,7 +2264,12 @@
 
 <header>
   <div class="bar">
-    <div class="brand"><div class="brand-mark">O</div><div>オブリエ<small>OBRIER</small></div></div>
+    <!-- ロゴ。正のファイルは asset/logo_obrier.svg で、ここへは data URI にして埋めている
+         （この画面は単一HTML・外部読み込み無しが制約なので、外のファイルは参照できない）。
+         ロゴを差し替えたら、そのファイルから作り直してここへ入れ直すこと。
+         画像の中に「OBRIER」「オブリエ」の字が入っているので、隣に文字は置かない。
+         名前は alt が持つ（読み上げでは「オブリエ」と読まれる） -->
+    <div class="brand"><img class="brand-logo" src="data:image/svg+xml;base64,PHN2ZyBpZD0iX+ODrOOCpOODpOODvF8yIiBkYXRhLW5hbWU9IuODrOOCpOODpOODvCAyIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMjMuNDQgNzUuMzEiPiA8ZGVmcz4gPHN0eWxlPiAuY2xzLTEgeyBmaWxsOiAjZmZmOyB9IC5jbHMtMiwgLmNscy0zIHsgZmlsbDogIzA5MTUzZDsgfSAuY2xzLTMgeyBmb250LWZhbWlseTogR2FyYW1vbmRQcmVtclBybywgJ0dhcmFtb25kIFByZW1pZXIgUHJvJywgJ0hpcmFnaW5vIE1pbmNobyBQcm9OJywgJ1l1IE1pbmNobycsIEdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZjsgZm9udC1zaXplOiA0OHB4OyB9IC5jbHMtNCB7IGxldHRlci1zcGFjaW5nOiAwZW07IH0gLmNscy01IHsgZm9udC1mYW1pbHk6IFRzdWt1QVJkR290aGljU3RkLUItODNwdi1SS1NKLUgsICdGT1QtVHN1a3VBUmRHb3RoaWMgU3RkJywgJ0hpcmFnaW5vIFNhbnMnLCAnWXUgR290aGljJywgJ05vdG8gU2FucyBKUCcsIHNhbnMtc2VyaWY7IGZvbnQtc2l6ZTogMTUuOTNweDsgfSAuY2xzLTYgeyBsZXR0ZXItc3BhY2luZzogMGVtOyB9IC5jbHMtNyB7IGxldHRlci1zcGFjaW5nOiAwZW07IH0gLmNscy04IHsgbGV0dGVyLXNwYWNpbmc6IDBlbTsgfSA8L3N0eWxlPiA8L2RlZnM+IDxnIGlkPSJf44Os44Kk44Ok44O8XzEtMiIgZGF0YS1uYW1lPSLjg6zjgqTjg6Tjg7wgMSI+IDxnPiA8cGF0aCBjbGFzcz0iY2xzLTIiIGQ9Ik01NC4yLDcyLjc3SDMuNDhWMTMuOTRoNTEuMjVjLjc1LDAsMS4zNy42MSwxLjM3LDEuMzd2NTUuNTdjMCwxLjA0LS44NCwxLjg5LTEuODksMS44OVpNNS44OSw3MC4zNmg0Ny43OVYxNi4zNkg1Ljg5djU0WiIvPiA8Zz4gPHBhdGggY2xhc3M9ImNscy0xIiBkPSJNMzYuNTQsNjEuMTljLTguMjgsNC45OC0xOS4zOSw4LjEyLTMxLjg2LDEwLjM3VjE1LjE1YzguMjItMS43LDE1LjUyLTIuNzMsMzEuODYtMTAuMzd2NTYuNDFaIi8+IDxwYXRoIGNsYXNzPSJjbHMtMiIgZD0iTTUuOTYsMTYuMTl2NTMuODNjMTIuOTEtMi40MywyMi4yOC01LjQ5LDI5LjMtOS41NlY2Ljc4Yy0xMy43Nyw2LjI4LTIxLjAzLDcuNzQtMjguMDUsOS4xNmwtMS4yNS4yNVpNMy40MSw3Mi43OFYxNC4xMWwzLjMtLjY4YzcuMTgtMS40NSwxNC42MS0yLjk0LDI5LjMtOS44MWwuMjgtLjEzYy43Mi0uMzMsMS41NC4xOSwxLjU0Ljk4djU3LjQ1bC0uNjEuMzdjLTcuNTksNC41Ny0xNy43Nyw3Ljg5LTMyLjAyLDEwLjQ5aC0xLjc4WiIvPiA8L2c+IDxnPiA8cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0yNy43LDU4LjI0Yy02LjUsNS42My0xNC4xNywxMC4wNy0yMy4wMiwxMy4zMlYxNS4xNUMxMy4xOCwxMS45NiwyMC43Nyw3LjQsMjcuNywxLjgzdjU2LjQxWiIvPiA8cGF0aCBjbGFzcz0iY2xzLTIiIGQ9Ik0yNi44OS44NGMtNy4yNCw1LjgyLTE0LjY1LDEwLjExLTIyLjY2LDEzLjExbC0uODMuMzF2NTguNTJoMS43MWM4Ljk2LTMuMjksMTYuODQtNy44NiwyMy40MS0xMy41NmwuNDUtLjM4Vi43N2MwLS42NS0uNzUtMS4wMS0xLjI2LS42bC0uODMuNjdaTTI2LjQyLDU3LjY1Yy01LjgzLDQuOTYtMTIuNyw5LjAyLTIwLjQ2LDEyLjA1VjE2LjAyYzcuMTktMi43OCwxMy45MS02LjU4LDIwLjQ2LTExLjU3djUzLjE5WiIvPiA8L2c+IDxwYXRoIGNsYXNzPSJjbHMtMiIgZD0iTTUuMDIsMjAuNDNjLTIuMzEsMC01LjAyLS40Ny01LjAyLTEuNzlzMi43LTEuNzksNS4wMi0xLjc5YzEuMzcsMCwyLjExLjAxLDMuMDEuMzEuNTEuMDIuNDEsMS40NS0uMSwxLjQyLS42OC0uMjItMS43Ny0uMzYtMi45MS0uMzYtMS41MiwwLTIuNi4yMy0zLjA4LjQyLjQ5LjE5LDEuNTYuNDIsMy4wOC40MnYxLjM3WiIvPiA8cGF0aCBjbGFzcz0iY2xzLTIiIGQ9Ik01LjAyLDI0LjkzYy0yLjMxLDAtNS4wMi0uNDctNS4wMi0xLjc5czIuNy0xLjc5LDUuMDItMS43OWMxLjM3LDAsMi4xMS4wMSwzLjAxLjMxLjUxLjAyLjQxLDEuNDUtLjEsMS40Mi0uNjgtLjIyLTEuNzctLjM2LTIuOTEtLjM2LTEuNTIsMC0yLjYuMjMtMy4wOC40Mi40OS4xOSwxLjU2LjQyLDMuMDguNDJ2MS4zN1oiLz4gPHBhdGggY2xhc3M9ImNscy0yIiBkPSJNNS4wMiwyOS40MmMtMi4zMSwwLTUuMDItLjQ3LTUuMDItMS43OXMyLjctMS43OSw1LjAyLTEuNzljMS4zNywwLDIuMTEuMDEsMy4wMS4zMS41MS4wMi40MSwxLjQ1LS4xLDEuNDItLjY4LS4yMi0xLjc3LS4zNi0yLjkxLS4zNi0xLjUyLDAtMi42LjIzLTMuMDguNDIuNDkuMTksMS41Ni40MiwzLjA4LjQydjEuMzdaIi8+IDxwYXRoIGNsYXNzPSJjbHMtMiIgZD0iTTUuMDIsMzMuOTFjLTIuMzEsMC01LjAyLS40Ny01LjAyLTEuNzlzMi43LTEuNzksNS4wMi0xLjc5YzEuMzcsMCwyLjExLjAxLDMuMDEuMzEuNTEuMDIuNDEsMS40NS0uMSwxLjQyLS42OC0uMjItMS43Ny0uMzYtMi45MS0uMzYtMS41MiwwLTIuNi4yMy0zLjA4LjQyLjQ5LjE5LDEuNTYuNDIsMy4wOC40MnYxLjM3WiIvPiA8cGF0aCBjbGFzcz0iY2xzLTIiIGQ9Ik01LjAyLDM4LjQxYy0yLjMxLDAtNS4wMi0uNDctNS4wMi0xLjc5czIuNy0xLjc5LDUuMDItMS43OWMxLjM3LDAsMi4xMS4wMSwzLjAxLjMxLjUxLjAyLjQxLDEuNDUtLjEsMS40Mi0uNjgtLjIyLTEuNzctLjM2LTIuOTEtLjM2LTEuNTIsMC0yLjYuMjMtMy4wOC40Mi40OS4xOSwxLjU2LjQyLDMuMDguNDJ2MS4zN1oiLz4gPHBhdGggY2xhc3M9ImNscy0yIiBkPSJNNS4wMiw0Mi45Yy0yLjMxLDAtNS4wMi0uNDctNS4wMi0xLjc5czIuNy0xLjc5LDUuMDItMS43OWMxLjM3LDAsMi4xMS4wMSwzLjAxLjMxLjUxLjAyLjQxLDEuNDUtLjEsMS40Mi0uNjgtLjIyLTEuNzctLjM2LTIuOTEtLjM2LTEuNTIsMC0yLjYuMjMtMy4wOC40Mi40OS4xOSwxLjU2LjQyLDMuMDguNDJ2MS4zN1oiLz4gPHBhdGggY2xhc3M9ImNscy0yIiBkPSJNNS4wMiw0Ny4zOWMtMi4zMSwwLTUuMDItLjQ3LTUuMDItMS43OXMyLjctMS43OSw1LjAyLTEuNzljMS4zNywwLDIuMTEuMDEsMy4wMS4zMS41MS4wMi40MSwxLjQ1LS4xLDEuNDItLjY4LS4yMi0xLjc3LS4zNi0yLjkxLS4zNi0xLjUyLDAtMi42LjIzLTMuMDguNDIuNDkuMTksMS41Ni40MiwzLjA4LjQydjEuMzdaIi8+IDxwYXRoIGNsYXNzPSJjbHMtMiIgZD0iTTUuMDIsNTEuODljLTIuMzEsMC01LjAyLS40Ny01LjAyLTEuNzlzMi43LTEuNzksNS4wMi0xLjc5YzEuMzcsMCwyLjExLjAxLDMuMDEuMzEuNTEuMDIuNDEsMS40NS0uMSwxLjQyLS42OC0uMjItMS43Ny0uMzYtMi45MS0uMzYtMS41MiwwLTIuNi4yMy0zLjA4LjQyLjQ5LjE5LDEuNTYuNDIsMy4wOC40MnYxLjM3WiIvPiA8cGF0aCBjbGFzcz0iY2xzLTIiIGQ9Ik01LjAyLDU2LjM4Yy0yLjMxLDAtNS4wMi0uNDctNS4wMi0xLjc5czIuNy0xLjc5LDUuMDItMS43OWMxLjM3LDAsMi4xMS4wMSwzLjAxLjMxLjUxLjAyLjQxLDEuNDUtLjEsMS40Mi0uNjgtLjIyLTEuNzctLjM2LTIuOTEtLjM2LTEuNTIsMC0yLjYuMjMtMy4wOC40Mi40OS4xOSwxLjU2LjQyLDMuMDguNDJ2MS4zN1oiLz4gPHBhdGggY2xhc3M9ImNscy0yIiBkPSJNNS4wMiw2MC44N2MtMi4zMSwwLTUuMDItLjQ3LTUuMDItMS43OXMyLjctMS43OSw1LjAyLTEuNzljMS4zNywwLDIuMTEuMDEsMy4wMS4zMS41MS4wMi40MSwxLjQ1LS4xLDEuNDItLjY4LS4yMi0xLjc3LS4zNi0yLjkxLS4zNi0xLjUyLDAtMi42LjIzLTMuMDguNDIuNDkuMTksMS41Ni40MiwzLjA4LjQydjEuMzdaIi8+IDxwYXRoIGNsYXNzPSJjbHMtMiIgZD0iTTUuMDIsNjUuMzZjLTIuMzEsMC01LjAyLS40Ny01LjAyLTEuNzlzMi43LTEuNzksNS4wMi0xLjc5YzEuMzcsMCwyLjExLjAxLDMuMDEuMzEuNTEuMDIuNDEsMS40NS0uMSwxLjQyLS42OC0uMjItMS43Ny0uMzYtMi45MS0uMzYtMS41MiwwLTIuNi4yMy0zLjA4LjQyLjQ5LjE5LDEuNTYuNDIsMy4wOC40MnYxLjM3WiIvPiA8cGF0aCBjbGFzcz0iY2xzLTIiIGQ9Ik01LjAyLDY5Ljg2Yy0yLjMxLDAtNS4wMi0uNDctNS4wMi0xLjc5czIuNy0xLjc5LDUuMDItMS43OWMxLjM3LDAsMi4xMS4wMSwzLjAxLjMxLjUxLjAyLjQxLDEuNDUtLjEsMS40Mi0uNjgtLjIyLTEuNzctLjM2LTIuOTEtLjM2LTEuNTIsMC0yLjYuMjMtMy4wOC40Mi40OS4xOSwxLjU2LjQyLDMuMDguNDJ2MS4zN1oiLz4gPC9nPiA8cmVjdCBjbGFzcz0iY2xzLTEiIHg9IjM5LjIzIiB5PSIxOS43MiIgd2lkdGg9IjE4NC4yMSIgaGVpZ2h0PSIzNy44OCIvPiA8dGV4dCBjbGFzcz0iY2xzLTMiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDM5LjIzIDUzLjU5KSI+PHRzcGFuIGNsYXNzPSJjbHMtNyIgeD0iMCIgeT0iMCI+TzwvdHNwYW4+PHRzcGFuIGNsYXNzPSJjbHMtOCIgeD0iMzcuOTIiIHk9IjAiPkJSPC90c3Bhbj48dHNwYW4gY2xhc3M9ImNscy02IiB4PSI5Ny40NCIgeT0iMCI+STwvdHNwYW4+PHRzcGFuIGNsYXNzPSJjbHMtNCIgeD0iMTE0LjE1IiB5PSIwIj5FPC90c3Bhbj48dHNwYW4geD0iMTQxLjM3IiB5PSIwIj5SPC90c3Bhbj48L3RleHQ+IDx0ZXh0IGNsYXNzPSJjbHMtNSIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTQ5LjE0IDcwLjg2KSI+PHRzcGFuIHg9IjAiIHk9IjAiPuOCquODluODquOCqDwvdHNwYW4+PC90ZXh0PiA8L2c+IDwvc3ZnPg==" alt="オブリエ" draggable="false"></div>
     <!-- 画面の切り替え（イシュー#8）
          div のままだと Tab キーでたどり着けず、キーボードだけの人は
          アルバムから先へ一歩も進めなかった。button にして順番に入れる。
@@ -2318,8 +2314,6 @@
       <button data-role="admin" aria-pressed="false">管理者</button>
     </div>
     <div class="me" id="meBox"><span>ユーザーさん</span><div class="ava-s">ユ</div></div>
-    <!-- どの版を見ているかを確かめるための表示。更新されていないと思ったときはここを見る -->
-    <button class="build" id="buildTag" title="押すと自己診断（閉じる動作の重さを自動で測ります）">rev.28 メニュー整形版</button>
   </div>
 </header>
 
@@ -2722,6 +2716,21 @@ async function diagOnce(waitMs) {
   syncScrollLock();   // 器を直に取り除いたので、背景のスクロールも自分で戻す（A-15）
   return { frames: frames.slice(1), landing: +landing.toFixed(1) };
 }
+
+/* 版と自己診断は画面から外した（ユーザー判断で rev.xx の表示をやめたため）。
+   どちらも開発用なので、消さずに見えないところへ移す。
+     ・どの版か     … window.__rev（開発者ツールで見る）
+     ・自己診断     … Alt + Shift + D（状態デモの Alt+Shift+S と同じ流儀）
+   自己診断は押しボタンの文字を進み具合の表示に使うので、
+   ボタンが無いときは同じ形をした仮の入れ物を渡す */
+const REV = "rev.29 ロゴ差し替え版";
+window.__rev = REV;
+document.addEventListener("keydown", e => {
+  if (e.altKey && e.shiftKey && (e.key === "D" || e.key === "d")) {
+    runSelfTest({ dataset: {}, textContent: REV, disabled: false,
+                  removeAttribute() {}, setAttribute() {} });
+  }
+});
 
 async function runSelfTest(btn) {
   const label = btn.dataset.label || btn.textContent;
@@ -4740,7 +4749,6 @@ function openThread(d, fromCard, opts) {
           <h3 class="sheet-sec">じぶんのメモ</h3>
           <textarea class="memo-ta" data-memo aria-label="じぶんのメモ" aria-describedby="memoState" placeholder="気づいたことを、じぶんのために残しておけます">${esc(d.myMemo || "")}</textarea>
           <div class="memo-row">
-            <small>このメモはあなただけに表示されます</small>
             <span class="memo-state" id="memoState" data-memo-state role="status" aria-live="polite">${d.myMemo ? "保存済み" : ""}</span>
             <button class="mini-btn" data-save-memo>保存する</button>
           </div>
@@ -7120,7 +7128,6 @@ $("backToTeam").addEventListener("click", () => {
 document.querySelectorAll("#adminTabs .sub-tab").forEach(t =>
   t.addEventListener("click", () => showAdmin(t.dataset.a)));
 $("demoBtn").addEventListener("click", playDemo);
-$("buildTag").addEventListener("click", e => runSelfTest(e.currentTarget));
 
 /* 役割を固定して配るとき（本人／上司／管理者それぞれのURL）は、
    切り替えのボタンを画面から外して、その役割の画面で開く。
