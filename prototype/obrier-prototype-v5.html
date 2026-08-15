@@ -19,10 +19,20 @@
     /* 場面タグ7色（card-simple-v1 で確定）。
        ベタ塗りのカードに乗せる文字色（インク）を色ごとに対で持つ。
        淡い黄・ピンクだけ濃色インク、それ以外は白インク */
+    /* 本文（感謝の言葉）に使う明朝。参考デザインのセリフに当たるもの */
+    --serif: "Hiragino Mincho ProN", "Hiragino Mincho Pro", "Yu Mincho", YuMincho, "Noto Serif JP", "MS PMincho", serif;
     --c-speed: #F08A24; --c-doc: #3D85C8; --c-coord: #55B7BF; --c-care: #F2A0BC;
     --c-jr: #33915F; --c-idea: #F5C63C; --c-share: #E8502F;
     --i-speed: #ffffff; --i-doc: #ffffff; --i-coord: #ffffff; --i-care: #7c2b45;
     --i-jr: #ffffff; --i-idea: #6b4a05; --i-share: #ffffff;
+    /* カードの地（淡い同系色）と、その上に乗る本文の色（濃い同系色）。
+       参考にしたデザインのとおり「薄い背景色にその類系色の濃い色」で組む。
+       濃い文字は淡い地に対していずれも 4.5:1 以上
+       （実測 4.84 / 6.24 / 5.03 / 5.23 / 5.57 / 5.76 / 5.66） */
+    --b-speed: #FDEEE0; --b-doc: #E4EEF8; --b-coord: #E2F2F3; --b-care: #FBE9EF;
+    --b-jr: #E3F1E9; --b-idea: #FBF3DC; --b-share: #FCE8E3;
+    --t-speed: #A8500A; --t-doc: #1B5893; --t-coord: #12707A; --t-care: #A83A61;
+    --t-jr: #1D6B43; --t-idea: #7A5A05; --t-share: #A6351A;
 
     /* アバター＝全員この1色。拡大詳細の文字色もこの濃紺に揃える */
     --ava: #3A4A66;
@@ -286,14 +296,15 @@
        これが無いと波紋の基準がひとつ外側の .card3d になり、
        .front の overflow では切り取られずカードの外まではみ出す */
     position: relative;
-    background: var(--paper); color: var(--ink); border-radius: 12px;
-    border-top: 7px solid var(--cc);
+    /* 地は場面タグの淡い同系色。上端の帯はやめた——面ぜんたいが色を持つので、
+       帯があると同じことを二度言うことになる */
+    background: var(--cb); color: var(--ct); border-radius: 12px;
     /* 丈は名刺（91×55mm）と同じ縦横比で決める。高さを固定しないので
        幅なりに伸び縮みするが、同じ行に並ぶ札はどれも同じ幅＝同じ丈になり、
        「全枚そろえる」（設計原則5）はそのまま保たれる */
     aspect-ratio: 91 / 55;
-    padding: 15px 20px 12px;
-    display: flex; flex-direction: column; align-items: center; gap: 7px; overflow: hidden;
+    padding: 16px 20px 14px;
+    display: flex; flex-direction: column; align-items: stretch; gap: 0; overflow: hidden;
   }
   /* 押した場所から広がる波紋。
      以前はカードごとに場面タグの色を使っていたが、押した合図に色の意味は要らない
@@ -318,66 +329,55 @@
     opacity: var(--glare, 0);
   }
   .f-front .glare { display: none; }   /* 裏返し中は光沢を出さない */
-  /* 奥行きを持たせるのはアバターだけ */
+  /* 奥行きを持たせるのはアバターだけ。地が紙ではなく淡い色になったので、
+     まわりの白リングも地の色に合わせる */
   .ava {
-    width: 42px; height: 42px; border-radius: 50%; flex: none; background: var(--ava);
-    display: grid; place-items: center; color: #fff; font-size: var(--fs-body); font-weight: 800;
-    box-shadow: 0 0 0 4px var(--paper), 0 5px 12px rgba(58,74,102,.22);
+    width: 28px; height: 28px; border-radius: 50%; flex: none; background: var(--ava);
+    display: grid; place-items: center; color: #fff; font-size: var(--fs-note); font-weight: 800;
+    box-shadow: 0 0 0 3px var(--cb), 0 3px 8px rgba(58,74,102,.20);
     transform: translateZ(20px); position: relative; z-index: 2;
   }
-  /* 本文はゴシック */
+  /* 本文は明朝（セリフ）。参考にしたデザインの、いちばん効いている部分 */
   .say {
-    font-weight: 600; letter-spacing: .05em; line-height: 1.75; font-size: var(--fs-ui);
-    text-align: center; position: relative; z-index: 2;
+    font-family: var(--serif);
+    font-weight: 500; letter-spacing: .015em; line-height: 1.62; font-size: 17px;
+    text-align: left; position: relative; z-index: 2;
     display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
   }
+  /* お気に入りの★は右上に出る。左寄せの本文が★の下へ潜らないよう、
+     ★があるカードだけ本文の右をあけておく */
+  .front:has(.fav-seal) .say { padding-right: 20px; }
 
   /* ---- 中身の量でカードの見せ方を変える ----
-     丈は変えず、行数で受け止める。長文は…で止めて、全文は拡大詳細で読む */
-  /* 短い一言は面で受け止めるので、本文よりさらに上げる。
-     長文は行数を稼ぐため本文より落とすが、付随情報の下限（14px）は割らない */
-  .kind-short .say { font-size: var(--fs-body); line-height: 1.7; letter-spacing: .07em; -webkit-line-clamp: 2; }
-  .kind-long .say {
-    text-align: left; font-size: var(--fs-cap); line-height: 1.7; letter-spacing: .01em; font-weight: 500;
-    -webkit-line-clamp: 3;
-  }
+     丈は変えず、行数で受け止める。長文は…で止めて、全文は拡大詳細で読む。
+     どれも左寄せ・明朝のままで、変えるのは字の大きさと行数だけ */
+  .kind-short .say { font-size: 21px; line-height: 1.5; -webkit-line-clamp: 3; }
+  .kind-long .say { font-size: 14.5px; line-height: 1.62; -webkit-line-clamp: 4; }
   .more-hint { display: none; font-size: var(--fs-note); letter-spacing: .08em; color: var(--ink-soft); align-self: flex-start; margin-top: -4px; position: relative; z-index: 2; }
   .kind-long .more-hint { display: block; }
-  .who-line { margin-top: auto; font-size: var(--fs-cap); letter-spacing: .12em; font-weight: 700; opacity: .72; position: relative; z-index: 2; }
-  .c-foot { display: flex; align-items: center; gap: 8px; width: 100%; padding-top: 4px; position: relative; z-index: 2; }
-  .tagpill {
-    font-size: var(--fs-cap); font-weight: 700; letter-spacing: .06em;
-    background: color-mix(in srgb, var(--cc) 16%, #fff);
-    /* 55%→40%：代表7色そのものは変えず、その上に乗せる文字色の配合だけ濃くした。
-       黄（アイデア）等の明るい色でも淡色地に対し 4.5:1 を超える */
-    color: color-mix(in srgb, var(--cc) 40%, #1d2430);
-    border: 1px solid color-mix(in srgb, var(--cc) 45%, transparent);
-    border-radius: 999px; padding: 3px 11px;
+  /* 足もとは右へ寄せ、送り主の名前・場面タグ・顔写真を縦に積む
+     （参考デザインの Name / Yelp Review ＋ 丸い顔写真と同じ並び）。
+     日付は出さない——いつ届いたかは拡大詳細に出る */
+  .c-foot {
+    display: flex; flex-direction: column; align-items: flex-end;
+    margin: auto 0 0 auto; padding-top: 8px; position: relative; z-index: 2;
   }
-  /* 日付＝ゴム印。白い紙に押すので、インクはタグ色を深くした濃色にする。
-     判子らしさは、この濃色インク・薄い枠・カードごとに散らした傾き、そして
-     かすれ（この style の末尾「日付スタンプのかすれ（イシュー#21）」の節）で出す。
-     かすれは D-23 で一度取りやめている。同じ手（feTurbulence を要素ごとに）は
-     使わず、型を1枚だけ静的に持って全カードで使い回す方式に変えてある */
-  .c-time {
-    margin-left: auto; font-size: var(--fs-body); letter-spacing: .04em; padding: 3px 11px; border-radius: 3px;
-    font-family: "Courier New", monospace; font-weight: 700;
-    border: 2px solid color-mix(in srgb, var(--cc) 46%, #1d2430);
-    color: color-mix(in srgb, var(--cc) 46%, #1d2430);
-    transform: rotate(var(--stamp-rot, -2deg));
-    /* opacity .9 で紙に馴染ませていたが、明るい色（黄など）で 4:1 まで落ちるため外した。
-       濃さは color-mix 側の配合（46%）で足りている */
-    white-space: nowrap;
-  }
+  .c-who { text-align: right; line-height: 1.45; }
+  .c-who b { display: block; font-size: var(--fs-cap); font-weight: 600; color: var(--ink); }
+  .c-who span { display: block; font-size: var(--fs-note); color: var(--ink-soft); }
+  .c-foot .ava { align-self: flex-start; margin-top: 5px; }
   .corner-new {
-    position: absolute; top: 14px; left: 14px; z-index: 5;
+    position: absolute; bottom: 15px; left: 20px; z-index: 5;
     font-size: var(--fs-note); font-weight: 800; letter-spacing: .14em; border-radius: 999px; padding: 4px 10px;
-    background: rgba(255,255,255,.94); color: color-mix(in srgb, var(--cc) 62%, #1d2430);
+    background: rgba(255,255,255,.86); color: var(--ct);
   }
   /* お気に入り済みの目印は装飾ではなく情報なので、淡い金 #ffd66b（白地で1.37:1）
      ではなく、拡大詳細のお気に入りの印（.fav-mark）と同じ濃い琥珀色に揃えた */
   .fav-seal { position: absolute; top: 12px; right: 14px; z-index: 5; font-size: var(--fs-body); color: #8a6410; transform: rotate(9deg); }
-  .memo-dot { position: absolute; bottom: 14px; right: 16px; z-index: 5; width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.92); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ci) 22%, transparent); }
+  .memo-dot { position: absolute; bottom: 21px; left: 20px; z-index: 5; width: 8px; height: 8px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 3px color-mix(in srgb, var(--ct) 30%, transparent); }
+  /* NEW と一緒に出る札では、印どうしが重ならないよう横へ逃がす
+     （NEW はカードのHTMLに、メモの印はそのあとに足されるので、この順で当たる） */
+  .corner-new ~ .memo-dot { left: 68px; }
 
   /* ---------------- パネル ---------------- */
   /* min-width:0 がないと、チャートの実寸（inline width）がグリッド列を押し広げる */
@@ -1515,22 +1515,6 @@
        1コマ16.7msの0.1%）。比べた他の案はグラデーションで作る案が +35%、
        型は同じで中心を守る楕円をもう1枚足す案が +20%。いちばん軽い案を採った。
        コマ落ち（20ms超のコマ数）と着地ずれは、前後で差が出なかった */
-  .c-time {
-    --stamp-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='100' viewBox='0 0 48 100' preserveAspectRatio='none'%3E%3Cmask id='k'%3E%3Crect width='48' height='100' fill='%23fff'/%3E%3Cg fill='%23000'%3E%3Cellipse cx='15.6' cy='50.8' rx='1.5' ry='2.3' transform='rotate(56 15.6 50.8)'/%3E%3Cellipse cx='15.0' cy='0.2' rx='1.4' ry='2.9' transform='rotate(134 15.0 0.2)'/%3E%3Cellipse cx='9.9' cy='95.5' rx='0.6' ry='2.6' transform='rotate(147 9.9 95.5)'/%3E%3Cellipse cx='14.8' cy='87.1' rx='1.3' ry='3.9' transform='rotate(141 14.8 87.1)'/%3E%3Cellipse cx='33.4' cy='76.5' rx='1.7' ry='2.8' transform='rotate(74 33.4 76.5)'/%3E%3Cellipse cx='40.2' cy='16.4' rx='1.6' ry='1.3' transform='rotate(137 40.2 16.4)'/%3E%3Cellipse cx='29.3' cy='80.7' rx='1.6' ry='2.2' transform='rotate(112 29.3 80.7)'/%3E%3Cellipse cx='29.4' cy='35.9' rx='1.5' ry='1.5' transform='rotate(179 29.4 35.9)'/%3E%3Cellipse cx='21.8' cy='98.8' rx='1.0' ry='2.0' transform='rotate(76 21.8 98.8)'/%3E%3Cellipse cx='22.4' cy='62.2' rx='1.4' ry='3.7' transform='rotate(112 22.4 62.2)'/%3E%3Cellipse cx='18.1' cy='20.1' rx='0.5' ry='1.4' transform='rotate(47 18.1 20.1)'/%3E%3Cellipse cx='23.2' cy='84.8' rx='1.0' ry='4.0' transform='rotate(150 23.2 84.8)'/%3E%3Cellipse cx='19.2' cy='96.4' rx='1.1' ry='3.7' transform='rotate(149 19.2 96.4)'/%3E%3Cellipse cx='2.3' cy='19.7' rx='1.9' ry='1.5' transform='rotate(136 2.3 19.7)'/%3E%3Cellipse cx='42.0' cy='3.1' rx='1.9' ry='3.7' transform='rotate(41 42.0 3.1)'/%3E%3Cellipse cx='14.0' cy='0.4' rx='0.7' ry='3.5' transform='rotate(170 14.0 0.4)'/%3E%3Cellipse cx='30.6' cy='86.4' rx='1.5' ry='1.5' transform='rotate(119 30.6 86.4)'/%3E%3Cellipse cx='30.5' cy='92.5' rx='1.4' ry='1.9' transform='rotate(94 30.5 92.5)'/%3E%3Cellipse cx='8.0' cy='86.9' rx='0.9' ry='3.2' transform='rotate(177 8.0 86.9)'/%3E%3Cellipse cx='34.4' cy='66.2' rx='0.7' ry='2.5' transform='rotate(52 34.4 66.2)'/%3E%3Cellipse cx='0.5' cy='78.7' rx='1.2' ry='3.3' transform='rotate(173 0.5 78.7)'/%3E%3Cellipse cx='8.9' cy='80.1' rx='1.1' ry='3.9' transform='rotate(101 8.9 80.1)'/%3E%3Cellipse cx='45.5' cy='81.1' rx='1.7' ry='1.8' transform='rotate(163 45.5 81.1)'/%3E%3Cellipse cx='22.3' cy='91.4' rx='1.1' ry='2.5' transform='rotate(122 22.3 91.4)'/%3E%3Cellipse cx='32.1' cy='97.5' rx='1.0' ry='1.9' transform='rotate(104 32.1 97.5)'/%3E%3Cellipse cx='41.8' cy='18.5' rx='1.8' ry='2.1' transform='rotate(102 41.8 18.5)'/%3E%3Cellipse cx='19.9' cy='4.2' rx='1.0' ry='1.3' transform='rotate(127 19.9 4.2)'/%3E%3Cellipse cx='28.6' cy='15.7' rx='1.5' ry='2.9' transform='rotate(42 28.6 15.7)'/%3E%3Cellipse cx='21.2' cy='84.0' rx='1.4' ry='2.2' transform='rotate(128 21.2 84.0)'/%3E%3Cellipse cx='42.2' cy='83.5' rx='1.4' ry='2.0' transform='rotate(58 42.2 83.5)'/%3E%3Cellipse cx='1.1' cy='8.6' rx='1.8' ry='3.7' transform='rotate(145 1.1 8.6)'/%3E%3Cellipse cx='44.5' cy='18.4' rx='0.7' ry='2.8' transform='rotate(112 44.5 18.4)'/%3E%3Cellipse cx='36.4' cy='13.4' rx='1.3' ry='2.6' transform='rotate(117 36.4 13.4)'/%3E%3Cellipse cx='44.2' cy='7.8' rx='1.0' ry='2.5' transform='rotate(97 44.2 7.8)'/%3E%3C/g%3E%3C/mask%3E%3Crect width='48' height='100' fill='%23000' mask='url(%23k)'/%3E%3C/svg%3E");
-    -webkit-mask-image: var(--stamp-mask);
-            mask-image: var(--stamp-mask);
-    -webkit-mask-size: 48px 100%;
-            mask-size: 48px 100%;
-    -webkit-mask-repeat: repeat-x;
-            mask-repeat: repeat-x;
-    -webkit-mask-position: var(--stamp-shift, 0px) center;
-            mask-position: var(--stamp-shift, 0px) center;
-  }
-  /* ハイコントラスト（Windows）では飾りを外し、読みやすさを優先する */
-  @media (forced-colors: active) {
-    .c-time { -webkit-mask-image: none; mask-image: none; }
-  }
-
   /* ========================================================================
      ---- ありがとうの広がり（イシュー#20 → #25 で作り直し） ----
 
@@ -2248,7 +2232,7 @@
     </div>
     <div class="me" id="meBox"><span>ユーザーさん</span><div class="ava-s">ユ</div></div>
     <!-- どの版を見ているかを確かめるための表示。更新されていないと思ったときはここを見る -->
-    <button class="build" id="buildTag" title="押すと自己診断（閉じる動作の重さを自動で測ります）">rev.25 名刺カード版</button>
+    <button class="build" id="buildTag" title="押すと自己診断（閉じる動作の重さを自動で測ります）">rev.26 カード刷新版</button>
   </div>
 </header>
 
@@ -2300,7 +2284,6 @@
 <section id="viewShape" class="hidden">
   <div class="hero">
     <h1>ありがとうの分析</h1>
-    <h2 class="lead-line">もらったありがとうから見えてきた、あなたの得意</h2>
   </div>
   <!-- 見出しの下の説明文は置かない（イシュー#18-11）。
        「場面タグは自動で生まれ増える」という説明は、画面を見れば分かることを
@@ -2520,6 +2503,9 @@ function tagVar(tag) {
 const tagColor = tag => `var(${tagVar(tag)})`;
 /* ベタ塗りの面に乗せる文字色（インク）。--c-xxx と対の --i-xxx を引く */
 const tagInk = tag => `var(${tagVar(tag).replace("--c-", "--i-")})`;
+/* カードの地と本文の色。--c-xxx と対の --b-xxx / --t-xxx を引く */
+const tagBg = tag => `var(${tagVar(tag).replace("--c-", "--b-")})`;
+const tagText = tag => `var(${tagVar(tag).replace("--c-", "--t-")})`;
 
 /* 疑似乱数（決定的）／推移データ生成：v4 と同一 */
 function seeded(seed) { let s = seed; return () => { s = (s * 9301 + 49297) % 233280; return s / 233280; }; }
@@ -3814,11 +3800,12 @@ function cardHTML(d, opts) {
       <div class="glare"></div>
       ${d.isNew ? '<div class="corner-new">NEW</div>' : ""}
       ${(opts.fav && d.fav) ? '<div class="fav-seal" title="お気に入り">★</div>' : ""}
-      <div class="ava">${avaFace(d.who, d.ini)}</div>
       <div class="say">${d.msg || ""}</div>
       <div class="more-hint">…続きは詳細で</div>
-      <div class="who-line">${d.who}</div>
-      <div class="c-foot"><span class="tagpill">${d.tag}</span><span class="c-time">${d.time}</span></div>
+      <div class="c-foot">
+        <div class="c-who"><b>${d.who}</b><span>${d.tag}</span></div>
+        <div class="ava">${avaFace(d.who, d.ini)}</div>
+      </div>
       ${(opts.memo && d.myMemo) ? '<div class="memo-dot" title="じぶんのメモあり"></div>' : ""}
     </div>
   </div>`;
@@ -3916,6 +3903,8 @@ function buildCard(d, opts, idx) {
   }
   root.style.setProperty("--cc", tagColor(d.tag));
   root.style.setProperty("--ci", tagInk(d.tag));
+  root.style.setProperty("--cb", tagBg(d.tag));
+  root.style.setProperty("--ct", tagText(d.tag));
   root.style.setProperty("--tape-rot", TAPE_ROT[d.id % TAPE_ROT.length] + "deg");
   root.style.setProperty("--tape-shift", TAPE_SHIFT[d.id % TAPE_SHIFT.length] + "px");
   /* 日付スタンプの傾きと、かすれ具合（マスクのずらし）をカードごとに散らす */
