@@ -50,6 +50,12 @@
     --navy: #3A4A66; --navy-soft: #5c6884; --navy-line: #dfe4ed; --navy-bg: #f2f4f8;
 
 
+    /* 画面の器の幅。ヘッダー・本体・知らせの帯がこれでそろう。
+       1140px から広げたのは、一覧を**束の札と同じ大きさ（396px）で3列**に
+       並べるため（2026-08-21 ユーザー指示。D-150）。
+       3列＝396×3＋間20×2＝1228、左右の余白20×2を足して 1268。少し余して 1280 */
+    --page: 1280px;
+
     /* ステージ（うすいグレーの地×薄い青の方眼）。
        白だとカードの上半分（白）と地の境目が消えるので、地を一段落とす
        （2026-08-21 ユーザー指示 #F6F6F6。D-146） */
@@ -151,7 +157,7 @@
     background: rgba(255,255,255,.82);
     border-bottom: 1px solid color-mix(in srgb, var(--stage-ink) 12%, transparent);
   }
-  .bar { max-width: 1140px; margin: 0 auto; padding: 11px 20px; display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap; }
+  .bar { max-width: var(--page);  margin: 0 auto; padding: 11px 20px; display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap; }
   .brand { display: flex; align-items: center; flex: none; }
   /* 高さで置いて、横は比率なり。ロゴの縦横比は 223.44 : 75.31（約 2.97:1） */
   .brand-logo { display: block; height: 34px; width: auto; }
@@ -187,7 +193,7 @@
   .ava-s { width: 28px; height: 28px; border-radius: 50%; background: var(--ava); color: #fff; display: grid; place-items: center; font-size: var(--fs-cap); font-weight: 800; flex: none; }
 
   /* ---------------- 本体 ---------------- */
-  main { max-width: 1140px; margin: 0 auto; padding: 26px 20px 90px; }
+  main { max-width: var(--page); margin: 0 auto; padding: 26px 20px 90px; }
   .hero h1 { font-size: var(--fs-body); font-weight: 700; color: var(--stage-ink-soft); letter-spacing: .06em; }
   .count-wrap { display: flex; align-items: baseline; gap: 8px; margin-top: 2px; }
   .count { font-size: 50px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.25; transition: transform .3s, color .3s; }
@@ -261,21 +267,22 @@
      （実測：900pxで3列だと幅273px＝高さ165px。中身が入らない）。
      下限を置いて数のほうを動かせば、どの幅でも札の丈が名刺なりに収まる */
   /* 札の大きさは参考デザイン（幅 501px）に合わせる。300px だと3列で 353px にしか
-     ならず、字も比のぶんだけ小さくなる。420px を下限にすると PC では2列 541px
-     ——参考デザインとほぼ同じ寸法になる（2026-08-21 ユーザー指示。D-149）。
+     ならず、字も比のぶんだけ小さくなる。下限を **束の札と同じ 396px** にすると
+     PC では3列 400px——新着の束で見たのと同じ大きさの札が3列に並ぶ
+     （2026-08-21 ユーザー指示。D-150。いったん2列 540px にしたが「ややでかい」）。
      下限は必ず min(420px, 100%) で包むこと。素の 420px だと、画面がそれより
      狭いときに札が縮まず横へ溢れる（実測：390px の画面で札が 420px になった）。
-     札そのものの上限 560px も要る。無いと1列になる幅（768px あたり）で札が
-     728px まで伸び、字も比のぶんだけ 43px になっていた */
+     札そのものの上限（束の置き場と同じ 430px）も要る。無いと1列になる幅
+     （768px あたり）で札が 728px まで伸び、字も比のぶんだけ 43px になっていた */
   .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(min(420px, 100%), 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(396px, 100%), 1fr));
     gap: 24px 20px; align-items: start; padding-top: 14px;
   }
   /* 列の数は 1fr で決めさせ、札の上限は札の側で止める。
      列の上限を 560px にすると、列の数を数えるときにもその値が使われるので、
      1024px の画面で2列に足りない扱いになって1列に落ちていた */
-  .grid > .card { max-width: 560px; justify-self: center; }
+  .grid > .card { max-width: 430px; justify-self: center; }
   .month {
     grid-column: 1 / -1; display: flex; align-items: center; gap: 12px;
     font-size: var(--fs-ui); letter-spacing: .18em; font-weight: 700; color: var(--stage-ink-soft);
@@ -408,16 +415,16 @@
     text-align: left; position: relative; z-index: 2;
     display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden;
   }
-  /* 印（NEW・お気に入りの★・メモ）は右上に一列で並べる。
-     足もとの右は日付が使うので、以前のように下へは置けない（D-146）。
-     左寄せの本文が印の下へ潜らないよう、出ている印のぶんだけ右をあける */
+  /* 印は2か所に分けて置く（D-151。2026-08-21 ユーザー指示）。
+     ・NEW … 足もとの右、**日付の上に右揃え**（.c-end）
+     ・お気に入りの★とメモ … 右上に一列（.c-marks）
+     右上に NEW を置いていたときは本文の右を 12〜16.5cqw もあけていた。
+     残る2つは小さいので、あけるのは一律 7cqw で足りる */
   .c-marks {
     position: absolute; top: 2.2cqw; right: 2.6cqw; z-index: 5;
     display: flex; align-items: center; gap: 1.2cqw;
   }
-  .front:has(.fav-seal) .say { padding-right: 4.5cqw; }
-  .front:has(.corner-new) .say { padding-right: 12cqw; }
-  .front:has(.corner-new):has(.fav-seal) .say { padding-right: 16.5cqw; }
+  .front:has(.c-marks > *) .say { padding-right: 7cqw; }
 
   /* ---- 中身の量でカードの見せ方を変える ----
      丈は変えず、行数で受け止める。長文は…で止めて、全文は拡大詳細で読む。
@@ -456,18 +463,23 @@
     color: var(--ct); background: #fff;
     border-radius: 999px; padding: .5cqw 2cqw;
   }
-  /* 日付は足もとのいちばん右。地（--cb）の上のタグ色（--ct）で 4.84:1 以上 */
-  .c-date {
+  /* 足もとのいちばん右。上に NEW、下に日付を右揃えで積む（D-151） */
+  .c-end {
     margin-left: auto; flex: none; align-self: flex-end;
+    display: flex; flex-direction: column; align-items: flex-end; gap: 1cqw;
+  }
+  /* 日付は地（--cb）の上のタグ色（--ct）で 4.84:1 以上 */
+  .c-date {
     font-size: max(12px, 2.4cqw); font-weight: 600; letter-spacing: .04em;
     color: var(--ct); font-variant-numeric: tabular-nums;
   }
-  /* NEW は白い面の上に出るので、地を白から場面タグの淡い色に変える
-     （白地に白では印にならない）。文字は同じ濃い同系色で 4.84:1 以上 */
+  /* NEW は足もと（場面タグの淡い色の上）に出るので、地は白いピルにする
+     ——淡い色の上に淡い色では印にならない。文字は濃い同系色で白地に 5.50:1 以上。
+     場面タグのピルと見分けがつくよう、太さと字間で差をつけている */
   .corner-new {
     flex: none;
     font-size: max(11px, 2.1cqw); font-weight: 800; letter-spacing: .14em; border-radius: 999px; padding: .5cqw 1.8cqw;
-    background: var(--cb); color: var(--ct);
+    background: #fff; color: var(--ct);
   }
   /* お気に入り済みの目印は装飾ではなく情報なので、淡い金 #ffd66b（白地で1.37:1）
      ではなく、拡大詳細のお気に入りの印（.fav-mark）と同じ濃い琥珀色に揃えた */
@@ -1603,7 +1615,7 @@
          ここはこの画面がもともと知らせを出す場所（トースト）でもある。
      どちらの置き方も高さを取らないので、初画面のカードの枚数は変わらない。 */
   .ms-host {
-    max-width: 1140px; margin: 0 auto;
+    max-width: var(--page); margin: 0 auto;
     background: none; border-bottom: none; box-shadow: none;
     padding: 8px 20px;
     justify-content: flex-end;
@@ -3008,7 +3020,7 @@ async function diagOnce(waitMs) {
      ・自己診断     … Alt + Shift + D（状態デモの Alt+Shift+S と同じ流儀）
    自己診断は押しボタンの文字を進み具合の表示に使うので、
    ボタンが無いときは同じ形をした仮の入れ物を渡す */
-const REV = "rev.39 複数の場面タグ・本名＋ローマ字・札の寸法";
+const REV = "rev.40 一覧は束と同じ大きさで3列・NEW は日付の上";
 window.__rev = REV;
 document.addEventListener("keydown", e => {
   if (e.altKey && e.shiftKey && (e.key === "D" || e.key === "d")) {
@@ -4222,7 +4234,6 @@ function cardHTML(d, opts) {
     <div class="face front">
       <div class="glare"></div>
       <div class="c-marks">
-        ${d.isNew ? '<span class="corner-new">NEW</span>' : ""}
         ${(opts.fav && d.fav) ? '<span class="fav-seal" title="お気に入り">★</span>' : ""}
         ${(opts.memo && d.myMemo) ? '<span class="memo-dot" title="じぶんのメモあり"></span>' : ""}
       </div>
@@ -4233,7 +4244,10 @@ function cardHTML(d, opts) {
           <b>${personName(d.who)}</b>
           <span class="c-tags">${cardTags(d).map(t => `<span class="c-tag">${t}</span>`).join("")}</span>
         </div>
-        <span class="c-date">${cardWhen(d)}</span>
+        <div class="c-end">
+          ${d.isNew ? '<span class="corner-new">NEW</span>' : ""}
+          <span class="c-date">${cardWhen(d)}</span>
+        </div>
       </div>
     </div>
   </div>`;
@@ -4285,15 +4299,17 @@ function cardLabel(d, opts) {
     レイアウトを動かさないので裏返りの着地位置には影響しない */
 function syncMemoDot(cardEl, d, opts) {
   if (!cardEl) return;
-  const face = cardEl.querySelector(".front");
-  if (!face) return;
-  const cur = face.querySelector(".memo-dot");
+  /* 印は右上の一列（.c-marks）の中。.front の直下に足すと、
+     位置を決めているのが .c-marks なので行き場を失う */
+  const marks = cardEl.querySelector(".c-marks");
+  if (!marks) return;
+  const cur = marks.querySelector(".memo-dot");
   const want = !!(opts.memo && d.myMemo);
   if (want && !cur) {
-    const s = document.createElement("div");
+    const s = document.createElement("span");
     s.className = "memo-dot";
     s.title = "じぶんのメモあり";
-    face.appendChild(s);
+    marks.appendChild(s);
   } else if (!want && cur) {
     cur.remove();
   }
