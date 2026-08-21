@@ -439,6 +439,11 @@
   .c-who b { display: block; font-size: max(12px, 2.6cqw); font-weight: 700; color: var(--card-ink);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .c-roma { font-weight: 500; margin-left: .5em; }
+  /* いちばん狭い札（320px の画面で束の札は 258px）では、本名＋ローマ字が
+     名前の枠に収まらない（実測 145 > 125）。詰めるより落とすほうが読める。
+     ローマ字を落として本名だけにする。判定は札の幅で行うので、
+     同じ画面幅でも一覧の札（294px）では出たまま */
+  @container (max-width: 300px) { .c-roma { display: none; } }
   /* 場面タグはタグらしく。地は白いピルで、文字はカードと同じ濃い同系色。
      白地に対する比（5.5〜8:1）がそのまま効く */
   /* 場面タグは1枚に複数付くことがある（D-149）。名前の下に横並びで、
@@ -3003,7 +3008,7 @@ async function diagOnce(waitMs) {
      ・自己診断     … Alt + Shift + D（状態デモの Alt+Shift+S と同じ流儀）
    自己診断は押しボタンの文字を進み具合の表示に使うので、
    ボタンが無いときは同じ形をした仮の入れ物を渡す */
-const REV = "rev.38 複数の場面タグ・本名＋ローマ字・札の寸法";
+const REV = "rev.39 複数の場面タグ・本名＋ローマ字・札の寸法";
 window.__rev = REV;
 document.addEventListener("keydown", e => {
   if (e.altKey && e.shiftKey && (e.key === "D" || e.key === "d")) {
