@@ -321,23 +321,28 @@
     position: absolute; inset: 0; pointer-events: none; z-index: 1;
     background: color-mix(in srgb, var(--ink) 11%, transparent);
   }
-  /* ホバーした場所に出る、うすいドット。
-     白い光沢（旧 .glare）を置き換えた——地が紙から淡い色になったので、
-     白い塊を乗せるより、面の色を借りた点のほうが馴染む。
+  /* ホバーした場所に乗る反射。hover-tilt（simey）の glare をそのまま移した。
+     単一HTML・外部読み込み無しが制約なのでライブラリは入れられないが、
+     作りは同じ——**点の位置を中心にした3段のグラデーションを overlay で重ねる**。
+       ・中心 8%  … lch(95%) を .66 の濃さ（いちばん明るいところ）
+       ・28%      … lch(88%) を .50
+       ・外 90%   … lch(05%) を .25（縁へ向かって沈む）
+     中心が明るく縁が沈むので、面が傾いたときに光が滑るように見える。
+     位置（--gx / --gy）と効き具合（--glare）は CardMotion が毎コマ書く。
 
-     作りは2枚重ね。下に等間隔の点をびっしり敷き、その上から
-     「ポインタの位置を中心に、外へ向けて消えていく」マスクを掛ける。
-     点は本文と同じ濃い同系色（--ct）をごく薄く使うので、カードごとに色が揃う。
-     マスクを動かすだけなので、点の敷き直しは起きない */
+     濃さ（--glare-int）は 1 ではなく .5 に落としてある——反射は文字の上にも
+     乗るので、原寸のままだと本文のコントラストが基準を割る。 */
   .glare {
     position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 3;
-    background-image: radial-gradient(color-mix(in srgb, var(--ct) 55%, transparent) 1.1px, transparent 1.2px);
-    background-size: 9px 9px;
-    -webkit-mask-image: radial-gradient(210px circle at var(--gx, 50%) var(--gy, 50%), #000 0%, rgba(0,0,0,.55) 42%, transparent 72%);
-            mask-image: radial-gradient(210px circle at var(--gx, 50%) var(--gy, 50%), #000 0%, rgba(0,0,0,.55) 42%, transparent 72%);
+    background-image: radial-gradient(
+      farthest-corner circle at var(--gx, 50%) var(--gy, 50%),
+      lch(95% 2.7 var(--glare-hue, 270) / calc(var(--glare-int, .5) * .66)) 8%,
+      lch(88% 5.5 var(--glare-hue, 270) / calc(var(--glare-int, .5) * .5)) 28%,
+      lch(05% 3.5 var(--glare-hue, 270) / calc(var(--glare-int, .5) * .25)) 90%);
+    mix-blend-mode: overlay;
     opacity: var(--glare, 0);
   }
-  /* 触れない画面ではホバーそのものが無いので、点も出さない */
+  /* 触れない画面ではホバーそのものが無いので、反射も出さない */
   @media (hover: none) { .glare { display: none; } }
   .f-front .glare { display: none; }   /* 裏返し中は光沢を出さない */
   /* 奥行きを持たせるのはアバターだけ。地が紙ではなく淡い色になったので、
@@ -2877,7 +2882,7 @@ async function diagOnce(waitMs) {
      ・自己診断     … Alt + Shift + D（状態デモの Alt+Shift+S と同じ流儀）
    自己診断は押しボタンの文字を進み具合の表示に使うので、
    ボタンが無いときは同じ形をした仮の入れ物を渡す */
-const REV = "rev.33 着地位置の修正";
+const REV = "rev.34 反射と直線の着地";
 window.__rev = REV;
 document.addEventListener("keydown", e => {
   if (e.altKey && e.shiftKey && (e.key === "D" || e.key === "d")) {
@@ -3841,9 +3846,9 @@ function tick(now) {
    傾きは控えめの6.5度まで（大きいとノイズになる） */
 /* glare は、いまはホバー位置に出るドットの濃さ（旧・白い光沢の名残りで名前はそのまま）。
    .28 は白い光沢のための値で、点だと薄すぎたので上げた */
-/* glare はホバー位置に出るドットの濃さ（旧・白い光沢の名残りで名前はそのまま）。
-   .62 は濃すぎたので半分にした（ユーザー判断） */
-const CONF = { liftY: -3, liftZ: 17, tilt: 6.5, glare: .31, shadY: 8, shadBlur: 18, shadA: .13 };
+/* glare は反射の効き具合（0〜1）。濃さそのものは CSS の --glare-int が持つ
+   （hover-tilt では activation と intensity が別々なので、そこに合わせた） */
+const CONF = { liftY: -3, liftZ: 17, tilt: 6.5, glare: 1, shadY: 8, shadBlur: 18, shadA: .13 };
 /* カードはまっすぐ置く */
 const BASE_ROT   = [0];
 const TAPE_ROT   = [-3.6, 2.4, -1.8, 3.2, -2.6, 1.6, -4.2, 2.8];
@@ -4681,8 +4686,9 @@ function wcSaveToAlbum() {
   applyFilters();
   $("count").textContent = String(before);
 
-  /* 5) 着地先を測って飛ばす。散らしてから定位置へ入る */
-  const SPREAD = [[-1, -.5], [1, -.28], [-.5, .48], [.9, .5], [0, -.75]];
+  /* 5) 着地先を測って飛ばす。**まっすぐ向かう**——途中に散らす点を挟むと、
+        そこで進む向きが変わり、行きかけて引き返したように見える（ユーザー指摘）。
+        束が解ける感じは、1枚ずつ間を空けて出すことと、傾きが戻ることで出す */
   let landed = 0;
   const land = i => {
     clones[i].remove();
@@ -4710,18 +4716,18 @@ function wcSaveToAlbum() {
     clones.forEach((c, i) => {
       const target = $("grid").querySelector(`.card[data-id="${ids[i]}"]`);
       const f = from[i];
-      const [ux, uy] = SPREAD[i % SPREAD.length];
-      const sx = ux * 190, sy = uy * 130, rot = ux * 13 + (i % 2 ? 4 : -5);
-      /* 着地先が見当たらないとき（ページの外にいる等）は、散らして消えるだけにする */
+      /* 着地先が見当たらないとき（ページの外にいる等）は、その場で小さくなって消える */
       const t = target ? target.getBoundingClientRect() : null;
       const k = t ? t.width / f.width : .12;
-      const dx = t ? (t.left + t.width / 2) - (f.left + f.width / 2) : sx;
-      const dy = t ? (t.top + t.height / 2) - (f.top + f.height / 2) : sy;
+      const dx = t ? (t.left + t.width / 2) - (f.left + f.width / 2) : 0;
+      const dy = t ? (t.top + t.height / 2) - (f.top + f.height / 2) : 0;
+      /* 出だしだけ少し傾けておき、進みながら 0 に戻す。
+         道すじは始点と終点の2つだけなので、まっすぐ進む */
+      const rot = i % 2 ? 3.5 : -4;
       const a = c.animate([
-        { transform: "translate(0px, 0px) rotate(0deg) scale(1)", opacity: 1, offset: 0 },
-        { transform: `translate(${sx}px, ${sy}px) rotate(${rot}deg) scale(1.02)`, opacity: 1, offset: .32 },
-        { transform: `translate(${dx}px, ${dy}px) rotate(0deg) scale(${k.toFixed(3)})`, opacity: t ? 1 : 0, offset: 1 },
-      ], { duration: 860, delay: i * 110, easing: "cubic-bezier(.36,.03,.2,1)", fill: "forwards" });
+        { transform: `translate(0px, 0px) rotate(${rot}deg) scale(1)`, opacity: 1 },
+        { transform: `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) rotate(0deg) scale(${k.toFixed(3)})`, opacity: t ? 1 : 0 },
+      ], { duration: 720, delay: i * 130, easing: "cubic-bezier(.4,.02,.2,1)", fill: "forwards" });
       a.onfinish = () => land(i);
     });
   });
