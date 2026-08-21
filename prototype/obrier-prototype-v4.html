@@ -80,7 +80,7 @@
   .month-divider::before { content: ""; width: 34px; height: 12px; background: rgba(201,138,61,.3); border-radius: 2px; transform: rotate(-3deg); }
   .month-divider::after { content: ""; height: 1px; background: var(--line); flex: 1; }
 
-  .card { position: relative; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 24px 18px 16px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 4px 12px rgba(80,62,40,.12); cursor: pointer; transition: transform .18s ease, box-shadow .18s ease; }
+  .card { position: relative; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 24px 18px 16px; display: flex; flex-direction: column; gap: 12px; cursor: pointer; transition: transform .18s ease, box-shadow .18s ease; }
   .grid .card:nth-child(4n+1) { transform: rotate(-.7deg); }
   .grid .card:nth-child(4n+2) { transform: rotate(.5deg); }
   .grid .card:nth-child(4n+3) { transform: rotate(-.3deg); }
@@ -118,6 +118,77 @@
   @keyframes arrive { 0% { opacity: 0; transform: translateY(-18px) scale(.96); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
   .hidden { display: none !important; }
   .empty-note { grid-column: 1/-1; text-align: center; color: var(--ink-soft); font-size: 13px; padding: 40px 0; }
+
+
+  /* ---------- 新着カードスタック ---------- */
+  .arr-wrap { max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; min-height: calc(100vh - 190px); }
+  .arr-hero { text-align: center; }
+  .arr-kicker { font-size: 11px; letter-spacing: .24em; color: var(--accent-deep); font-weight: 700; }
+  .arr-hero h1 { font-family: "Hiragino Mincho ProN", "Yu Mincho", serif; font-size: 25px; font-weight: 400; letter-spacing: .06em; margin: 10px 0 8px; line-height: 1.5; }
+  .arr-hero h1 b { color: var(--accent-deep); font-weight: 400; font-size: 30px; padding: 0 2px; }
+  .arr-hero p { font-size: 12.5px; color: var(--ink-soft); line-height: 1.9; }
+
+  .stack { position: relative; width: min(400px, 100%); height: 330px; margin: 30px auto 0; }
+  .stack-card {
+    position: absolute; left: 50%; top: 0; width: 100%; min-height: 300px;
+    background: var(--paper); border: 1px solid var(--line); border-radius: 6px;
+    padding: 26px 20px 18px; display: flex; flex-direction: column; gap: 12px;
+    box-shadow: 0 10px 26px rgba(80,62,40,.15);
+    transition: transform .42s cubic-bezier(.33,.9,.32,1), opacity .3s ease, box-shadow .2s ease;
+    cursor: grab; touch-action: pan-y; user-select: none; -webkit-user-select: none; will-change: transform;
+  }
+  .stack-card.front:hover { box-shadow: 0 16px 34px rgba(80,62,40,.2); }
+  .stack-card.dragging { cursor: grabbing; transition: opacity .3s ease, box-shadow .2s ease; box-shadow: 0 20px 44px rgba(80,62,40,.26); }
+  .stack-card .msg { font-size: 16px; }
+  /* タグ連動マスキングテープ（アルバムのカードと同じ意匠） */
+  .stack-card::before { content: ""; position: absolute; top: -9px; left: 50%; transform: translateX(-50%) rotate(-2deg); width: 96px; height: 20px; background: rgba(222,196,148,.55); border-radius: 2px; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+  .stack-card.tape-speed::before { background: rgba(106,168,126,.4); }
+  .stack-card.tape-doc::before   { background: rgba(123,147,196,.4); }
+  .stack-card.tape-idea::before  { background: rgba(217,174,95,.45); }
+  .stack-card.tape-care::before  { background: rgba(201,129,148,.4); }
+  .stack-card.tape-coord::before { background: rgba(152,127,192,.4); }
+  .stack-link { align-self: flex-start; background: none; border: none; padding: 0; font-family: inherit; font-size: 11.5px; color: var(--accent-deep); cursor: pointer; border-bottom: 1px solid rgba(138,90,28,.35); }
+  .stack-link:hover { color: var(--ink); border-color: var(--ink); }
+  .stack-card:not(.front) .stack-link { visibility: hidden; }
+
+  .stack-ctrl { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 22px; }
+  .arr-arrow { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line); background: var(--paper); color: var(--ink-soft); font-size: 15px; cursor: pointer; font-family: inherit; transition: border-color .15s, color .15s, transform .15s; }
+  .arr-arrow:hover { border-color: var(--accent); color: var(--accent-deep); transform: translateY(-1px); }
+  .dots { display: flex; gap: 7px; }
+  .dots .dot { width: 7px; height: 7px; border-radius: 50%; background: #d8ccb4; transition: background .25s, transform .25s; }
+  .dots .dot.on { background: var(--accent); transform: scale(1.35); }
+  .arr-counter { font-size: 11px; color: var(--ink-soft); font-family: "Courier New", monospace; letter-spacing: .06em; }
+  .arr-hint { text-align: center; font-size: 11.5px; color: var(--ink-soft); margin-top: 10px; }
+
+  .save-bar { display: flex; flex-direction: column; align-items: center; gap: 9px; margin-top: auto; padding: 34px 0 4px; }
+  .save-btn { background: var(--accent-deep); color: #fff8ec; border: none; border-radius: 999px; padding: 14px 34px; font-size: 14px; font-weight: 700; letter-spacing: .1em; cursor: pointer; font-family: inherit; box-shadow: 0 6px 18px rgba(138,90,28,.28); transition: transform .15s ease, box-shadow .2s ease, background .2s ease; }
+  .save-btn:hover { transform: translateY(-2px); box-shadow: 0 11px 26px rgba(138,90,28,.34); }
+  .save-btn:disabled { opacity: .5; cursor: default; transform: none; }
+  .save-btn.ready { animation: readyGlow 2.6s ease-in-out infinite; }
+  @keyframes readyGlow { 0%,100% { box-shadow: 0 6px 18px rgba(138,90,28,.28); } 50% { box-shadow: 0 6px 26px rgba(201,138,61,.55); } }
+  .save-hint { font-size: 11.5px; color: var(--ink-soft); }
+  .arr-skip { background: none; border: none; font-family: inherit; font-size: 11.5px; color: var(--ink-soft); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+  .arr-skip:hover { color: var(--ink); }
+
+  /* 散らばって綴じられるカード */
+  .fly-card { position: fixed; margin: 0; transform-origin: 50% 50%; pointer-events: none; will-change: transform, opacity; box-shadow: 0 14px 34px rgba(80,62,40,.22); }
+
+  /* ヘッダーの新着チップ */
+  .new-chip { display: inline-flex; align-items: center; gap: 6px; background: var(--accent); color: #fff; border: none; border-radius: 999px; padding: 6px 13px; font-size: 11.5px; font-weight: 700; letter-spacing: .08em; cursor: pointer; font-family: inherit; box-shadow: 0 3px 10px rgba(201,138,61,.35); }
+  .new-chip:hover { background: var(--accent-deep); }
+  .new-chip .n { background: rgba(255,255,255,.25); border-radius: 999px; padding: 1px 7px; }
+  .tab.landing { animation: tabLand .6s ease; }
+  @keyframes tabLand { 0%,100% { color: inherit; } 40% { color: var(--accent-deep); transform: scale(1.08); } }
+
+  .br-sp { display: none; }
+  @media (max-width: 580px) {
+    .stack { height: 320px; }
+    .stack-card { min-height: 290px; padding: 24px 17px 16px; }
+    .arr-hero h1 { font-size: 20px; }
+    .arr-hero h1 b { font-size: 24px; }
+    .br-sp { display: inline; }
+    .arr-counter { display: block; margin-top: 5px; }
+  }
 
   /* ---------- panels ---------- */
   .panel { background: var(--paper); border: 1px solid var(--line); border-radius: 16px; padding: 22px; box-shadow: 0 1px 3px rgba(61,50,41,.05); }
@@ -300,6 +371,7 @@
       <div class="tab" data-v="shape" onclick="showView('shape')">あなたのカタチ</div>
       <div class="tab" data-v="sent" onclick="showView('sent')">おくった ありがとう</div>
     </nav>
+    <button class="new-chip hidden" id="newChip" onclick="openArrivals()">新着<span class="n">3</span></button>
     <div class="spacer"></div>
     <div class="role-switch">
       <div class="role-btn active" id="roleP" onclick="setRole('person')">本人</div>
@@ -310,6 +382,32 @@
 </header>
 
 <main>
+
+<!-- ============ 本人：新着（カードスタック） ============ -->
+<section id="viewArrivals" class="hidden">
+  <div class="arr-wrap">
+    <div class="arr-hero">
+      <div class="arr-kicker">OKAERINASAI</div>
+      <h1>おかえりなさい。<br>留守のあいだに <b>3</b> 枚、<br class="br-sp">届いています。</h1>
+      <p>まだアルバムには綴じていません。<br>1枚ずつめくって、ゆっくり読んでみてください。</p>
+    </div>
+
+    <div class="stack" id="arrStack"></div>
+
+    <div class="stack-ctrl">
+      <button class="arr-arrow" id="arrPrev" aria-label="前のカード" onclick="arrAdvance(-1)">‹</button>
+      <div class="dots" id="arrDots"></div>
+      <button class="arr-arrow" id="arrNext" aria-label="次のカード" onclick="arrAdvance(1)">›</button>
+    </div>
+    <div class="arr-hint">カードを押す、または左右にドラッグするとめくれます　<span class="arr-counter" id="arrCounter"></span></div>
+
+    <div class="save-bar">
+      <button class="save-btn" id="arrSaveBtn" onclick="saveArrivals()">アルバムに保存する</button>
+      <div class="save-hint" id="arrSaveHint"></div>
+      <button class="arr-skip" onclick="skipArrivals()">あとで見る</button>
+    </div>
+  </div>
+</section>
 
 <!-- ============ 本人：アルバム ============ -->
 <section id="viewAlbum">
@@ -405,7 +503,7 @@
 
 </main>
 
-<button class="demo-btn" id="demoBtn" onclick="playDemo()">▶ 新着デモを再生</button>
+<button class="demo-btn" id="demoBtn" onclick="replayArrivals()">▶ 新着デモを再生</button>
 <div class="toast" id="toastEl"></div>
 
 <script>
@@ -447,16 +545,16 @@ function slice(h, n) { return { labels: h.labels.slice(-n), recv: h.recv.slice(-
 
 /* ================= 本人データ ================= */
 const DATA = [
-  { isNew: true, who: "上司さん", av: "av-boss", ini: "上", ch: "#資料作成", src: "Slack", srcCls: "", month: "2026年 7月",
-    msg: "ありがとうございます。素早い対応助かります。確認しますね。", tag: "スピード対応", time: "たった今 15:58",
+  { who: "上司さん", av: "av-boss", ini: "上", ch: "#資料作成", src: "Slack", srcCls: "", month: "2026年 7月",
+    msg: "ありがとうございます。素早い対応助かります。確認しますね。", tag: "スピード対応", time: "7/1 15:58",
     summary: "上司さんからの資料作成の依頼に、約1分で完成版を共有。対応の速さに感謝が届きました。今月の「スピード対応」はこれで8回目です。",
     story: [
       { who: "上司さん", av: "av-boss", ini: "上", time: "15:57", text: "@YUKIYAMA おつかれ、いい感じの資料つくっておいて" },
       { who: "YUKIYAMA", av: "av-me", ini: "Y", time: "15:58", mine: true, text: "@上司 おつかれさまです。すごい資料です。ご確認をお願いします。", file: "すごい資料.xlsx" },
       { who: "上司さん", av: "av-boss", ini: "上", time: "15:58", thanks: true, text: "@YUKIYAMA ありがとうございます。素早い対応助かります。確認しますね。" },
     ]},
-  { who: "上司さん", av: "av-boss", ini: "上", ch: "#資料作成", src: "Slack", srcCls: "", month: "2026年 7月",
-    msg: "ありがとう、助かります。", tag: "スピード対応", time: "昨日 18:12",
+  { who: "上司さん", av: "av-boss", ini: "上", ch: "#資料作成", src: "Slack", srcCls: "", month: "2026年 6月",
+    msg: "ありがとう、助かります。", tag: "スピード対応", time: "6/30 18:12",
     summary: "会議の前倒しで急遽必要になったアジェンダを当日中に作成。締切前倒しへの対応力に感謝が届きました。",
     story: [
       { who: "上司さん", av: "av-boss", ini: "上", time: "16:40", text: "明日の定例、先方の都合で1日早まった…アジェンダ今日中いける？" },
@@ -715,8 +813,8 @@ let lastOpened = null;
 function cardHTML(d, i, listName, clickable = true) {
   const cls = tagCls(d.tag);
   return `
-  <div class="card ${d.isNew ? 'new hidden' : ''} ${clickable ? '' : 'static'} ${TAPE[cls] || ''} ${d.fav ? 'faved' : ''}"
-       ${d.isNew ? 'id="newCard"' : ''} tabindex="0" data-id="${d.id ?? ''}"
+  <div class="card ${d.isNew ? 'new' : ''} ${clickable ? '' : 'static'} ${TAPE[cls] || ''} ${d.fav ? 'faved' : ''}"
+       tabindex="0" data-id="${d.id ?? ''}"
        ${clickable ? `onclick="lastOpened=this; openModal('${listName}',${i})"` : ''}>
     ${listName === 'DATA' ? `<button class="fav-btn" aria-label="お気に入り" onclick="event.stopPropagation(); toggleFav(${i}, this)">★</button>` : ''}
     <div class="card-head">
@@ -751,7 +849,6 @@ function applyFilters() {
   const list = DATA.filter(d => (!filter.tag || d.tag === filter.tag) && (!filter.fav || d.fav));
   renderAlbum($('grid'), list, 'DATA');
   $('activeFilter').innerHTML = filter.tag ? `<span class="filter-chip">${filter.tag} <button onclick="clearTagFilter()">✕</button></span>` : '';
-  if (filter.tag || filter.fav) { const n = $('newCard'); if (n) n.classList.remove('hidden'); }
 }
 function clearTagFilter() { $('tagFilter').value = ''; applyFilters(); }
 function initTagFilter() {
@@ -773,7 +870,7 @@ function toggleFav(i, btn) {
 
 /* ================= modal ================= */
 function openModal(listName, i) {
-  const d = (listName === 'DATA' ? DATA : SENT)[i];
+  const d = (listName === 'DATA' ? DATA : listName === 'SENT' ? SENT : ARRIVALS)[i];
   const bubbles = d.story ? d.story.map(s => `
     <div class="bubble-row ${s.mine ? 'mine' : ''} ${s.thanks ? 'thanks' : ''}">
       <div class="avatar ${s.av}">${s.ini}</div>
@@ -852,18 +949,6 @@ function toast(msg) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
 }
-function playDemo() {
-  const newCard = $('newCard');
-  if (!newCard) return;
-  newCard.classList.add('hidden'); newCard.classList.remove('new');
-  $('count').textContent = '264'; $('count').classList.remove('pop');
-  void newCard.offsetWidth;
-  setTimeout(() => {
-    newCard.classList.remove('hidden'); newCard.classList.add('new');
-    setTimeout(() => { $('count').textContent = '265'; $('count').classList.add('pop'); setTimeout(() => $('count').classList.remove('pop'), 400); }, 350);
-  }, 900);
-}
-window.addEventListener('load', playDemo);
 
 /* ================= 株チャート風 推移ウィジェット ================= */
 const PERIODS = [["1w","1週間"],["1m","1か月"],["1y","1年"],["3y","3年"],["5y","5年"]];
@@ -992,11 +1077,13 @@ function expandTops(uid, btn) {
 }
 
 /* ================= 本人タブ ================= */
-const personViews = { album: 'viewAlbum', shape: 'viewShape', sent: 'viewSent' };
+const personViews = { album: 'viewAlbum', shape: 'viewShape', sent: 'viewSent', arrivals: 'viewArrivals' };
 function showView(name) {
   Object.values(personViews).forEach(v => $(v).classList.add('hidden'));
   $(personViews[name]).classList.remove('hidden');
   document.querySelectorAll('#personTabs .tab').forEach(t => t.classList.toggle('active', t.dataset.v === name));
+  $('newChip').classList.toggle('hidden', arrSaved || name === 'arrivals');
+  $('demoBtn').classList.toggle('hidden', name === 'arrivals');
 }
 
 /* ================= ロール切替 ================= */
@@ -1009,8 +1096,9 @@ function setRole(role) {
   $('demoBtn').classList.toggle('hidden', boss);
   Object.values(personViews).forEach(v => $(v).classList.add('hidden'));
   $('viewTeam').classList.add('hidden'); $('viewMember').classList.add('hidden');
+  $('newChip').classList.toggle('hidden', boss || arrSaved);
   if (boss) { renderMembers(); $('viewTeam').classList.remove('hidden'); }
-  else showView('album');
+  else showView(arrSaved ? 'album' : 'arrivals');
 }
 function showBossView(name) {
   $('viewTeam').classList.toggle('hidden', name !== 'team');
@@ -1145,11 +1233,260 @@ function openReport(key, month) {
   document.body.appendChild(overlay);
 }
 
+/* ================= 新着カードスタック ================= */
+const ALBUM_BASE_COUNT = 264;
+const ARRIVALS = [
+  { who: "上司さん", av: "av-boss", ini: "上", ch: "#資料作成", src: "Slack", srcCls: "", month: "2026年 7月",
+    msg: "数字の出どころが全部たどれるようになってるの、あれ本当に助かる。ありがとう。", tag: "資料品質", time: "7/4 08:55",
+    summary: "以前に整えた資料フォーマットが、不在のあいだの役員会でそのまま使われていました。出典をたどれる構造への感謝が届いています。「資料品質」への感謝は、これで通算32回目です。",
+    story: [
+      { who: "上司さん", av: "av-boss", ini: "上", time: "08:41", text: "役員会、前につくってもらったフォーマットそのまま使わせてもらったよ" },
+      { who: "上司さん", av: "av-boss", ini: "上", time: "08:52", text: "その場で「この数字どこから？」って聞かれたんだけど、脚注に全部書いてあって即答できた" },
+      { who: "上司さん", av: "av-boss", ini: "上", time: "08:55", thanks: true, text: "数字の出どころが全部たどれるようになってるの、あれ本当に助かる。ありがとう。" },
+    ]},
+  { who: "鈴木さん", av: "av-c", ini: "鈴", ch: "新人サポート", src: "Teams", srcCls: "teams", month: "2026年 7月",
+    msg: "直すところを一つずつ理由まで教えてもらえたのが大きかったです。ありがとうございました。", tag: "後輩サポート", time: "7/3 16:48",
+    summary: "鈴木さんの初めての提案書を事前にレビュー。「どこを直すか」だけでなく「なぜ直すか」を添えて返したことへの感謝が届いています。",
+    story: [
+      { who: "鈴木さん", av: "av-c", ini: "鈴", time: "16:31", text: "はじめての提案、通りました…！先方から「わかりやすい」って言ってもらえて" },
+      { who: "鈴木さん", av: "av-c", ini: "鈴", time: "16:44", text: "見ていただいたとき、直す場所だけじゃなく理由まで書いてもらえたので、今回は自分で直せました" },
+      { who: "鈴木さん", av: "av-c", ini: "鈴", time: "16:48", thanks: true, text: "直すところを一つずつ理由まで教えてもらえたのが大きかったです。ありがとうございました。" },
+    ]},
+  { who: "田中さん", av: "av-b", ini: "田", ch: "#プロジェクトA", src: "Slack", srcCls: "", month: "2026年 7月",
+    msg: "不在のあいだの引き継ぎメモ、完璧でした。止まらずに進められました。ありがとうございます。", tag: "気配り", time: "7/2 10:24",
+    summary: "不在前に残した引き継ぎメモが、急な仕様変更の連絡にもそのまま使えました。先を見越した準備への感謝が届いています。",
+    story: [
+      { who: "田中さん", av: "av-b", ini: "田", time: "10:05", text: "先方から仕様変更の連絡が来てるんだけど、この件って誰が持ってたっけ…" },
+      { who: "田中さん", av: "av-b", ini: "田", time: "10:19", text: "あ、引き継ぎメモに連絡先も想定される質問も全部書いてある" },
+      { who: "田中さん", av: "av-b", ini: "田", time: "10:24", thanks: true, text: "不在のあいだの引き継ぎメモ、完璧でした。止まらずに進められました。ありがとうございます。" },
+    ]},
+];
+
+let arrEls = [];          // カード要素（ARRIVALSの並び順）
+let arrOrder = [];        // 手前から奥へのindex
+let arrViewed = new Set();
+let arrSaved = false;
+let arrAnimating = false;
+let arrDrag = null;
+const ARR_ROT = [-1.2, 2.6, -2.4, 1.1];
+const ARR_DY  = [0, 16, 30, 42];
+
+function arrivalCardHTML(a, i) {
+  const cls = tagCls(a.tag);
+  return `
+  <article class="stack-card ${TAPE[cls] || ''}" data-i="${i}">
+    <div class="card-head">
+      <div class="avatar ${a.av}">${a.ini}</div>
+      <div><div class="who">${a.who}</div><div class="meta">${a.ch}</div></div>
+      <div class="src ${a.srcCls}">${a.src}</div>
+    </div>
+    <div class="msg">${a.msg}</div>
+    <div class="card-foot">
+      <span class="badge-new">NEW</span>
+      <span class="tag ${cls}">${a.tag}</span>
+      <span class="time">${a.time}</span>
+    </div>
+    <button class="stack-link" onpointerdown="event.stopPropagation()"
+      onclick="event.stopPropagation(); openModal('ARRIVALS',${i})">やりとりを見る</button>
+  </article>`;
+}
+
+function buildArrivals() {
+  const stack = $('arrStack');
+  stack.style.visibility = '';
+  stack.innerHTML = ARRIVALS.map(arrivalCardHTML).join('');
+  arrEls = [...stack.querySelectorAll('.stack-card')];
+  arrOrder = ARRIVALS.map((_, i) => i);
+  arrViewed = new Set([arrOrder[0]]);
+  arrSaved = false; arrAnimating = false; arrDrag = null;
+  arrEls.forEach((el, i) => {
+    el.addEventListener('pointerdown', e => arrDown(e, i));
+    el.addEventListener('pointermove', arrMove);
+    el.addEventListener('pointerup', arrUp);
+    el.addEventListener('pointercancel', arrUp);
+  });
+  $('arrDots').innerHTML = ARRIVALS.map(() => '<span class="dot"></span>').join('');
+  $('arrSaveBtn').disabled = false;
+  layoutArr();
+  updateArrUI();
+}
+
+function layoutArr(skip) {
+  arrOrder.forEach((idx, depth) => {
+    const el = arrEls[idx];
+    if (!el || el === skip) return;
+    el.style.zIndex = String(50 - depth);
+    el.style.opacity = '1';
+    el.style.transform = `translate(-50%, ${ARR_DY[depth % 4]}px) scale(${1 - depth * .048}) rotate(${ARR_ROT[depth % 4]}deg)`;
+    el.classList.toggle('front', depth === 0);
+  });
+}
+
+function updateArrUI() {
+  const front = arrOrder[0];
+  [...$('arrDots').children].forEach((d, k) => d.classList.toggle('on', k === front));
+  $('arrCounter').textContent = `${arrViewed.size} / ${ARRIVALS.length}`;
+  const all = arrViewed.size >= ARRIVALS.length;
+  $('arrSaveBtn').classList.toggle('ready', all);
+  $('arrSaveHint').textContent = all
+    ? 'ぜんぶ見ました。アルバムに綴じましょう。'
+    : 'まだ見ていないカードがあります。';
+}
+
+/* めくる（クリック・矢印・キーボード共通） */
+function arrAdvance(dir) {
+  if (arrAnimating || arrSaved || arrOrder.length < 2) return;
+  arrAnimating = true;
+  const idx = arrOrder[0], el = arrEls[idx];
+  el.classList.remove('front');
+  el.style.transition = 'transform .3s cubic-bezier(.4,.05,.35,1)';
+  el.style.zIndex = '80';
+  el.style.transform = `translate(-50%, -18px) translateX(${dir * 66}%) rotate(${dir * 10}deg) scale(.95)`;
+  arrOrder.push(arrOrder.shift());
+  arrViewed.add(arrOrder[0]);
+  setTimeout(() => {
+    el.style.transition = '';   // CSSのゆっくりした戻りに戻す
+    layoutArr();
+    updateArrUI();
+    setTimeout(() => { arrAnimating = false; }, 220);
+  }, 270);
+}
+
+/* ドラッグでめくる */
+function arrDown(e, i) {
+  if (arrAnimating || arrSaved || arrOrder[0] !== i) return;
+  const el = arrEls[i];
+  arrDrag = { i, x: e.clientX, y: e.clientY, dx: 0, moved: false };
+  el.setPointerCapture(e.pointerId);
+  el.classList.add('dragging');
+}
+function arrMove(e) {
+  if (!arrDrag) return;
+  const el = arrEls[arrDrag.i];
+  arrDrag.dx = e.clientX - arrDrag.x;
+  const dy = e.clientY - arrDrag.y;
+  if (Math.abs(arrDrag.dx) > 4 || Math.abs(dy) > 4) arrDrag.moved = true;
+  el.style.transform = `translate(-50%, ${dy * .12}px) translateX(${arrDrag.dx}px) rotate(${arrDrag.dx / 22}deg) scale(1)`;
+}
+function arrUp() {
+  if (!arrDrag) return;
+  const { i, dx, moved } = arrDrag;
+  const el = arrEls[i];
+  arrDrag = null;
+  el.classList.remove('dragging');
+  if (Math.abs(dx) > 70) { arrAdvance(dx > 0 ? 1 : -1); return; }
+  layoutArr();                       // 戻す
+  if (!moved) arrAdvance(1);         // 動いていなければクリック扱い
+}
+document.addEventListener('keydown', e => {
+  if ($('viewArrivals').classList.contains('hidden')) return;
+  if (document.querySelector('.overlay')) return;
+  if (e.key === 'ArrowRight') arrAdvance(1);
+  if (e.key === 'ArrowLeft') arrAdvance(-1);
+});
+
+/* ================= アルバムに綴じる（散らばって収まる） ================= */
+function saveArrivals() {
+  if (arrSaved || arrAnimating) return;
+  arrSaved = true; arrAnimating = true;
+  $('arrSaveBtn').disabled = true;
+  $('arrSaveHint').textContent = 'アルバムに綴じています…';
+
+  const stack = $('arrStack');
+  const sr = stack.getBoundingClientRect();
+  const tab = document.querySelector('#personTabs .tab[data-v="album"]');
+  const tr = tab.getBoundingClientRect();
+  const tx = tr.left + tr.width / 2, ty = tr.top + tr.height / 2;
+  const narrow = window.innerWidth < 620;
+  const k = Math.min(1, window.innerWidth / 620);   // 狭い画面では散らばりを抑える
+  const SCATTER = [[-196 * k, -76], [204 * k, 22], [-44 * k, 128]];
+  const SPIN = [-17, 15, 8];
+  const SCALE1 = narrow ? .72 : .98;
+
+  const flies = arrOrder.map((idx, depth) => {
+    const el = arrEls[idx];
+    const w = el.offsetWidth, h = el.offsetHeight;
+    const clone = el.cloneNode(true);
+    clone.classList.add('fly-card');
+    clone.classList.remove('front');
+    clone.style.cssText += `position:fixed; left:${sr.left}px; top:${sr.top}px; width:${w}px; height:${h}px; z-index:${300 - depth}; transition:none; opacity:1;`;
+    clone.style.transform = `translate(0px, ${ARR_DY[depth % 4]}px) scale(${1 - depth * .048}) rotate(${ARR_ROT[depth % 4]}deg)`;
+    document.body.appendChild(clone);
+    return { clone, w, h };
+  });
+  stack.style.visibility = 'hidden';
+
+  // ① バラバラッと散る
+  requestAnimationFrame(() => flies.forEach(({ clone }, d) => {
+    clone.style.transition = `transform .44s cubic-bezier(.2,.9,.3,1.35) ${d * 55}ms`;
+    clone.style.transform = `translate(${SCATTER[d % 3][0]}px, ${SCATTER[d % 3][1]}px) rotate(${SPIN[d % 3]}deg) scale(${SCALE1})`;
+  }));
+
+  // ② アルバムへ吸い込まれて綴じられる
+  setTimeout(() => {
+    tab.classList.add('landing');
+    flies.forEach(({ clone, w, h }, d) => {
+      const dx = tx - (sr.left + w / 2), dy = ty - (sr.top + h / 2);
+      clone.style.transition = `transform .62s cubic-bezier(.55,.06,.68,.19) ${d * 70}ms, opacity .34s ease ${d * 70 + 300}ms`;
+      clone.style.transform = `translate(${dx}px, ${dy}px) rotate(${SPIN[d % 3] * -1.4}deg) scale(.06)`;
+      clone.style.opacity = '0';
+    });
+  }, 560);
+
+  // ③ アルバムに現れる
+  setTimeout(() => {
+    flies.forEach(({ clone }) => clone.remove());
+    tab.classList.remove('landing');
+    commitArrivals();
+    showView('album');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const c = $('count');
+    c.textContent = String(ALBUM_BASE_COUNT + ARRIVALS.length);
+    c.classList.add('pop'); setTimeout(() => c.classList.remove('pop'), 500);
+    toast(`${ARRIVALS.length}枚をアルバムに綴じました`);
+    arrAnimating = false;
+  }, 1420);
+}
+
+function commitArrivals() {
+  for (let i = ARRIVALS.length - 1; i >= 0; i--) {
+    DATA.unshift(Object.assign({}, ARRIVALS[i], {
+      id: 1000 + i, fav: false, myMemo: "", isNew: true, fromArrivals: true
+    }));
+  }
+  initTagFilter();
+  applyFilters();
+}
+
+/* ================= 新着画面の出し入れ ================= */
+function openArrivals() {
+  if (arrSaved || !arrEls.length) return;
+  showView('arrivals');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function skipArrivals() {
+  showView('album');
+  toast('あとで「新着」から見られます');
+}
+function replayArrivals() {
+  document.querySelectorAll('.fly-card').forEach(el => el.remove());
+  for (let i = DATA.length - 1; i >= 0; i--) if (DATA[i].fromArrivals) DATA.splice(i, 1);
+  initTagFilter();
+  applyFilters();
+  $('count').textContent = String(ALBUM_BASE_COUNT);
+  setRole('person');
+  buildArrivals();
+  showView('arrivals');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 /* ================= init ================= */
 initTagFilter();
 applyFilters();
 renderAlbum($('sentGrid'), SENT, 'SENT');
 renderShapeInto($('myShape'), MY_SHAPE, true);
+buildArrivals();
+showView('arrivals');
 </script>
 
 </body>

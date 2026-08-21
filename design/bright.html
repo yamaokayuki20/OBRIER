@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>オブリエ｜ブライト・モダン案</title>
+<meta name="description" content="オブリエのアルバム画面を、明るいモダンSaaS調で描いたデザイン検討モックアップ。">
+<style>
+  :root{
+    --bg:#eef3f7;
+    --surface:#ffffff;
+    --primary:#10c4d3;
+    --primary-deep:#0a8e9b;
+    --primary-tint:#e2f8fa;
+    --ink:#1e2a32;
+    --ink-2:#64798a;
+    --ink-3:#9aabb8;
+    --line:#e6edf2;
+    --new:#ff7a59;
+    --new-tint:#fff1ec;
+    --shadow:0 2px 10px rgba(30,42,50,.055);
+    --shadow-lift:0 10px 26px rgba(30,42,50,.11);
+    --goth:"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic","Noto Sans JP",sans-serif;
+    --min:"Hiragino Mincho ProN","Yu Mincho",YuMincho,"Noto Serif JP",serif;
+    --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,monospace;
+
+    --t1:#3f86f7; --t2:#12b886; --t3:#f9ac2f; --t4:#8b6cf0;
+    --t5:#ef6ba8; --t6:#16bfc4; --t7:#fb8143; --t8:#5a75e8;
+  }
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);font-family:var(--goth);
+    line-height:1.6;overflow-x:hidden;
+  }
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;}
+  /* 参照画像の右上シアン抜け */
+  body::before{
+    content:"";position:fixed;top:0;right:0;width:46vw;height:190px;z-index:0;
+    background:linear-gradient(120deg,var(--primary),#28d7c9);
+    clip-path:polygon(18% 0,100% 0,100% 100%,0 100%);
+    opacity:.9;
+  }
+
+  .shell{position:relative;z-index:1;max-width:1360px;margin:0 auto;padding:26px 22px 46px;}
+
+  /* ---------- board note ---------- */
+  .boardnote{
+    background:rgba(255,255,255,.82);backdrop-filter:blur(6px);
+    border:1px solid var(--line);border-radius:14px;padding:14px 18px;margin:0 0 20px;
+    display:flex;gap:16px;align-items:center;flex-wrap:wrap;box-shadow:var(--shadow);
+  }
+  .boardnote p{margin:0;font-size:12.5px;color:var(--ink-2);flex:1;min-width:260px;}
+  .boardnote b{color:var(--ink);font-weight:600;}
+  .toggle{display:flex;gap:0;border:1px solid var(--line);border-radius:999px;overflow:hidden;flex:none;}
+  .toggle button{
+    font-family:inherit;font-size:12px;padding:7px 15px;border:0;background:#fff;color:var(--ink-2);
+    cursor:pointer;transition:background .15s,color .15s;
+  }
+  .toggle button[aria-pressed="true"]{background:var(--primary);color:#fff;font-weight:700;}
+  .toggle button:focus-visible{outline:2px solid var(--primary-deep);outline-offset:-2px;}
+
+  /* ---------- app frame ---------- */
+  .app{
+    display:grid;grid-template-columns:206px minmax(0,1fr) 296px;gap:0;
+    background:var(--surface);border-radius:22px;box-shadow:0 18px 50px rgba(30,42,50,.13);
+    overflow:hidden;
+  }
+
+  /* ---------- sidebar ---------- */
+  .side{border-right:1px solid var(--line);padding:24px 0 22px;display:flex;flex-direction:column;gap:22px;}
+  .brand{padding:0 22px;display:flex;align-items:center;gap:9px;}
+  .brand-mark{
+    width:30px;height:30px;border-radius:9px;flex:none;
+    background:linear-gradient(140deg,var(--primary),#31dcc8);
+    display:grid;place-items:center;color:#fff;font-size:15px;font-weight:800;
+    box-shadow:0 3px 9px rgba(16,196,211,.4);
+  }
+  .brand-name{font-size:16px;font-weight:800;letter-spacing:.09em;}
+  .brand-name small{display:block;font-size:8.5px;letter-spacing:.2em;color:var(--ink-3);font-weight:600;}
+  .who-side{padding:0 22px;display:flex;align-items:center;gap:10px;}
+  .who-side .av{width:34px;height:34px;border-radius:50%;background:#3f86f7;color:#fff;display:grid;place-items:center;font-size:13px;font-weight:700;flex:none;}
+  .who-side .nm{font-size:13px;font-weight:600;}
+  .who-side .rl{font-size:10.5px;color:var(--ink-3);}
+  nav{display:flex;flex-direction:column;gap:2px;}
+  nav a{
+    display:flex;align-items:center;gap:11px;padding:10px 22px;text-decoration:none;
+    color:var(--ink-2);font-size:13.5px;border-left:3px solid transparent;transition:background .15s;
+  }
+  nav a:hover{background:#f6fafc;}
+  nav a[aria-current]{background:var(--primary-tint);color:var(--primary-deep);font-weight:700;border-left-color:var(--primary);}
+  nav a .ic{width:17px;height:17px;flex:none;}
+  .side-foot{margin-top:auto;padding:0 18px;}
+  .cta{
+    display:block;width:100%;border:0;border-radius:12px;padding:12px;cursor:pointer;
+    background:linear-gradient(135deg,var(--primary),#26d3c6);color:#fff;font-family:inherit;
+    font-size:13px;font-weight:700;box-shadow:0 6px 16px rgba(16,196,211,.35);
+  }
+
+  /* ---------- main ---------- */
+  .main{padding:24px 26px 30px;min-width:0;display:flex;flex-direction:column;gap:22px;}
+  .topbar{display:flex;gap:12px;align-items:center;}
+  .search{
+    flex:1;display:flex;align-items:center;gap:10px;background:#f6f9fb;border:1px solid var(--line);
+    border-radius:12px;padding:10px 15px;color:var(--ink-3);font-size:13px;min-width:0;
+  }
+  .seg{display:flex;border:1px solid var(--line);border-radius:12px;overflow:hidden;flex:none;background:#fff;}
+  .seg span{padding:9px 13px;font-size:12px;color:var(--ink-2);}
+  .seg span.on{background:var(--primary);color:#fff;font-weight:700;}
+
+  .hero{display:flex;align-items:flex-end;gap:26px;flex-wrap:wrap;}
+  .hero .lab{font-size:12.5px;color:var(--ink-2);margin:0 0 2px;}
+  .hero .big{font-size:46px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums;letter-spacing:-.01em;}
+  .hero .big em{font-size:15px;font-style:normal;font-weight:600;color:var(--ink-2);margin-left:6px;}
+  .hero .delta{
+    font-size:12px;font-weight:700;color:var(--primary-deep);background:var(--primary-tint);
+    border-radius:999px;padding:5px 12px;
+  }
+
+  .sec-head{display:flex;align-items:center;gap:10px;margin:0 0 12px;}
+  .sec-head h2{margin:0;font-size:14px;font-weight:700;letter-spacing:.02em;}
+  .sec-head .more{margin-left:auto;font-size:11.5px;color:var(--ink-3);}
+
+  /* 月ごとの綴じ */
+  .months{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;}
+  .month{
+    background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:15px 16px;
+    box-shadow:var(--shadow);display:flex;flex-direction:column;gap:9px;transition:transform .2s,box-shadow .2s;
+  }
+  .month:hover{transform:translateY(-3px);box-shadow:var(--shadow-lift);}
+  .month.on{background:linear-gradient(140deg,var(--primary),#25d1c6);border-color:transparent;color:#fff;box-shadow:0 10px 24px rgba(16,196,211,.34);}
+  .month .mh{display:flex;align-items:center;gap:9px;}
+  .month .mi{
+    width:30px;height:30px;border-radius:9px;background:var(--primary-tint);display:grid;place-items:center;
+    flex:none;color:var(--primary-deep);font-size:12px;font-weight:800;
+  }
+  .month.on .mi{background:rgba(255,255,255,.24);color:#fff;}
+  .month .mt{font-size:13.5px;font-weight:700;}
+  .month .mc{font-size:11px;color:var(--ink-3);}
+  .month.on .mc{color:rgba(255,255,255,.85);}
+  .month .bar{height:5px;border-radius:99px;background:#eef2f5;overflow:hidden;}
+  .month.on .bar{background:rgba(255,255,255,.28);}
+  .month .bar i{display:block;height:100%;border-radius:99px;background:var(--primary);}
+  .month.on .bar i{background:#fff;}
+
+  /* 送り主の行 */
+  .senders{display:flex;gap:20px;flex-wrap:wrap;}
+  .sender{display:flex;align-items:center;gap:9px;}
+  .sender .av{width:34px;height:34px;border-radius:11px;color:#fff;display:grid;place-items:center;font-size:13px;font-weight:700;flex:none;}
+  .sender .nm{font-size:12.5px;font-weight:600;line-height:1.3;}
+  .sender .ct{font-size:10.5px;color:var(--ink-3);}
+
+  /* 感謝カード */
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(238px,1fr));gap:15px;}
+  .card{
+    position:relative;background:var(--surface);border:1px solid var(--line);border-radius:16px;
+    padding:17px 17px 14px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:12px;
+    transition:transform .2s,box-shadow .2s;cursor:pointer;
+  }
+  .card:hover{transform:translateY(-4px);box-shadow:var(--shadow-lift);}
+  .card:focus-visible{outline:2px solid var(--primary);outline-offset:2px;}
+  .card .ch{display:flex;align-items:center;gap:9px;padding-right:22px;}
+  .card .av{width:29px;height:29px;border-radius:10px;color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700;flex:none;}
+  .card .who{font-size:12.5px;font-weight:700;line-height:1.35;}
+  .card .chn{font-size:10.5px;color:var(--ink-3);}
+  .card .src{
+    margin-left:auto;flex:none;font-size:9px;font-weight:700;letter-spacing:.06em;color:var(--ink-3);
+    border:1px solid var(--line);border-radius:6px;padding:2px 6px;
+  }
+  .card .msg{
+    font-family:var(--min);font-size:14.5px;line-height:1.9;letter-spacing:.02em;flex:1;margin:0;
+  }
+  body.goth .card .msg{font-family:var(--goth);font-size:13.5px;line-height:1.8;}
+  .card .cf{display:flex;align-items:center;gap:8px;}
+  .tag{
+    font-size:10.5px;font-weight:700;border-radius:999px;padding:3px 10px;flex:none;
+    background:color-mix(in srgb,var(--tc) 13%,#fff);color:var(--tc);
+  }
+  .card .tm{margin-left:auto;font-family:var(--mono);font-size:9.5px;color:var(--ink-3);flex:none;}
+  .fav{
+    position:absolute;top:11px;right:12px;border:0;background:none;cursor:pointer;padding:2px;
+    font-size:14px;color:#d5dee5;line-height:1;transition:transform .15s,color .15s;
+  }
+  .fav:hover{transform:scale(1.2);}
+  .card.faved .fav{color:#f9ac2f;}
+
+  /* 新着 */
+  .card.new{border-color:var(--new);background:var(--new-tint);box-shadow:0 8px 22px rgba(255,122,89,.22);}
+  .card.new .pill{
+    position:absolute;top:-9px;left:15px;background:var(--new);color:#fff;font-size:9.5px;font-weight:800;
+    letter-spacing:.12em;border-radius:999px;padding:3px 10px;box-shadow:0 3px 8px rgba(255,122,89,.4);
+  }
+  .card.new .dot{
+    position:absolute;top:-3px;right:-3px;width:11px;height:11px;border-radius:50%;background:var(--new);
+    box-shadow:0 0 0 3px var(--new-tint);
+  }
+  .card.new .dot::after{
+    content:"";position:absolute;inset:0;border-radius:50%;background:var(--new);
+    animation:ping 1.9s cubic-bezier(0,0,.2,1) infinite;
+  }
+  @keyframes ping{0%{transform:scale(1);opacity:.65;}75%,100%{transform:scale(2.6);opacity:0;}}
+
+  /* ---------- right panel : あなたのカタチ ---------- */
+  .rail{border-left:1px solid var(--line);padding:24px 22px 26px;display:flex;flex-direction:column;gap:24px;background:#fcfdfe;}
+  .rail h2{margin:0;font-size:14px;font-weight:700;}
+  .rail .sub{margin:3px 0 0;font-size:11.5px;color:var(--ink-3);}
+  .ring{display:flex;align-items:center;gap:15px;}
+  .ring .num{font-size:32px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;}
+  .ring .cap{font-size:11.5px;color:var(--ink-2);}
+  .bars{display:flex;flex-direction:column;gap:14px;}
+  .brow .bt{display:flex;align-items:center;gap:9px;margin-bottom:6px;}
+  .brow .sw{width:19px;height:19px;border-radius:6px;flex:none;background:color-mix(in srgb,var(--tc) 18%,#fff);
+    display:grid;place-items:center;}
+  .brow .sw i{width:8px;height:8px;border-radius:2.5px;background:var(--tc);display:block;}
+  .brow .bn{font-size:12.5px;font-weight:600;}
+  .brow .bv{margin-left:auto;font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--ink-2);}
+  .brow .track{height:5px;border-radius:99px;background:#eef2f5;overflow:hidden;}
+  .brow .track i{display:block;height:100%;border-radius:99px;background:var(--tc);}
+  .railcard{
+    background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:15px;
+    box-shadow:var(--shadow);
+  }
+  .railcard .rt{font-size:12px;font-weight:700;margin:0 0 6px;}
+  .railcard p{margin:0;font-size:11.5px;color:var(--ink-2);line-height:1.75;}
+  .railcard .go{
+    display:inline-block;margin-top:10px;font-size:11.5px;font-weight:700;color:var(--primary-deep);
+  }
+
+  /* ---------- notes below ---------- */
+  .after{margin-top:30px;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;}
+  .note{
+    background:rgba(255,255,255,.86);backdrop-filter:blur(6px);border:1px solid var(--line);
+    border-radius:16px;padding:17px 18px;box-shadow:var(--shadow);
+  }
+  .note h3{margin:0 0 7px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px;}
+  .note h3 .k{
+    font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:#fff;background:var(--ink);
+    border-radius:5px;padding:2px 6px;flex:none;
+  }
+  .note h3 .k.warn{background:var(--new);}
+  .note p{margin:0;font-size:12.5px;color:var(--ink-2);line-height:1.8;}
+  .note p b{color:var(--ink);font-weight:600;}
+
+  @media (max-width:1080px){
+    .app{grid-template-columns:180px minmax(0,1fr);}
+    .rail{grid-column:1/-1;border-left:0;border-top:1px solid var(--line);}
+  }
+  @media (max-width:720px){
+    body::before{width:100vw;height:130px;}
+    .shell{padding:16px 12px 34px;}
+    .app{grid-template-columns:1fr;border-radius:18px;}
+    .side{flex-direction:row;align-items:center;gap:14px;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line);padding:14px;}
+    .side .who-side,.side .side-foot{display:none;}
+    nav{flex-direction:row;gap:4px;}
+    nav a{padding:8px 13px;border-left:0;border-radius:10px;white-space:nowrap;}
+    nav a[aria-current]{border-left:0;}
+    .main{padding:18px 15px 24px;}
+    .hero .big{font-size:36px;}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none !important;animation:none !important;}
+  }
+</style>
+</head>
+<body>
+<h2 class="sr-only">オブリエのアルバム画面を、明るいモダンSaaS調で描いたモックアップ。外枠はダッシュボード的、感謝カードのみキープセイクとして扱う。</h2>
+
+<div class="shell">
+
+  <div class="boardnote">
+    <p><b>ブライト・モダン案</b> ／ 外枠はSaaSダッシュボード、感謝カードだけキープセイクとして残す構成。参照画像の右パネル（内訳バー）を「あなたのカタチ」に、Co-ownersを「よく届く相手」に、Foldersを「月ごとの綴じ」に対応させています。</p>
+    <div class="toggle" role="group" aria-label="感謝本文の書体">
+      <button type="button" id="tMin" aria-pressed="true">本文 明朝</button>
+      <button type="button" id="tGoth" aria-pressed="false">ゴシック</button>
+    </div>
+  </div>
+
+  <div class="app">
+
+    <!-- ============ sidebar ============ -->
+    <aside class="side">
+      <div class="brand">
+        <div class="brand-mark">O</div>
+        <div class="brand-name">オブリエ<small>OBRIER</small></div>
+      </div>
+
+      <div class="who-side">
+        <div class="av">Y</div>
+        <div><div class="nm">YUKIYAMA</div><div class="rl">企画チーム</div></div>
+      </div>
+
+      <nav>
+        <a href="#" aria-current="page">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v16l-6-3-6 3z"></path></svg>
+          アルバム
+        </a>
+        <a href="#">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M3 12h18"></path><circle cx="12" cy="12" r="9"></circle></svg>
+          あなたのカタチ
+        </a>
+        <a href="#">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"></path></svg>
+          おくった
+        </a>
+        <a href="#">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path></svg>
+          メンバー
+        </a>
+      </nav>
+
+      <div class="side-foot">
+        <button class="cta" type="button">ありがとうを送る</button>
+      </div>
+    </aside>
+
+    <!-- ============ main ============ -->
+    <main class="main">
+      <div class="topbar">
+        <div class="search">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+          言葉・送り主・タグで探す
+        </div>
+        <div class="seg"><span class="on">すべて</span><span>お気に入り</span></div>
+      </div>
+
+      <div class="hero">
+        <div>
+          <p class="lab">これまでに届いた、あたたかい言葉</p>
+          <div class="big">128<em>通</em></div>
+        </div>
+        <div class="delta">今月 14通</div>
+      </div>
+
+      <section>
+        <div class="sec-head"><h2>月ごとの綴じ</h2><span class="more">2026年</span></div>
+        <div class="months">
+          <div class="month on">
+            <div class="mh"><div class="mi">7月</div><div><div class="mt">2026年 7月</div><div class="mc">14通・集計中</div></div></div>
+            <div class="bar"><i style="width:58%"></i></div>
+          </div>
+          <div class="month">
+            <div class="mh"><div class="mi">6月</div><div><div class="mt">2026年 6月</div><div class="mc">24通</div></div></div>
+            <div class="bar"><i style="width:100%"></i></div>
+          </div>
+          <div class="month">
+            <div class="mh"><div class="mi">5月</div><div><div class="mt">2026年 5月</div><div class="mc">19通</div></div></div>
+            <div class="bar"><i style="width:79%"></i></div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="sec-head"><h2>よく言葉をくれる人</h2><span class="more">直近3か月</span></div>
+        <div class="senders">
+          <div class="sender"><div class="av" style="background:#3f86f7">中</div><div><div class="nm">中村さん</div><div class="ct">12通</div></div></div>
+          <div class="sender"><div class="av" style="background:#12b886">渡</div><div><div class="nm">渡辺さん</div><div class="ct">9通</div></div></div>
+          <div class="sender"><div class="av" style="background:#8b6cf0">小</div><div><div class="nm">小林さん</div><div class="ct">7通</div></div></div>
+          <div class="sender"><div class="av" style="background:#ef6ba8">山</div><div><div class="nm">山本さん</div><div class="ct">6通</div></div></div>
+          <div class="sender"><div class="av" style="background:#f9ac2f">上</div><div><div class="nm">上司さん</div><div class="ct">4通</div></div></div>
+        </div>
+      </section>
+
+      <section>
+        <div class="sec-head"><h2>とどいた言葉</h2><span class="more">新しい順</span></div>
+        <div class="cards">
+
+          <article class="card new" tabindex="0">
+            <span class="pill">NEW</span><span class="dot"></span>
+            <button class="fav" type="button" aria-label="お気に入り">★</button>
+            <div class="ch">
+              <div class="av" style="background:#ef6ba8">山</div>
+              <div><div class="who">山本さん</div><div class="chn">#企画チーム</div></div>
+            </div>
+            <p class="msg">企画書のたたき、方向性ばっちりでした！</p>
+            <div class="cf"><span class="tag" style="--tc:var(--t5)">企画構成</span><span class="tm">7/3 14:20</span></div>
+          </article>
+
+          <article class="card faved" tabindex="0">
+            <button class="fav" type="button" aria-label="お気に入り">★</button>
+            <div class="ch">
+              <div class="av" style="background:#3f86f7">中</div>
+              <div><div class="who">中村さん</div><div class="chn">#営業連携</div></div>
+              <span class="src">SLACK</span>
+            </div>
+            <p class="msg">引き継ぎ資料、丁寧で安心しました。ありがとうございます。</p>
+            <div class="cf"><span class="tag" style="--tc:var(--t1)">気配り</span><span class="tm">6/28 15:30</span></div>
+          </article>
+
+          <article class="card" tabindex="0">
+            <button class="fav" type="button" aria-label="お気に入り">★</button>
+            <div class="ch">
+              <div class="av" style="background:#12b886">渡</div>
+              <div><div class="who">渡辺さん</div><div class="chn">問い合わせ対応</div></div>
+              <span class="src">TEAMS</span>
+            </div>
+            <p class="msg">参考資料のまとめ、わかりやすかったです！</p>
+            <div class="cf"><span class="tag" style="--tc:var(--t2)">資料品質</span><span class="tm">7/2 11:30</span></div>
+          </article>
+
+          <article class="card" tabindex="0">
+            <button class="fav" type="button" aria-label="お気に入り">★</button>
+            <div class="ch">
+              <div class="av" style="background:#8b6cf0">小</div>
+              <div><div class="who">小林さん</div><div class="chn">プロジェクトA</div></div>
+              <span class="src">TEAMS</span>
+            </div>
+            <p class="msg">リスク整理、助かりました。</p>
+            <div class="cf"><span class="tag" style="--tc:var(--t4)">リスク管理</span><span class="tm">7/1 16:45</span></div>
+          </article>
+
+          <article class="card" tabindex="0">
+            <button class="fav" type="button" aria-label="お気に入り">★</button>
+            <div class="ch">
+              <div class="av" style="background:#f9ac2f">上</div>
+              <div><div class="who">上司さん</div><div class="chn">#企画チーム</div></div>
+              <span class="src">SLACK</span>
+            </div>
+            <p class="msg">コンペの構成、筋がいいね。ありがとう。</p>
+            <div class="cf"><span class="tag" style="--tc:var(--t3)">アイデア</span><span class="tm">6/21 10:02</span></div>
+          </article>
+
+          <article class="card" tabindex="0">
+            <button class="fav" type="button" aria-label="お気に入り">★</button>
+            <div class="ch">
+              <div class="av" style="background:#16bfc4">鈴</div>
+              <div><div class="who">鈴木さん</div><div class="chn">#企画チーム</div></div>
+              <span class="src">SLACK</span>
+            </div>
+            <p class="msg">先週のデータ集計、正確で早くて助かりました。ありがとう！</p>
+            <div class="cf"><span class="tag" style="--tc:var(--t6)">正確さ</span><span class="tm">6/26 17:40</span></div>
+          </article>
+
+        </div>
+      </section>
+    </main>
+
+    <!-- ============ right rail ============ -->
+    <aside class="rail">
+      <div>
+        <h2>あなたのカタチ</h2>
+        <p class="sub">感謝された場面の内訳・直近1年</p>
+      </div>
+
+      <div class="ring">
+        <div><div class="num">8</div><div class="cap">種類の場面で<br>頼りにされています</div></div>
+      </div>
+
+      <div class="bars">
+        <div class="brow" style="--tc:var(--t1)">
+          <div class="bt"><span class="sw"><i></i></span><span class="bn">気配り</span><span class="bv">31</span></div>
+          <div class="track"><i style="width:100%"></i></div>
+        </div>
+        <div class="brow" style="--tc:var(--t2)">
+          <div class="bt"><span class="sw"><i></i></span><span class="bn">資料品質</span><span class="bv">26</span></div>
+          <div class="track"><i style="width:84%"></i></div>
+        </div>
+        <div class="brow" style="--tc:var(--t3)">
+          <div class="bt"><span class="sw"><i></i></span><span class="bn">アイデア</span><span class="bv">21</span></div>
+          <div class="track"><i style="width:68%"></i></div>
+        </div>
+        <div class="brow" style="--tc:var(--t4)">
+          <div class="bt"><span class="sw"><i></i></span><span class="bn">リスク管理</span><span class="bv">17</span></div>
+          <div class="track"><i style="width:55%"></i></div>
+        </div>
+        <div class="brow" style="--tc:var(--t5)">
+          <div class="bt"><span class="sw"><i></i></span><span class="bn">企画構成</span><span class="bv">14</span></div>
+          <div class="track"><i style="width:45%"></i></div>
+        </div>
+        <div class="brow" style="--tc:var(--t6)">
+          <div class="bt"><span class="sw"><i></i></span><span class="bn">正確さ</span><span class="bv">11</span></div>
+          <div class="track"><i style="width:35%"></i></div>
+        </div>
+        <div class="brow" style="--tc:var(--t7)">
+          <div class="bt"><span class="sw"><i></i></span><span class="bn">スピード対応</span><span class="bv">5</span></div>
+          <div class="track"><i style="width:16%"></i></div>
+        </div>
+      </div>
+
+      <div class="railcard">
+        <p class="rt">オブリエのメモ</p>
+        <p>この半年、いちばん多く言葉が届いているのは「気配り」の場面でした。引き継ぎや共有のしかたを、まわりの人が見ています。</p>
+        <span class="go">くわしく見る →</span>
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- ============ notes ============ -->
+  <div class="after">
+    <div class="note">
+      <h3><span class="k">効いた</span>タグの自動彩色</h3>
+      <p>参照画像の内訳バーがそのまま<b>可変タグ問題の答え</b>になっています。タグ文字列をハッシュして8色から自動で割り当てれば、タグが増えても破綻しません。前回のQ3はこれで解けます。</p>
+    </div>
+    <div class="note">
+      <h3><span class="k">効いた</span>新着の見せ方</h3>
+      <p>白基調だから<b>暖色1色だけで新着が完全に立つ</b>。コーラルの枠＋脈打つドットで、伏せなくても「確認したくなる」が成立します。開封の儀との線引き問題を回避できるのが大きい。</p>
+    </div>
+    <div class="note">
+      <h3><span class="k warn">危うい</span>原則1との距離</h3>
+      <p>いま辛うじてアルバムに留めているのは<b>本文の明朝だけ</b>です。トグルでゴシックにすると一気にただの通知一覧になります。ここが最終防衛ラインという認識でいいか、確認したいです。</p>
+    </div>
+    <div class="note">
+      <h3><span class="k warn">未解決</span>時間と経年</h3>
+      <p>この方向は<b>「溜まっていく感じ」が最も出にくい</b>。128通が単なる数字に見えます。月の綴じをもっと物量として見せるか、年間アルバムで回収するかの判断が要ります。</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  (function(){
+    var min = document.getElementById('tMin');
+    var goth = document.getElementById('tGoth');
+    function set(useGoth){
+      document.body.classList.toggle('goth', useGoth);
+      min.setAttribute('aria-pressed', String(!useGoth));
+      goth.setAttribute('aria-pressed', String(useGoth));
+    }
+    min.addEventListener('click', function(){ set(false); });
+    goth.addEventListener('click', function(){ set(true); });
+
+    document.querySelectorAll('.fav').forEach(function(b){
+      b.addEventListener('click', function(e){
+        e.stopPropagation();
+        b.closest('.card').classList.toggle('faved');
+      });
+    });
+  })();
+</script>
+</body>
+</html>
