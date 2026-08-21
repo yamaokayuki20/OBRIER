@@ -1,20 +1,16 @@
 # プロトタイプを GitHub Pages へ公開する
 #
-# 出すのは prototype/dist/ の4枚（入口・本人・上司・管理者）だけ。
-# dist/ は生成物なのでリポジトリには入れていない（.gitignore）。ここで作る。
-#
-# 動かす前に、リポジトリの Settings → Pages で
-# 「Source: GitHub Actions」を選んでおくこと。それまでは deploy が失敗する。
+# Pages の配り元（Settings → Pages → Source）は2択で、どちらが選ばれていても
+# 同じものが出るようにしてある。
+#   - Deploy from a branch … main の直下がそのまま配られる。
+#     直下には index.html と obrier-person / boss / admin.html（?role= を付けて
+#     v5 へ渡す薄い紙）を commit してあるので、この workflow を待たずに出る。
+#   - GitHub Actions … ここで _site を組んで配る。中身は上と同じ並び。
 name: Deploy prototype to Pages
 
 on:
   push:
     branches: [main]
-    # プロトタイプと生成の道具が変わったときだけ
-    paths:
-      - 'prototype/obrier-prototype-v5.html'
-      - 'tools/build-roles.mjs'
-      - '.github/workflows/pages.yml'
   workflow_dispatch:
 
 permissions:
@@ -35,11 +31,19 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: 3つの役割ぶんと入口を書き出す
+      - name: 入口・3つの役割ぶんを書き出す
         run: node tools/build-roles.mjs
+      - name: 配るぶんだけ _site に集める
+        run: |
+          mkdir -p _site
+          cp index.html obrier-person.html obrier-boss.html obrier-admin.html _site/
+          touch _site/.nojekyll
+          cp -r prototype asset design _site/
+          rm -rf _site/prototype/dist
+          ls -la _site
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: prototype/dist
+          path: _site
 
   deploy:
     needs: build

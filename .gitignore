@@ -14,3 +14,6 @@
 
 # 役割ごとの書き出し（tools/build-roles.mjs の生成物。正は v5）
 prototype/dist/
+
+# 検査を走らせるとき用（/opt/node22 への symlink を張ることがある）
+node_modules

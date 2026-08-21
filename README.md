@@ -8,6 +8,23 @@
 
 ---
 
+## さわってみる（公開版）
+
+| | URL |
+|---|---|
+| 入口 | https://yamaokayuki20.github.io/OBRIER/ |
+| 本人 | https://yamaokayuki20.github.io/OBRIER/obrier-person.html |
+| 上司 | https://yamaokayuki20.github.io/OBRIER/obrier-boss.html |
+| 管理者 | https://yamaokayuki20.github.io/OBRIER/obrier-admin.html |
+
+出てくる人物・数値・本文はすべて架空のものです。実在の発言は含みません。
+
+配り方は [`CLAUDE.md`](CLAUDE.md) の「一般公開（GitHub Pages）」を参照。
+**v5 を直したら `node tools/build-roles.mjs` を走らせて、直下の生成物ごと commit すること。**
+
+> **この README の以下の記述は古い**（カードデザイン・設計原則・判定器の項目数など、2026-08 の刷新前のまま）。
+> いま正しいのは [`CLAUDE.md`](CLAUDE.md) と [`docs/decision-log.md`](docs/decision-log.md)。
+
 ## サービスの狙い
 
 | | 狙い |

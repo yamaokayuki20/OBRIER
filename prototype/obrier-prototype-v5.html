@@ -2723,6 +2723,11 @@ const DEMO_UI = new URLSearchParams(location.search).get("demo") === "1";
    tools/build-roles.mjs がこの行だけを書き換えて、本人・上司・管理者の
    3つのファイル（＝3つのURL）を作る。中身はこの1本が正で、写しは持たない */
 const ROLE_LOCK = "";   /* BUILD:ROLE_LOCK */
+/* 公開先（GitHub Pages）では v5 の1本をそのまま置き、?role= で役割を決める。
+   写し（tools/build-roles.mjs の書き出し）では ROLE_LOCK が先に入るのでこちらは使われない。
+   知らない値は無視して、3つとも切り替えられる開発用の画面のままにする */
+const ROLE_Q = (new URLSearchParams(location.search).get("role") || "").toLowerCase();
+const ROLE_FIX = ROLE_LOCK || (["person", "boss", "admin"].includes(ROLE_Q) ? ROLE_Q : "");
 /** いまの時刻（15:58）。保存した時刻の表示に使う */
 const hhmm = () => { const d = new Date(), p = n => String(n).padStart(2, "0"); return `${p(d.getHours())}:${p(d.getMinutes())}`; };
 
@@ -2882,7 +2887,7 @@ async function diagOnce(waitMs) {
      ・自己診断     … Alt + Shift + D（状態デモの Alt+Shift+S と同じ流儀）
    自己診断は押しボタンの文字を進み具合の表示に使うので、
    ボタンが無いときは同じ形をした仮の入れ物を渡す */
-const REV = "rev.34 反射と直線の着地";
+const REV = "rev.35 公開の入口と ?role=";
 window.__rev = REV;
 document.addEventListener("keydown", e => {
   if (e.altKey && e.shiftKey && (e.key === "D" || e.key === "d")) {
@@ -7348,7 +7353,7 @@ const NEW_CARDS = () => DATA.filter(d => d.isNew).slice(0, 3);
 /* ?wc=0 で束を出さずに開く。判定器が「ふだんの画面」を測るための口で、
    束そのものは判定器の巡回の中で別に開いて測っている */
 const WC_OFF = new URLSearchParams(location.search).get("wc") === "0";
-if (!WC_OFF && (!ROLE_LOCK || ROLE_LOCK === "person")) {
+if (!WC_OFF && (!ROLE_FIX || ROLE_FIX === "person")) {
   requestAnimationFrame(() => openWelcome(NEW_CARDS()));
 } else {
   /* 束を出さないときは、最初からアルバムに入っている扱いにする */
@@ -7408,9 +7413,9 @@ $("demoBtn").addEventListener("click", playDemo);
 /* 役割を固定して配るとき（本人／上司／管理者それぞれのURL）は、
    切り替えのボタンを画面から外して、その役割の画面で開く。
    display:none なので Tab でも止まらない */
-if (ROLE_LOCK) {
+if (ROLE_FIX) {
   $("roleSeg").classList.add("hidden");
-  setRole(ROLE_LOCK);
+  setRole(ROLE_FIX);
 }
 </script>
 </body>

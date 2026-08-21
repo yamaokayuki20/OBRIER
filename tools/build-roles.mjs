@@ -5,12 +5,16 @@
  * ここでは ROLE_LOCK の行を1行だけ差し替えた写しを作る。
  * 直すときは必ず v5 を直して、これを走らせ直すこと。
  *
+ * あわせて、公開先（GitHub Pages）が読むぶんをリポジトリの直下にも書き出す。
+ * こちらは 600KB の写しを3つ置かずに、?role= を付けて v5 の1本へ渡す薄い紙だけ。
+ *
  * 使い方: node tools/build-roles.mjs
  */
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 
 const SRC = new URL('../prototype/obrier-prototype-v5.html', import.meta.url);
 const OUT = new URL('../prototype/dist/', import.meta.url);
+const ROOT = new URL('../', import.meta.url);
 const MARK = 'const ROLE_LOCK = "";   /* BUILD:ROLE_LOCK */';
 /* 見出し（<title>）も分けておく。artifact の一覧やブラウザのタブで
    3つが同じ名前だと、どれがどれだか見分けられなくなる */
@@ -26,7 +30,7 @@ if (!src.includes(MARK)) throw new Error(`目印が見つからない: ${MARK}`)
 await mkdir(OUT, { recursive: true });
 /* 入口のページ。3つのURLを並べて選ばせる。
    公開するときは、ここが最初に開かれる */
-const INDEX = (logo) => `<!doctype html>
+const INDEX = (logo, extra = '') => `<!doctype html>
 <html lang="ja">
 <head>
 <meta charset="utf-8">
@@ -46,8 +50,8 @@ const INDEX = (logo) => `<!doctype html>
   }
   .wrap { max-width: 760px; margin: 0 auto; }
   .logo { height: 44px; width: auto; display: block; }
-  h1 { font-size: 15px; font-weight: 700; letter-spacing: .14em; color: var(--soft); margin: 34px 0 8px; }
-  .lead { font-size: 21px; font-weight: 700; line-height: 1.7; margin: 0 0 6px; }
+  .kicker { font-size: 15px; font-weight: 700; letter-spacing: .14em; color: var(--soft); margin: 34px 0 8px; }
+  h1.lead { font-size: 21px; font-weight: 700; line-height: 1.7; margin: 0 0 6px; }
   .note { font-size: 14px; line-height: 1.9; color: var(--soft); margin: 0 0 30px; }
   ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
   a.card {
@@ -62,13 +66,17 @@ const INDEX = (logo) => `<!doctype html>
   .d { display: block; font-size: 14px; color: var(--soft); line-height: 1.7; margin-top: 3px; }
   .arw { margin-left: auto; color: var(--soft); }
   footer { margin-top: 40px; font-size: 13px; line-height: 1.9; color: var(--soft); }
+  .ask { margin: 34px 0 0; border: 1px solid var(--line); border-radius: 14px; padding: 20px 22px; background: #fff; }
+  .ask h2 { font-size: 15px; font-weight: 700; margin: 0 0 8px; }
+  .ask p { font-size: 14px; line-height: 1.9; color: var(--soft); margin: 0 0 10px; }
+  .ask ol { margin: 0; padding-left: 1.3em; font-size: 14px; line-height: 1.95; color: var(--soft); }
 </style>
 </head>
 <body>
 <div class="wrap">
   <img class="logo" src="${logo}" alt="オブリエ">
-  <h1>プロトタイプ</h1>
-  <p class="lead">見たい画面を選んでください</p>
+  <p class="kicker">プロトタイプ</p>
+  <h1 class="lead">見たい画面を選んでください</h1>
   <p class="note">Slack・Teams で交わされた「ありがとう」を自動で集めて可視化するサービスの試作です。出てくる人物・数値・本文はすべて架空のものです。</p>
   <ul>
     <li><a class="card" href="./obrier-person.html">
@@ -84,6 +92,7 @@ const INDEX = (logo) => `<!doctype html>
       <span><span class="t">管理者</span><span class="d">連携設定・チーム管理・監査ログ・検出品質</span></span>
       <span class="arw" aria-hidden="true">→</span></a></li>
   </ul>
+  ${extra}
   <footer>本人の画面は、開くと新着カードの束から始まります。<br>Alt + Shift + N でもう一度出せます。</footer>
 </div>
 </body>
@@ -106,4 +115,50 @@ for (const [role, { label, title }] of Object.entries(ROLES)) {
   if (!m) throw new Error('ロゴの data URI が見つからない');
   await writeFile(new URL('index.html', OUT), INDEX(m[1]));
   console.log('入口\tオブリエ プロトタイプ\tindex.html');
+}
+
+/* ここから先は公開先（GitHub Pages）が読むぶん。リポジトリの直下に置く。
+   Pages は既定でブランチの直下をそのまま配るので、dist/（gitignore 済み）は届かない。
+   600KB の写しを3つ commit すると版を重ねるたびに履歴が太るので、
+   直下には ?role= を付けて v5 へ渡すだけの薄い紙を置いて、中身は1本のままにする */
+const SHIM = (title, role) => `<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>${title}</title>
+<meta name="robots" content="noindex">
+<!-- 生成物：直さないこと。作り直しは node tools/build-roles.mjs -->
+<meta http-equiv="refresh" content="0; url=prototype/obrier-prototype-v5.html?role=${role}">
+<link rel="canonical" href="prototype/obrier-prototype-v5.html?role=${role}">
+<script>location.replace("prototype/obrier-prototype-v5.html?role=${role}" + location.hash);</script>
+</head>
+<body style="margin:0;padding:40px 20px;font-family:'Hiragino Sans','Yu Gothic','Noto Sans JP',sans-serif;color:#09153d">
+<p><a href="prototype/obrier-prototype-v5.html?role=${role}">${title}をひらく</a></p>
+</body>
+</html>
+`;
+
+/* 見てくれた人に聞きたいこと。入口にだけ置く（写しの側には出さない） */
+const ASK = `<section class="ask">
+    <h2>感想をください</h2>
+    <p>ひとことでかまいません。「よくわからなかった」「なんとなく違う」がいちばん役に立ちます。</p>
+    <ol>
+      <li>新しく届いたありがとうに、ちゃんと気づけましたか</li>
+      <li>並んだカードを、もう一度見たいと思いましたか</li>
+      <li>「これが自分の得意かも」と思う瞬間はありましたか</li>
+      <li>上司に見られていると知って、抵抗を感じましたか</li>
+    </ol>
+  </section>`;
+
+{
+  const m = src.match(/<img class="brand-logo" src="(data:image\/svg\+xml;base64,[^"]+)"/);
+  if (!m) throw new Error('ロゴの data URI が見つからない');
+  await writeFile(new URL('index.html', ROOT), INDEX(m[1], ASK));
+  console.log('公開の入口\tオブリエ プロトタイプ\tindex.html');
+  for (const [role, { label, title }] of Object.entries(ROLES)) {
+    await writeFile(new URL(`obrier-${role}.html`, ROOT), SHIM(title, role));
+    console.log(`公開の${label}\t${title}\tobrier-${role}.html`);
+  }
+  /* Jekyll を通さない（下線ではじまる名前を落とされないため） */
+  await writeFile(new URL('.nojekyll', ROOT), '');
 }
