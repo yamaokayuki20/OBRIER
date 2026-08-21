@@ -2877,7 +2877,7 @@ async function diagOnce(waitMs) {
      ・自己診断     … Alt + Shift + D（状態デモの Alt+Shift+S と同じ流儀）
    自己診断は押しボタンの文字を進み具合の表示に使うので、
    ボタンが無いときは同じ形をした仮の入れ物を渡す */
-const REV = "rev.32 束の着地";
+const REV = "rev.33 着地位置の修正";
 window.__rev = REV;
 document.addEventListener("keydown", e => {
   if (e.altKey && e.shiftKey && (e.key === "D" || e.key === "d")) {
@@ -4328,8 +4328,10 @@ function appendAlbumPage(el, focusNew) {
        上限（ENTER_MAX）を決めておけば、1ページ30枚でも1000枚でも
        最後の1枚が動き出すのは ENTER_MAX ミリ秒後で、動き終わりも1.5秒に収まる。
        順に出る見え方（先頭から流れるように現れる）は、上限に届くまでの間そのまま残る */
-    /* 束から飛んでくるカードは、着地するまで出さない */
-    if (HOLD_IDS.has(d.id)) card._m.op.jump(0);
+    /* 束から飛んでくるカードは、着地するまで出さない。
+       入場の初期位置（下から28px）も同時に消しておくこと——ここを残すと、
+       着地して出したときにカードが自分の枠より下にずれ、次の行に被る */
+    if (HOLD_IDS.has(d.id)) { card._m.op.jump(0); card._m.ty.jump(0); }
     else card._m.enter(Math.min(60 + (i - from) * 40, ENTER_MAX));
     if (!first) first = card;
   }
@@ -4687,7 +4689,12 @@ function wcSaveToAlbum() {
     const el = $("grid").querySelector(`.card[data-id="${ids[i]}"]`);
     HOLD_IDS.delete(ids[i]);
     if (el && el._m) {
-      el._m.op.set(1); kick();
+      /* 飛んできた複製はもう定位置に着いている。本物はその場に、動かずに現れる
+         （入場の滑りを付けると、着いたばかりの複製と二重に動いて見える） */
+      el._m.op.jump(1);
+      el._m.ty.jump(0);
+      el._m.settled = false;      // 止まっている扱いのままだと1コマも書かれない
+      kick();
       el.classList.add("just-in");
       setTimeout(() => el.classList.remove("just-in"), 900);
     }
