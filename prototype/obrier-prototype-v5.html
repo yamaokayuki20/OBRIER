@@ -162,9 +162,13 @@
   .tab.active { background: var(--stage-ink); color: #fff; font-weight: 700; }
   .spacer { flex: 1; }
   .seg { display: flex; border: 1px solid color-mix(in srgb, var(--stage-ink) 24%, transparent); border-radius: 999px; overflow: hidden; flex: none; }
-  .seg button { font-family: inherit; font-size: var(--fs-cap); padding: 6px 12px; border: none; cursor: pointer; background: transparent; color: var(--stage-ink); opacity: .68; white-space: nowrap; }
-  .seg button:hover { background: color-mix(in srgb, var(--stage-ink) 9%, transparent); opacity: 1; }
-  .seg button[aria-pressed="true"] { background: var(--stage-ink); color: #fff; opacity: 1; font-weight: 700; }
+  /* 選んでいないほうは、透過（opacity）ではなく色そのもので薄くする。
+     透過だと乗る場所によって比が変わり、地を #ffffff から #F6F6F6 へ落としたとき
+     4.60:1 → 4.49:1 と基準を割った（D-148）。--stage-ink-soft は
+     どの地でも 4.5:1 を上回るよう決めてある色（#F6F6F6 で 5.46:1） */
+  .seg button { font-family: inherit; font-size: var(--fs-cap); padding: 6px 12px; border: none; cursor: pointer; background: transparent; color: var(--stage-ink-soft); white-space: nowrap; }
+  .seg button:hover { background: color-mix(in srgb, var(--stage-ink) 9%, transparent); color: var(--stage-ink); }
+  .seg button[aria-pressed="true"] { background: var(--stage-ink); color: #fff; font-weight: 700; }
   .me { display: flex; align-items: center; gap: 8px; font-size: var(--fs-ui); color: var(--stage-ink-soft); flex: none; }
   /* 自己診断の結果パネル */
   .diag { position: fixed; right: 16px; bottom: 16px; z-index: 90; width: min(360px, calc(100vw - 32px));
@@ -297,7 +301,12 @@
        境目は作らず、面の半ばから下へ向かってゆっくり色が差す（D-146）。
        色は --cb（場面タグの淡い同系色）のまま。文字色 --ct は
        足もとのタグと日付が使う——本文は色を持たない黒（--card-ink） */
-    background: linear-gradient(180deg, #fff 0%, #fff 52%, var(--cb) 82%, var(--cb) 100%);
+    /* 地の色（background-color）は白を必ず置いておくこと。
+       グラデーションだけで塗ると background-color は transparent のままになり、
+       「この紙は何色の上にあるか」を辿る側（判定器・支援技術・複製）が
+       紙を素通りして後ろの幕まで行ってしまう（新着の束で実際にそうなった。D-148） */
+    background-color: #fff;
+    background-image: linear-gradient(180deg, #fff 0%, #fff 52%, var(--cb) 82%, var(--cb) 100%);
     color: var(--ct); border-radius: 16px;
     /* 丈は名刺（91×55mm）と同じ縦横比で決める。高さを固定しないので
        幅なりに伸び縮みするが、同じ行に並ぶ札はどれも同じ幅＝同じ丈になり、
@@ -2910,7 +2919,7 @@ async function diagOnce(waitMs) {
      ・自己診断     … Alt + Shift + D（状態デモの Alt+Shift+S と同じ流儀）
    自己診断は押しボタンの文字を進み具合の表示に使うので、
    ボタンが無いときは同じ形をした仮の入れ物を渡す */
-const REV = "rev.36 カードを参考デザインに作り替え";
+const REV = "rev.37 カードを参考デザインに作り替え";
 window.__rev = REV;
 document.addEventListener("keydown", e => {
   if (e.altKey && e.shiftKey && (e.key === "D" || e.key === "d")) {
