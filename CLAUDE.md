@@ -17,7 +17,8 @@ Slack / Teams のやり取りから感謝の言葉をLLMで自動検出し、受
 | ファイル | 内容 |
 |---|---|
 | prototype/obrier-prototype-v5.html | **最新プロトタイプ（正）**。本人ビュー＋上司ビュー＋管理者設定（S09）を、確定デザイン（B案：紙＋タグ色の帯／方眼背景）で作った全画面モック。実装の見た目・挙動・文言はこれに準拠する |
-| tools/build-roles.mjs | 本人・上司・管理者を**それぞれ別ファイル（＝別URL）**と、3つを並べる入口（`index.html`）に書き出す。v5 の `ROLE_LOCK` の1行だけを差し替えた写しを `prototype/dist/` に作る。**中身の正はあくまで v5 の1本**で、`dist/` は生成物（gitignore 済み・直接編集しないこと） |
+| tools/build-roles.mjs | 2つのぶんを書き出す。①**配布用の単一ファイルの写し**——v5 の `ROLE_LOCK` の1行だけを差し替えた本人・上司・管理者ぶんと入口を `prototype/dist/` に（生成物・gitignore 済み・直接編集しないこと）。②**公開用**——リポジトリ直下の `index.html`（入口）と `obrier-person / boss / admin.html`（`?role=` を付けて v5 へ渡すだけの薄い紙）。**中身の正はあくまで v5 の1本**。直下のぶんも生成物なので手で直さず、v5 を直してこれを走らせ直すこと |
+| index.html / obrier-*.html（直下） | **GitHub Pages が配る公開ぶん**（`build-roles.mjs` の生成物）。ここだけは commit してある——Pages の配り元がブランチのとき、`dist/` は gitignore してあるので届かないため |
 | prototype/obrier-card-simple-v1.html | カードデザイン検討の**過去の記録**。ここで比べているB案／A案／D案は、2026-08-15 の全面刷新（D-117）で**すべて置き換わっている**。いまのカードの正は v5 |
 | prototype/obrier-prototype-v4.html | 旧プロトタイプ（**正ではない**）。画面構成・チャート・上司ビューの挙動の参照用。カードデザインと拡大詳細はv5が正 |
 | docs/requirements.md | 要件定義 v1.3（F01〜F24、対象外事項、画面一覧S01〜S09、非機能。F13/F18/F20は実装から外れたため「取りやめ」注記あり、F02は判断待ち） |
@@ -44,6 +45,13 @@ Slack / Teams のやり取りから感謝の言葉をLLMで自動検出し、受
 11. **通知は控えめ・言葉調**：週1メールのみ。比較・催促表現の禁止
 12. **キザな文言を使わない**：操作フィードバックは「綴じました」ではなく「保存しました」。「綴じる」はサービス名の由来・コンセプト説明にのみ使う
 13. **レスポンシブ必須**（PC・スマホ）
+
+## 一般公開（GitHub Pages）
+
+- 公開URLは `https://yamaokayuki20.github.io/OBRIER/`。入口から本人 `/obrier-person.html`・上司 `/obrier-boss.html`・管理者 `/obrier-admin.html` へ行く
+- **配り元がどちらでも同じものが出るようにしてある**（D-143）。Settings → Pages → Source が「Deploy from a branch（main）」なら直下がそのまま配られ、「GitHub Actions」なら `.github/workflows/pages.yml` が `_site` に同じ並びを組んで配る。どちらか一方しか効かないので、**片方だけ直すと片方が古いまま出る**
+- **直下の `obrier-*.html` は写しではなく、`?role=` を付けて v5 へ渡すだけの薄い紙**（D-144）。v5 は 600KB あり、写しを3つ commit すると版のたびに履歴が太るため。おかげで公開ぶんが v5 より古くなることが構造上ない
+- **v5 を直したら `node tools/build-roles.mjs` を走らせ、直下の生成物ごと commit する**。ロゴを差し替えたときも同じ（入口がロゴの data URI を抱えている）
 
 ## 実装上の重要仕様（詳細は詳細設計書）
 
