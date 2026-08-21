@@ -22,7 +22,10 @@ import path from 'node:path';
 import { readFile } from 'node:fs/promises';
 
 const FILE = process.argv[2] || '/home/user/OBRIER/prototype/obrier-prototype-v5.html';
-const URL = 'file://' + path.resolve(FILE);
+/* ふだんの画面を測るときは、新着の束を出さずに開く（?wc=0）。
+   束そのものは visitAll の中で別に開いて測る */
+const URL = 'file://' + path.resolve(FILE) + '?wc=0';
+const URL_WELCOME = 'file://' + path.resolve(FILE);
 
 const results = [];
 const check = (name, pass, detail = '') => results.push({ name, pass, detail });
@@ -99,6 +102,27 @@ async function visitAll(p, collect) {
   out.__missed = [];
   const take = async label => out.push(...(await collect()).map(x => ({ ...x, screen: label })));
   const wait = ms => p.waitForTimeout(ms);
+
+  // ---- おかえりなさい（新着のカードの束）。ここだけ別のURLで開き直す ----
+  try {
+    await p.goto(URL_WELCOME);
+    /* 画面を開き直すと、注入した道具（window.__ui）は消える。入れ直す */
+    await p.addScriptTag({ content: TOOLS });
+    await wait(1600);
+    await take('新着の束');
+    /* 2枚めくった状態も測る（保存ボタンが主になり、注記も変わる） */
+    await p.locator('.wc-card:not([disabled])').click({ timeout: 2500 });
+    await wait(600);
+    await p.locator('.wc-card:not([disabled])').click({ timeout: 2500 });
+    await wait(600);
+    await take('新着の束（見終わり）');
+    await p.locator('#wcSave').click({ timeout: 2500 });
+    await wait(2000);
+    if (await p.locator('#welcome:not([hidden])').count()) out.__missed.push('束が閉じない');
+  } catch { out.__missed.push('新着の束'); }
+  await p.goto(URL);
+  await p.addScriptTag({ content: TOOLS });
+  await wait(1600);
 
   // ---- 本人の2画面（rev.23 で「おくった」はアルバムの中の切り替えへ移った） ----
   for (const v of ['album', 'shape']) {

@@ -389,6 +389,80 @@
      （NEW はカードのHTMLに、メモの印はそのあとに足されるので、この順で当たる） */
   .corner-new ~ .memo-dot { bottom: 56px; }
 
+
+  /* ========================================================================
+     おかえりなさい（新着のカードを1枚ずつめくって眺める）
+
+     久しぶりに開いたときに、新しく届いたカードが黙ってアルバムに増えている
+     のは味気ない。届いたぶんを束にして手渡し、1枚ずつめくってから
+     自分でアルバムへ綴じる、という順にした。
+
+     束の作り：カードは重ねて置き、手前から奥へ i=0,1,2 と深さを持つ。
+     深さが変わると transform が変わり、CSS の transition がそのまま送りの
+     動きになる。送るときだけ、手前の1枚に .fly を足して外へ逃がし、
+     戻ってきたときには最後尾の位置に着いている（回り込んで見える）。
+     ======================================================================== */
+  .wc {
+    position: fixed; inset: 0; z-index: 55;
+    background: var(--bg);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 26px; padding: 32px 20px calc(32px + env(safe-area-inset-bottom, 0px));
+    opacity: 1; transition: opacity .32s ease;
+  }
+  .wc[hidden] { display: none; }
+  .wc.is-out { opacity: 0; pointer-events: none; }
+  .wc-head { text-align: center; display: flex; flex-direction: column; gap: 8px; }
+  .wc-kicker { font-size: 15px; font-weight: 700; letter-spacing: .18em; color: var(--stage-ink-soft); }
+  .wc-head h2 { font-size: 26px; font-weight: 800; letter-spacing: .03em; color: var(--stage-ink); line-height: 1.5; }
+  .wc-head h2 b { color: var(--accent-deep); font-variant-numeric: tabular-nums; }
+
+  /* 束の置き場。いちばん奥のカードのぶんだけ下に余白を足しておく */
+  .wc-stage { position: relative; width: min(430px, calc(100vw - 48px)); }
+  .wc-stage::after { content: ""; display: block; padding-top: calc(55 / 91 * 100%); }
+  .wc-stage-pad { height: 52px; }
+
+  .wc-card {
+    position: absolute; left: 0; top: 0; width: 100%;
+    padding: 0; border: 0; background: none; font-family: inherit; text-align: left;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+    transition: transform .34s cubic-bezier(.22,.61,.36,1), opacity .34s ease;
+    touch-action: pan-y;
+  }
+  .wc-card .front { box-shadow: 0 10px 30px rgba(28,38,60,.16); }
+  .wc-card:focus { outline: none; }
+  .wc-card:focus-visible .front { outline: 3px solid var(--navy); outline-offset: 3px; }
+  /* 送っている最中の1枚。上へ逃がしてから最後尾へ回す */
+  .wc-card.fly { transition: transform .18s ease-out, opacity .18s ease-out; }
+  /* 指でつまんでいる間は追従させる（transition を切る） */
+  .wc-card.grab { transition: none; }
+
+  .wc-meta { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .wc-dots { display: flex; gap: 7px; }
+  .wc-dots i { width: 7px; height: 7px; border-radius: 50%; background: color-mix(in srgb, var(--stage-ink) 22%, transparent); transition: background .2s; }
+  .wc-dots i.on { background: var(--stage-ink); }
+  .wc-hint { font-size: var(--fs-cap); color: var(--stage-ink-soft); letter-spacing: .04em; }
+
+  .wc-foot { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .wc-save {
+    font-family: inherit; font-size: var(--fs-body); font-weight: 700; letter-spacing: .04em;
+    border-radius: 999px; padding: 14px 34px; min-height: 48px; cursor: pointer;
+    border: 1px solid var(--panel-line); background: #fff; color: var(--stage-ink);
+    transition: background .2s, color .2s, border-color .2s;
+  }
+  /* 全部めくり終えたら、ここが次の一手になる */
+  .wc-save.is-ready { background: var(--navy); border-color: var(--navy); color: #fff; }
+  .wc-save:hover { border-color: var(--navy-soft); }
+  .wc-save.is-ready:hover { background: #2f3c56; }
+  @media (max-width: 640px) {
+    .wc-head h2 { font-size: 21px; }
+    .wc { gap: 20px; }
+  }
+  /* 動きを減らす設定では、送りも散らしもせず、静かに切り替える */
+  @media (prefers-reduced-motion: reduce) {
+    .wc-card, .wc-card.fly { transition: none; }
+    .wc { transition: none; }
+  }
+
   /* ---------------- パネル ---------------- */
   /* min-width:0 がないと、チャートの実寸（inline width）がグリッド列を押し広げる */
   .panel { background: var(--panel-bg); border: 1px solid var(--panel-line); border-radius: 14px; padding: 20px 22px; min-width: 0; }
@@ -2335,7 +2409,30 @@
   </div>
 </header>
 
+<!-- ============ おかえりなさい（新着のカードの束） ============
+     本人の画面にだけ出る。開いた回ごとに一度きりで、
+     Alt + Shift + N でもう一度出せる（実演用） -->
+<div class="wc" id="welcome" hidden role="dialog" aria-modal="true" aria-labelledby="wcTitle">
+  <div class="wc-head">
+    <p class="wc-kicker">おかえりなさい</p>
+    <h2 id="wcTitle"><b id="wcCount">0</b>通の新しいありがとうが届いています</h2>
+  </div>
+  <div>
+    <div class="wc-stage" id="wcStage"></div>
+    <div class="wc-stage-pad"></div>
+  </div>
+  <div class="wc-meta">
+    <div class="wc-dots" id="wcDots"></div>
+    <div class="wc-hint" id="wcHint">押すか、横へはらうと次の1枚</div>
+    <div class="vh-label" id="wcLive" role="status" aria-live="polite"></div>
+  </div>
+  <div class="wc-foot">
+    <button type="button" class="wc-save" id="wcSave">アルバムに保存する</button>
+  </div>
+</div>
+
 <main id="mainContent" tabindex="-1">
+
 
 <!-- ============ S01 本人：アルバム ============ -->
 <section id="viewAlbum">
@@ -2735,7 +2832,7 @@ async function diagOnce(waitMs) {
      ・自己診断     … Alt + Shift + D（状態デモの Alt+Shift+S と同じ流儀）
    自己診断は押しボタンの文字を進み具合の表示に使うので、
    ボタンが無いときは同じ形をした仮の入れ物を渡す */
-const REV = "rev.30 説明文整理版";
+const REV = "rev.31 新着カードの束";
 window.__rev = REV;
 document.addEventListener("keydown", e => {
   if (e.altKey && e.shiftKey && (e.key === "D" || e.key === "d")) {
@@ -3483,6 +3580,8 @@ MY_SHAPE.groups[2].people.push(["岡", "岡田さん", 1], ["伊", "伊藤さん
     d.id = i;
     if (d.fav === undefined) d.fav = false;
     if (d.myMemo === undefined) d.myMemo = "";
+    /* 新着は先頭の3枚だけ。手書きの1枚目に付けていた印はここで付け直す */
+    d.isNew = i < 3;
   });
   recountShape(MY_SHAPE, DATA);
 }
@@ -3811,11 +3910,20 @@ class CardMotion {
       : `translate(0px, ${(this.ty.v + this.lift.v).toFixed(2)}px) ` +
         `rotate(${this.rz.v.toFixed(2)}deg) scale(${this.s.v.toFixed(3)})`;
     this.root.style.opacity = this.op.v.toFixed(3);
-    // 影は傾きに合わせて反対側へ流す
-    const sx = (-this.ry.v / CONF.tilt) * 8;
-    const sy = CONF.shadY + (this.rx.v / CONF.tilt) * 8 + this.z.v * .35 - this.lift.v * 1.4;
-    const blur = CONF.shadBlur + this.z.v * .8 - this.lift.v * 2.4;
-    this.el.style.boxShadow = `${sx.toFixed(1)}px ${sy.toFixed(1)}px ${blur.toFixed(1)}px rgba(0,0,0,${(CONF.shadA + this.z.v * .002 - this.lift.v * .008).toFixed(3)})`;
+    /* 影は触れている間だけ出す（ユーザー判断。既定は影なし）。
+       浮き（z）の進み具合をそのまま影の濃さに使うので、
+       ホバーで浮くのと同じ速さで影が現れ、離れると一緒に消える。
+       傾きに合わせて反対側へ流すのは今までどおり */
+    const k = Math.min(1, Math.max(0, this.z.v / CONF.liftZ));
+    if (k < .004) {
+      if (this.shadOn !== false) { this.el.style.boxShadow = "none"; this.shadOn = false; }
+    } else {
+      this.shadOn = true;
+      const sx = (-this.ry.v / CONF.tilt) * 8;
+      const sy = (CONF.shadY + (this.rx.v / CONF.tilt) * 8 + this.z.v * .35 - this.lift.v * 1.4) * k;
+      const blur = (CONF.shadBlur + this.z.v * .8 - this.lift.v * 2.4) * k;
+      this.el.style.boxShadow = `${sx.toFixed(1)}px ${sy.toFixed(1)}px ${blur.toFixed(1)}px rgba(0,0,0,${(CONF.shadA * k).toFixed(3)})`;
+    }
     this.root.style.setProperty("--gx", this.gx + "%");
     this.root.style.setProperty("--gy", this.gy + "%");
     this.root.style.setProperty("--glare", this.glare.v.toFixed(3));
@@ -4288,6 +4396,174 @@ function gotoAlbumWithTag(tag) {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
+
+/* =========================================================================
+   おかえりなさい（新着のカードの束）
+
+   1枚ずつめくる送りは、押しても指ではらっても同じところへ着く。
+   束の中の並び（order）だけを持ち、深さ i から transform を作る。
+   ========================================================================= */
+const WC = { list: [], order: [], seen: new Set(), busy: false };
+const wcDepth = i => `translate(0, ${i * 20}px) scale(${(1 - i * .05).toFixed(3)})`;
+
+/** 束を今の並びで塗り直す。手前（i=0）だけが押せる */
+function wcPaint() {
+  const n = WC.list.length;
+  WC.order.forEach((id, i) => {
+    const el = document.getElementById("wc-" + id);
+    if (!el) return;
+    el.style.transform = wcDepth(i);
+    el.style.opacity = i > 2 ? "0" : String(1 - i * .1);
+    el.style.zIndex = String(n - i);
+    /* 手前の1枚以外は、押せず・Tabで止まらず・読み上げにも出さない */
+    const front = i === 0;
+    el.disabled = !front;
+    el.tabIndex = front ? 0 : -1;
+    if (front) el.removeAttribute("aria-hidden"); else el.setAttribute("aria-hidden", "true");
+  });
+  const cur = WC.order[0];
+  const d = WC.list.find(x => x.id === cur);
+  const pos = WC.list.findIndex(x => x.id === cur) + 1;
+  $("wcDots").innerHTML = WC.list.map((x, i) => `<i class="${x.id === cur ? "on" : ""}"></i>`).join("");
+  if (d) $("wcLive").textContent = `${pos}枚目／全${WC.list.length}枚。${d.who}から「${String(d.msg).slice(0, 40)}」`;
+  WC.seen.add(cur);
+  const all = WC.seen.size >= WC.list.length;
+  $("wcSave").classList.toggle("is-ready", all);
+  $("wcHint").textContent = all ? "ぜんぶ見ました。アルバムへ綴じましょう" : "押すか、横へはらうと次の1枚";
+}
+
+/** 1枚送る。dir は逃がす向き（-1 左／+1 右） */
+function wcAdvance(dir = -1) {
+  if (WC.busy || WC.order.length < 2) return;
+  WC.busy = true;
+  const el = document.getElementById("wc-" + WC.order[0]);
+  const done = () => {
+    el.classList.remove("fly");
+    WC.order.push(WC.order.shift());
+    wcPaint();
+    WC.busy = false;
+  };
+  if (REDUCED) { done(); return; }
+  /* いったん外へ逃がしてから、いちばん奥の位置へ戻す。
+     戻りは .wc-card の既定の transition が受け持つので、回り込んで見える */
+  el.classList.add("fly");
+  el.style.transform = `translate(${dir * 46}%, -14%) rotate(${dir * 7}deg) scale(.86)`;
+  el.style.opacity = ".2";
+  setTimeout(done, 180);
+}
+
+/** 束を組み立てて出す */
+function openWelcome(cards) {
+  if (!cards.length) return;
+  WC.list = cards.slice();
+  WC.order = cards.map(c => c.id);
+  WC.seen = new Set();
+  WC.busy = false;
+  $("wcCount").textContent = String(cards.length);
+  $("wcStage").innerHTML = cards.map(d => `
+    <button type="button" class="wc-card ${cardKind(d)}" id="wc-${d.id}"
+      style="--cb:${tagBg(d.tag)}; --ct:${tagText(d.tag)}; --cc:${tagColor(d.tag)}; --ci:${tagInk(d.tag)}"
+      aria-label="${d.who}からの「${String(d.msg).replace(/<br>/g, "")}」。場面：${d.tag}、${d.time}。押すと次の1枚">${cardHTML(d, {})}</button>`).join("");
+  const ov = $("welcome");
+  ov.hidden = false;
+  ov.classList.remove("is-out");
+  wcPaint();
+  syncScrollLock();
+  wcBind();
+  requestAnimationFrame(() => $("wcSave").focus({ preventScroll: true }));
+}
+
+/** 押す・はらう の両方で送れるようにする */
+function wcBind() {
+  $("wcStage").querySelectorAll(".wc-card").forEach(el => {
+    if (el._wcBound) return;
+    el._wcBound = true;
+    let sx = 0, sy = 0, dragging = false, moved = false;
+    el.addEventListener("pointerdown", e => {
+      if (el.disabled || WC.busy) return;
+      dragging = true; moved = false; sx = e.clientX; sy = e.clientY;
+      el.setPointerCapture(e.pointerId);
+      el.classList.add("grab");
+    });
+    el.addEventListener("pointermove", e => {
+      if (!dragging) return;
+      const dx = e.clientX - sx, dy = e.clientY - sy;
+      /* 縦に動かしているときは掴まない（画面の上下送りを邪魔しない） */
+      if (!moved && Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 12) {
+        dragging = false; el.classList.remove("grab"); el.style.transform = wcDepth(0); return;
+      }
+      if (Math.abs(dx) > 4) moved = true;
+      el.style.transform = `translate(${dx}px, ${dy * .18}px) rotate(${dx * .035}deg)`;
+    });
+    const end = e => {
+      if (!dragging) return;
+      dragging = false;
+      el.classList.remove("grab");
+      const dx = (e.clientX ?? sx) - sx;
+      if (Math.abs(dx) > 70) { wcAdvance(dx < 0 ? -1 : 1); }
+      else { el.style.transform = wcDepth(0); }
+      /* はらったときは、離した直後の click を送りに数えない */
+      el._skipClick = moved;
+    };
+    el.addEventListener("pointerup", end);
+    el.addEventListener("pointercancel", end);
+    el.addEventListener("click", () => {
+      if (el._skipClick) { el._skipClick = false; return; }
+      wcAdvance(-1);
+    });
+    el.addEventListener("keydown", e => {
+      if (e.key === "ArrowLeft") { e.preventDefault(); wcAdvance(-1); }
+      if (e.key === "ArrowRight") { e.preventDefault(); wcAdvance(1); }
+    });
+  });
+}
+
+/**
+ * アルバムへ綴じる。
+ * いったんバラバラに散らしてから、アルバムの通数のところへ集めて消える。
+ * 散らす向きは添字から決めるので、開くたびに同じ動きになる（実演で揺れない）。
+ */
+function wcSaveToAlbum() {
+  if (WC.busy) return;
+  WC.busy = true;
+  const ov = $("welcome");
+  const cards = [...$("wcStage").querySelectorAll(".wc-card")];
+  const finish = () => {
+    ov.classList.add("is-out");
+    setTimeout(() => {
+      ov.hidden = true;
+      ov.classList.remove("is-out");
+      syncScrollLock();
+      applyFilters();
+      const c = $("count");
+      c.classList.add("pop");
+      setTimeout(() => c.classList.remove("pop"), 320);
+      toast(`${WC.list.length}通をアルバムに保存しました`);
+      showPersonView("album");
+    }, REDUCED ? 0 : 320);
+  };
+  if (REDUCED) { finish(); return; }
+
+  /* 集める先は、アルバムの見出しの通数。画面の裏で描かれているので位置は取れる */
+  const target = $("count").getBoundingClientRect();
+  const SPREAD = [[-1, -.55], [1, -.3], [-.55, .5], [.9, .55], [0, -.8]];
+  cards.forEach((el, i) => {
+    const box = el.getBoundingClientRect();
+    const [ux, uy] = SPREAD[i % SPREAD.length];
+    const sx = ux * 210, sy = uy * 150, rot = ux * 16 + (i % 2 ? 5 : -6);
+    const tx = target.left + target.width / 2 - (box.left + box.width / 2);
+    const ty = target.top + target.height / 2 - (box.top + box.height / 2);
+    el.classList.remove("fly");
+    el.style.transition = "none";
+    el.animate([
+      { transform: el.style.transform || "none", opacity: 1, offset: 0 },
+      { transform: `translate(${sx}px, ${sy}px) rotate(${rot}deg) scale(1.02)`, opacity: 1, offset: .34 },
+      { transform: `translate(${tx}px, ${ty}px) rotate(${rot * .3}deg) scale(.12)`, opacity: 0, offset: 1 },
+    ], { duration: 900, delay: i * 70, easing: "cubic-bezier(.4,.05,.25,1)", fill: "forwards" });
+  });
+  setTimeout(finish, 900 + cards.length * 70 - 120);
+}
+
 /* =========================================================================
    節目演出（F09）— イシュー#10
 
@@ -4443,7 +4719,7 @@ function syncScrollLock() {
   while (modalStack.length && !modalStack[modalStack.length - 1].ov.isConnected) modalStack.pop();
   syncBackgroundInert();
   const root = document.documentElement;
-  const on = !!document.querySelector(".overlay");
+  const on = !!document.querySelector(".overlay, .wc:not([hidden])");
   if (on === root.classList.contains("modal-open")) return;
   if (on) root.style.setProperty("--sbw", (window.innerWidth - root.clientWidth) + "px");
   root.classList.toggle("modal-open", on);
@@ -6896,6 +7172,19 @@ $("seriesSeg").addEventListener("click", e => {
   setSeries(b.dataset.series);
 });
 $("clearFilter").addEventListener("click", clearAlbumFilter);
+$("wcSave").addEventListener("click", wcSaveToAlbum);
+/* 新着の束は本人の画面にだけ、開いた回ごとに一度きり出す。
+   Alt + Shift + N でもう一度（実演用。ほかの開発用の合図と同じ流儀） */
+const NEW_CARDS = () => DATA.filter(d => d.isNew).slice(0, 3);
+/* ?wc=0 で束を出さずに開く。判定器が「ふだんの画面」を測るための口で、
+   束そのものは判定器の巡回の中で別に開いて測っている */
+const WC_OFF = new URLSearchParams(location.search).get("wc") === "0";
+if (!WC_OFF && (!ROLE_LOCK || ROLE_LOCK === "person")) {
+  requestAnimationFrame(() => openWelcome(NEW_CARDS()));
+}
+document.addEventListener("keydown", e => {
+  if (e.altKey && e.shiftKey && (e.key === "N" || e.key === "n")) openWelcome(NEW_CARDS());
+});
 $("teamPeriod").addEventListener("change", renderTeamSummary);
 $("teamSearch").addEventListener("input", renderMembers);
 $("alertOnly").addEventListener("change", renderMembers);
