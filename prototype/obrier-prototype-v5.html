@@ -260,7 +260,22 @@
      列数を決め打ちにすると幅の狭いところで札が極端に平たくなる
      （実測：900pxで3列だと幅273px＝高さ165px。中身が入らない）。
      下限を置いて数のほうを動かせば、どの幅でも札の丈が名刺なりに収まる */
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px 20px; align-items: start; padding-top: 14px; }
+  /* 札の大きさは参考デザイン（幅 501px）に合わせる。300px だと3列で 353px にしか
+     ならず、字も比のぶんだけ小さくなる。420px を下限にすると PC では2列 541px
+     ——参考デザインとほぼ同じ寸法になる（2026-08-21 ユーザー指示。D-149）。
+     下限は必ず min(420px, 100%) で包むこと。素の 420px だと、画面がそれより
+     狭いときに札が縮まず横へ溢れる（実測：390px の画面で札が 420px になった）。
+     札そのものの上限 560px も要る。無いと1列になる幅（768px あたり）で札が
+     728px まで伸び、字も比のぶんだけ 43px になっていた */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(420px, 100%), 1fr));
+    gap: 24px 20px; align-items: start; padding-top: 14px;
+  }
+  /* 列の数は 1fr で決めさせ、札の上限は札の側で止める。
+     列の上限を 560px にすると、列の数を数えるときにもその値が使われるので、
+     1024px の画面で2列に足りない扱いになって1列に落ちていた */
+  .grid > .card { max-width: 560px; justify-self: center; }
   .month {
     grid-column: 1 / -1; display: flex; align-items: center; gap: 12px;
     font-size: var(--fs-ui); letter-spacing: .18em; font-weight: 700; color: var(--stage-ink-soft);
@@ -270,8 +285,18 @@
   .empty-note { grid-column: 1/-1; text-align: center; color: var(--stage-ink-soft); font-size: var(--fs-ui); padding: 34px 0; }
 
   /* ---------------- カード（B案：白い紙＋タグ色の上帯） ---------------- */
+  /* 札の中の寸法は、**札の幅に対する比**で決める（cqw。2026-08-21。D-149）。
+     参考デザイン（幅 501px）の比をそのまま写しているので、札が大きくなっても
+     小さくなっても字と札の関係は変わらない。px で置くと、札を広げたぶんだけ
+     字だけが取り残されて小さく見える。
+     ここ（.card）と .wc-card / .f-front の3か所が「幅の基準」になる
+     ——基準が見つからないと cqw は**画面の幅**を指してしまうので、
+     カードを置く場所を増やすときは必ず基準も置くこと。
+     3Dの層（.card3d / .face）には置かない——包み込み（contain）が効くと
+     preserve-3d が平らに潰れ、アバターの浮き（原則2）が消える */
   .card {
     position: relative; perspective: 1000px; -webkit-tap-highlight-color: transparent;
+    container-type: inline-size;
     cursor: pointer; border: none; padding: 0; background: none; font-family: inherit;
     text-align: left; display: block; width: 100%;
   }
@@ -312,7 +337,8 @@
        幅なりに伸び縮みするが、同じ行に並ぶ札はどれも同じ幅＝同じ丈になり、
        「全枚そろえる」（設計原則5）はそのまま保たれる */
     aspect-ratio: 91 / 55;
-    padding: 20px 22px 18px;
+    /* 参考デザイン（501px 幅）で 28px ＝ 5.6% */
+    padding: 5.7cqw 6.2cqw 5.1cqw;
     display: flex; flex-direction: column; align-items: stretch; gap: 0; overflow: hidden;
   }
   /* 押した場所から広がる波紋。
@@ -367,8 +393,8 @@
   /* 奥行きを持たせるのはアバターだけ。地が紙ではなく淡い色になったので、
      まわりの白リングも地の色に合わせる */
   .ava {
-    width: 34px; height: 34px; border-radius: 50%; flex: none; background: var(--ava);
-    display: grid; place-items: center; color: #fff; font-size: var(--fs-cap); font-weight: 800;
+    width: max(30px, 8.8cqw); height: max(30px, 8.8cqw); border-radius: 50%; flex: none; background: var(--ava);
+    display: grid; place-items: center; color: #fff; font-size: max(12px, 3.4cqw); font-weight: 800;
     box-shadow: 0 0 0 3px var(--cb), 0 3px 8px rgba(58,74,102,.20);
     transform: translateZ(20px); position: relative; z-index: 2;
   }
@@ -376,7 +402,9 @@
        色を持つのは足もと（タグのピルと日付）だけで、言葉そのものは黒で読む（D-146） */
   .say {
     font-family: inherit; color: var(--card-ink);
-    font-weight: 500; letter-spacing: .015em; line-height: 1.6; font-size: 17px;
+    font-weight: 500; letter-spacing: .015em; line-height: 1.6;
+    /* 参考デザインで 24px / 501px ＝ 4.8%。狭い画面のための下限だけ置く */
+    font-size: max(14px, 4.8cqw);
     text-align: left; position: relative; z-index: 2;
     display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden;
   }
@@ -384,56 +412,68 @@
      足もとの右は日付が使うので、以前のように下へは置けない（D-146）。
      左寄せの本文が印の下へ潜らないよう、出ている印のぶんだけ右をあける */
   .c-marks {
-    position: absolute; top: 11px; right: 13px; z-index: 5;
-    display: flex; align-items: center; gap: 6px;
+    position: absolute; top: 2.2cqw; right: 2.6cqw; z-index: 5;
+    display: flex; align-items: center; gap: 1.2cqw;
   }
-  .front:has(.fav-seal) .say { padding-right: 22px; }
-  .front:has(.corner-new) .say { padding-right: 58px; }
-  .front:has(.corner-new):has(.fav-seal) .say { padding-right: 80px; }
+  .front:has(.fav-seal) .say { padding-right: 4.5cqw; }
+  .front:has(.corner-new) .say { padding-right: 12cqw; }
+  .front:has(.corner-new):has(.fav-seal) .say { padding-right: 16.5cqw; }
 
   /* ---- 中身の量でカードの見せ方を変える ----
      丈は変えず、行数で受け止める。長文は…で止めて、全文は拡大詳細で読む。
      どれも左寄せ・明朝のままで、変えるのは字の大きさと行数だけ */
-  .kind-short .say { font-size: 21px; line-height: 1.5; -webkit-line-clamp: 4; }
-  .kind-long .say { font-size: 14px; line-height: 1.65; -webkit-line-clamp: 6; }
+  .kind-short .say { font-size: max(17px, 5.9cqw); line-height: 1.5; -webkit-line-clamp: 4; }
+  .kind-long .say { font-size: max(12.5px, 4cqw); line-height: 1.65; -webkit-line-clamp: 6; }
   /* いちばん長いもの（100字以上）だけ、さらに落として全文を入れる。
      12.5px は付随情報の下限（12px）の内側 */
-  .kind-xlong .say { font-size: 12.5px; line-height: 1.6; -webkit-line-clamp: 6; }
+  .kind-xlong .say { font-size: max(12px, 3.5cqw); line-height: 1.6; -webkit-line-clamp: 6; }
   /* 足もとは左寄せ。左に顔写真、右に名前、名前の下に場面タグ。
      いちばん右に日付（D-146。2026-08-21 の作り替えで戻した） */
   .c-foot {
-    display: flex; align-items: center; gap: 10px;
-    margin-top: auto; padding-top: 12px; position: relative; z-index: 2;
+    display: flex; align-items: center; gap: 2.8cqw;
+    margin-top: auto; padding-top: 3.4cqw; position: relative; z-index: 2;
   }
   .c-who { line-height: 1.35; min-width: 0; }
-  .c-who b { display: block; font-size: var(--fs-cap); font-weight: 700; color: var(--card-ink);
+  /* 送り主は「本名＋ローマ字」を1行で（参考デザインどおり。D-149）。
+     ローマ字は同じ大きさ・同じ色で、太さだけ落として続ける */
+  .c-who b { display: block; font-size: max(12px, 2.6cqw); font-weight: 700; color: var(--card-ink);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .c-roma { font-weight: 500; margin-left: .5em; }
+  /* いちばん狭い札（320px の画面で束の札は 258px）では、本名＋ローマ字が
+     名前の枠に収まらない（実測 145 > 125）。詰めるより落とすほうが読める。
+     ローマ字を落として本名だけにする。判定は札の幅で行うので、
+     同じ画面幅でも一覧の札（294px）では出たまま */
+  @container (max-width: 300px) { .c-roma { display: none; } }
   /* 場面タグはタグらしく。地は白いピルで、文字はカードと同じ濃い同系色。
      白地に対する比（5.5〜8:1）がそのまま効く */
+  /* 場面タグは1枚に複数付くことがある（D-149）。名前の下に横並びで、
+     入りきらなければ折り返す。色はどれも「いちばん発揮された場面」の色でそろえる
+     ——ピルごとに色を変えると、どれが主なのか読めなくなる */
+  .c-tags { display: flex; flex-wrap: wrap; gap: 1.2cqw; margin-top: .9cqw; }
   .c-tag {
-    display: inline-block; margin-top: 4px;
-    font-size: var(--fs-note); font-weight: 600; letter-spacing: .02em;
+    display: inline-block;
+    font-size: max(12px, 2.2cqw); font-weight: 600; letter-spacing: .02em;
     color: var(--ct); background: #fff;
-    border-radius: 999px; padding: 3px 10px;
+    border-radius: 999px; padding: .5cqw 2cqw;
   }
   /* 日付は足もとのいちばん右。地（--cb）の上のタグ色（--ct）で 4.84:1 以上 */
   .c-date {
     margin-left: auto; flex: none; align-self: flex-end;
-    font-size: var(--fs-note); font-weight: 600; letter-spacing: .04em;
+    font-size: max(12px, 2.4cqw); font-weight: 600; letter-spacing: .04em;
     color: var(--ct); font-variant-numeric: tabular-nums;
   }
   /* NEW は白い面の上に出るので、地を白から場面タグの淡い色に変える
      （白地に白では印にならない）。文字は同じ濃い同系色で 4.84:1 以上 */
   .corner-new {
     flex: none;
-    font-size: var(--fs-note); font-weight: 800; letter-spacing: .14em; border-radius: 999px; padding: 3px 9px;
+    font-size: max(11px, 2.1cqw); font-weight: 800; letter-spacing: .14em; border-radius: 999px; padding: .5cqw 1.8cqw;
     background: var(--cb); color: var(--ct);
   }
   /* お気に入り済みの目印は装飾ではなく情報なので、淡い金 #ffd66b（白地で1.37:1）
      ではなく、拡大詳細のお気に入りの印（.fav-mark）と同じ濃い琥珀色に揃えた */
-  .fav-seal { flex: none; font-size: var(--fs-body); line-height: 1; color: #8a6410; transform: rotate(9deg); }
+  .fav-seal { flex: none; font-size: max(15px, 3.2cqw); line-height: 1; color: #8a6410; transform: rotate(9deg); }
   /* メモの印。白い面の上に出るので、白い玉ではなく濃い同系色の玉にする */
-  .memo-dot { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--ct); }
+  .memo-dot { flex: none; width: max(7px, 1.4cqw); height: max(7px, 1.4cqw); border-radius: 50%; background: var(--ct); }
 
 
   /* ========================================================================
@@ -505,6 +545,7 @@
     /* 送りの終わりで少しだけ行き過ぎる（跳ねる）ぶん、置き場より細くしておく。
        同じ幅にすると、行き過ぎた瞬間だけ枠からはみ出す */
     position: absolute; left: 4%; top: 0; width: 92%;
+    container-type: inline-size;   /* 札の中の寸法の基準（D-149） */
     padding: 0; border: 0; background: none; font-family: inherit; text-align: left;
     cursor: pointer; -webkit-tap-highlight-color: transparent;
     transition: transform .38s cubic-bezier(.34, 1.32, .5, 1), opacity .34s ease;
@@ -690,7 +731,10 @@
     will-change: transform;
     width: min(560px, 100%); max-height: calc(100vh - 60px);
   }
+  /* 飛ぶ複製にも幅の基準を置く（D-149）。ここが無いと cqw が画面の幅を指し、
+     押した瞬間だけ字が化ける。幅は openFlight がカードの実寸を入れている */
   .f-front {
+    container-type: inline-size;
     position: absolute; left: 50%; top: 50%; translate: -50% -50%;
     transform-origin: center; pointer-events: none; z-index: 2;
     backface-visibility: hidden; -webkit-backface-visibility: hidden;
@@ -2784,6 +2828,51 @@ const tagInk = tag => `var(${tagVar(tag).replace("--c-", "--i-")})`;
 const tagBg = tag => `var(${tagVar(tag).replace("--c-", "--b-")})`;
 const tagText = tag => `var(${tagVar(tag).replace("--c-", "--t-")})`;
 
+/* ---- 1枚に場面タグが複数付くことがある（D-149） ----------------------
+   データは `tag`（1つ）でも `tags`（配列）でも書ける。読むときは必ずここを通し、
+   いつも配列で受け取る。**先頭が「いちばん発揮された場面」**で、
+   カードの色（--cb / --ct / --cc / --ci）はそれだけで決まる。
+   足もとには全部をピルで並べる。
+   数え方は「主たる場面ひとつ」——1通のありがとうは何場面あっても1通なので、
+   分析の通数は主たる場面にだけ足す（数字＝枚数、という約束を崩さない）。
+   絞り込みのほうは**どれかに当たれば出す**——探すための道具なので、
+   2つめ・3つめの場面からもたどり着けるほうが素直（D-149） */
+const cardTags = d => {
+  const a = Array.isArray(d.tags) && d.tags.length ? d.tags : [d.tag];
+  return a.filter(Boolean);
+};
+const mainTag = d => cardTags(d)[0];
+
+/* ---- 人の名前（本名＋ローマ字） --------------------------------------
+   カードの足もとには参考デザインのとおり「松井 智弘 Matsui Tomohiro」と出す
+   （2026-08-21 ユーザー指示。D-149）。**データが持つ「上司さん」は変えない**
+   ——顔写真の引き当ても、送り主ごとの集計も、この短い名前を鍵にしているため。
+   表に出す名前だけをここで引く。表に無い人はそのまま短い名前で出す。
+   おくったカードは「佐藤さんへ」のように「へ」が付くので、そこは残す */
+const PEOPLE = {
+  "上司さん": ["松井 智弘", "Matsui Tomohiro"],
+  "佐藤さん": ["佐藤 健一", "Sato Kenichi"],
+  "田中さん": ["田中 美咲", "Tanaka Misaki"],
+  "鈴木さん": ["鈴木 彩", "Suzuki Aya"],
+  "渡辺さん": ["渡辺 亮", "Watanabe Ryo"],
+  "森さん": ["森 千尋", "Mori Chihiro"],
+  "高橋さん": ["高橋 直樹", "Takahashi Naoki"],
+  "中村さん": ["中村 悠", "Nakamura Yu"],
+  "山本さん": ["山本 拓也", "Yamamoto Takuya"],
+  "小林さん": ["小林 咲", "Kobayashi Saki"],
+  "伊藤さん": ["伊藤 大輔", "Ito Daisuke"],
+  "岡田さん": ["岡田 遥", "Okada Haruka"],
+};
+/** 表示用の名前を組み立てる。読み上げ用（文字だけ）は plain=true で取る */
+function personName(who, plain) {
+  const raw = String(who || "");
+  const to = raw.endsWith("へ");
+  const p = PEOPLE[to ? raw.slice(0, -1) : raw];
+  if (!p) return raw;
+  return plain ? `${p[0]} ${p[1]}${to ? "へ" : ""}`
+    : `${p[0]}<span class="c-roma">${p[1]}</span>${to ? "へ" : ""}`;
+}
+
 /* 疑似乱数（決定的）／推移データ生成：v4 と同一 */
 function seeded(seed) { let s = seed; return () => { s = (s * 9301 + 49297) % 233280; return s / 233280; }; }
 function genMonthly(seed, base, slope, amp, sentBase, sentSlope) {
@@ -2919,7 +3008,7 @@ async function diagOnce(waitMs) {
      ・自己診断     … Alt + Shift + D（状態デモの Alt+Shift+S と同じ流儀）
    自己診断は押しボタンの文字を進み具合の表示に使うので、
    ボタンが無いときは同じ形をした仮の入れ物を渡す */
-const REV = "rev.37 カードを参考デザインに作り替え";
+const REV = "rev.39 複数の場面タグ・本名＋ローマ字・札の寸法";
 window.__rev = REV;
 document.addEventListener("keydown", e => {
   if (e.altKey && e.shiftKey && (e.key === "D" || e.key === "d")) {
@@ -3166,7 +3255,7 @@ const DATA = [
       { who: "ユーザー", ini: "ユ", time: "09:45", mine: true, text: "よかったです…！もちろんです。" },
     ]},
   { who: "鈴木さん", ini: "鈴", ch: "新人サポート", src: "Teams", month: "2026年 6月",
-    msg: "教えていただいたおかげで無事解決できました！本当にありがとうございます。", tag: "後輩サポート", time: "6/27 16:20",
+    msg: "教えていただいたおかげで無事解決できました！本当にありがとうございます。", tags: ["後輩サポート", "情報共有", "気配り"], time: "6/27 16:20",
     summary: "経費精算に迷っていた新人の鈴木さんに、手順メモ＋10分の画面共有でフォロー。寄り添う対応に感謝が届きました。",
     story: [
       { who: "鈴木さん", ini: "鈴", time: "14:02", text: "すみません、経費精算のやり方がどうしてもわからなくて…" },
@@ -3215,7 +3304,7 @@ const DATA = [
       { who: "山本さん", ini: "山", time: "6/18 09:20", thanks: true, text: "例のテンプレ、チームみんな使ってるよ。ありがとう" },
     ]},
   { who: "小林さん", ini: "小", ch: "プロジェクトA", src: "Teams", month: "2026年 6月",
-    msg: "資料の図解、そのまま役員説明に使わせてもらった。ありがとう！", tag: "資料品質", time: "6/13 15:40",
+    msg: "資料の図解、そのまま役員説明に使わせてもらった。ありがとう！", tags: ["資料品質", "アイデア"], time: "6/13 15:40",
     summary: "複雑な構成案を1枚の図解に変換。役員説明にそのまま使われるクオリティに感謝が届きました。",
     story: [
       { who: "小林さん", ini: "小", time: "6/12 13:05", text: "この構成、文章だと伝わらなくて…図にできたりする？" },
@@ -3239,9 +3328,9 @@ const SENT = [
   { who: "佐藤さんへ", ini: "佐", ch: "#企画チーム", src: "Slack", month: "2026年 7月",
     msg: "昨日のレビュー会の仕切り、すごく助かりました。おかげで論点が絞れました。", tag: "調整力", time: "7/2 09:15" },
   { who: "鈴木さんへ", ini: "鈴", ch: "新人サポート", src: "Teams", month: "2026年 6月",
-    msg: "先週のデータ集計、正確で早くて助かりました。ありがとう！", tag: "スピード対応", time: "6/26 17:40" },
+    msg: "先週のデータ集計、正確で早くて助かりました。ありがとう！", tags: ["スピード対応", "正確さ"], time: "6/26 17:40" },
   { who: "高橋さんへ", ini: "高", ch: "#営業連携", src: "Slack", month: "2026年 6月",
-    msg: "お客様の温度感の共有ありがとうございました。企画の方向修正ができました。", tag: "気配り", time: "6/19 10:02" },
+    msg: "お客様の温度感の共有ありがとうございました。企画の方向修正ができました。", tags: ["気配り", "情報共有"], time: "6/19 10:02" },
 ];
 SENT.forEach((d, i) => { d.id = 900 + i; });
 
@@ -3577,8 +3666,8 @@ function fillStory(tag, name, ini, day, thanks, rnd, toward) {
 
 Object.values(MEMBER_CARDS).forEach(list => list.forEach(d => {
   const day = (d.time || "").split(" ")[0];
-  d.summary = `${d.ch} でのやり取りから、「${d.tag}」の場面として ${d.who} からの感謝を見つけました。`;
-  d.story = fillStory(d.tag, d.who, d.ini, day, d.msg, seeded(d.id * 31 + 7), false);
+  d.summary = `${d.ch} でのやり取りから、「${mainTag(d)}」の場面として ${d.who} からの感謝を見つけました。`;
+  d.story = fillStory(mainTag(d), d.who, d.ini, day, d.msg, seeded(d.id * 31 + 7), false);
 }));
 
 /**
@@ -3629,7 +3718,7 @@ function buildAlbumFrom(shape, keep, seed, series = "recv") {
 function recountShape(shape, list) {
   const byTag = {}, byWho = {};
   list.forEach(d => {
-    byTag[d.tag] = (byTag[d.tag] || 0) + 1;
+    byTag[mainTag(d)] = (byTag[mainTag(d)] || 0) + 1;
     byWho[d.who] = (byWho[d.who] || 0) + 1;
   });
   const before = shape.tags.reduce((a, t) => a + t[1], 0) || 1;
@@ -3683,8 +3772,8 @@ MY_SHAPE.groups[2].people.push(["岡", "岡田さん", 1], ["伊", "伊藤さん
   SENT.forEach((d, i) => {
     if (d.story) return;
     const name = String(d.who).replace(/へ$/, "");
-    d.summary = `${d.ch} でのやり取りから、「${d.tag}」の場面として ${name} へおくった感謝を見つけました。`;
-    d.story = fillStory(d.tag, name, d.ini, (d.time || "").split(" ")[0], d.msg, seeded(i * 29 + 11), true);
+    d.summary = `${d.ch} でのやり取りから、「${mainTag(d)}」の場面として ${name} へおくった感謝を見つけました。`;
+    d.story = fillStory(mainTag(d), name, d.ini, (d.time || "").split(" ")[0], d.msg, seeded(i * 29 + 11), true);
   });
   const keep = SENT.slice();
   const built = buildAlbumFrom(MY_SHAPE, keep, 5, "sent");
@@ -4140,7 +4229,10 @@ function cardHTML(d, opts) {
       <div class="say">${d.msg || ""}</div>
       <div class="c-foot">
         <div class="ava">${avaFace(d.who, d.ini)}</div>
-        <div class="c-who"><b>${d.who}</b><span class="c-tag">${d.tag}</span></div>
+        <div class="c-who">
+          <b>${personName(d.who)}</b>
+          <span class="c-tags">${cardTags(d).map(t => `<span class="c-tag">${t}</span>`).join("")}</span>
+        </div>
         <span class="c-date">${cardWhen(d)}</span>
       </div>
     </div>
@@ -4183,8 +4275,8 @@ function cardLabel(d, opts) {
     (opts.fav && d.fav) ? "お気に入り" : "",
     (opts.memo && d.myMemo) ? "じぶんのメモあり" : "",
   ].filter(Boolean);
-  return `${d.who}からの「${String(d.msg).replace(/<br>/g, "")}」`
-    + `。場面：${d.tag}、${d.time}`
+  return `${personName(d.who, true)}からの「${String(d.msg).replace(/<br>/g, "")}」`
+    + `。場面：${cardTags(d).join("、")}、${d.time}`
     + (marks.length ? `、${marks.join("、")}` : "")
     + "。詳細を開く";
 }
@@ -4252,10 +4344,10 @@ function buildCard(d, opts, idx) {
        同じ関数で作り直す（最終監査 N3-2）。ここで文言を作り足さないこと */
     root.setAttribute("aria-label", cardLabel(d, opts));
   }
-  root.style.setProperty("--cc", tagColor(d.tag));
-  root.style.setProperty("--ci", tagInk(d.tag));
-  root.style.setProperty("--cb", tagBg(d.tag));
-  root.style.setProperty("--ct", tagText(d.tag));
+  root.style.setProperty("--cc", tagColor(mainTag(d)));
+  root.style.setProperty("--ci", tagInk(mainTag(d)));
+  root.style.setProperty("--cb", tagBg(mainTag(d)));
+  root.style.setProperty("--ct", tagText(mainTag(d)));
   root.style.setProperty("--tape-rot", TAPE_ROT[d.id % TAPE_ROT.length] + "deg");
   root.style.setProperty("--tape-shift", TAPE_SHIFT[d.id % TAPE_SHIFT.length] + "px");
   /* 日付スタンプの傾きと、かすれ具合（マスクのずらし）をカードごとに散らす */
@@ -4438,7 +4530,7 @@ const seriesOpts = () => (SERIES === "sent" ? SENT_OPTS : SELF_OPTS);
 
 /** いま画面に出ている（＝絞り込み・並び替え後の）カード */
 function visibleAlbum() {
-  const list = seriesList().filter(d => !filter.tag || d.tag === filter.tag);
+  const list = seriesList().filter(d => !filter.tag || cardTags(d).includes(filter.tag));
   /* 並び替えるのは時系列だけ。人どうしを並べて比べさせる表示はしない（原則6） */
   const byTime = filter.sort === "old" ? list.slice().reverse() : list.slice();
   /* お気に入りは先頭へ寄せる。「お気に入りのみ」で絞ると他が消えてしまうが、
@@ -4513,7 +4605,7 @@ function clearAlbumFilter() {
   toast("絞り込みを解除しました");
 }
 function initTagFilter() {
-  const tags = [...new Set(seriesList().map(d => d.tag))];
+  const tags = [...new Set(seriesList().flatMap(cardTags))];
   const keep = $("tagFilter").value;
   /* 選択肢ひとつひとつに「場面：」を足すことも試したが、select の幅は
      いちばん長い選択肢で決まるため、スマホでツールバーが1行増えて
@@ -4604,8 +4696,8 @@ function openWelcome(cards) {
   $("wcCount").textContent = String(cards.length);
   $("wcStage").innerHTML = cards.map(d => `
     <button type="button" class="wc-card ${cardKind(d)}" id="wc-${d.id}"
-      style="--cb:${tagBg(d.tag)}; --ct:${tagText(d.tag)}; --cc:${tagColor(d.tag)}; --ci:${tagInk(d.tag)}"
-      aria-label="${d.who}からの「${String(d.msg).replace(/<br>/g, "")}」。場面：${d.tag}、${d.time}。押すと次の1枚">${cardHTML(d, {})}</button>`).join("");
+      style="--cb:${tagBg(mainTag(d))}; --ct:${tagText(mainTag(d))}; --cc:${tagColor(mainTag(d))}; --ci:${tagInk(mainTag(d))}"
+      aria-label="${personName(d.who, true)}からの「${String(d.msg).replace(/<br>/g, "")}」。場面：${cardTags(d).join("、")}、${d.time}。押すと次の1枚">${cardHTML(d, {})}</button>`).join("");
   const ov = $("welcome");
   ov.hidden = false;
   ov.classList.remove("is-out", "is-clearing");
@@ -5181,14 +5273,14 @@ function confirmDialog(title, message, okLabel, onOk, target, onCancel) {
 function openThread(d, fromCard, opts) {
   const ov = document.createElement("div");
   ov.className = "overlay";
-  ov.style.setProperty("--cc", tagColor(d.tag));
-  ov.style.setProperty("--ci", tagInk(d.tag));
+  ov.style.setProperty("--cc", tagColor(mainTag(d)));
+  ov.style.setProperty("--ci", tagInk(mainTag(d)));
   /* カードの地と文字の色も渡す。
      これが無いと、飛ぶ複製が**透明になる**——複製しているのは .card3d だけで、
      --cb / --ct を持っているのは1つ外側の .card（buildCard が付ける）。
      複製の中の `background: var(--cb)` が解決できず、地が消えていた */
-  ov.style.setProperty("--cb", tagBg(d.tag));
-  ov.style.setProperty("--ct", tagText(d.tag));
+  ov.style.setProperty("--cb", tagBg(mainTag(d)));
+  ov.style.setProperty("--ct", tagText(mainTag(d)));
   const story = d.story ? d.story.map(s => `
     <div class="bub-row ${s.mine ? "mine" : ""} ${s.thanks ? "is-thanks" : ""}">
       <div class="ava">${avaFace(s.who, s.ini)}</div>
