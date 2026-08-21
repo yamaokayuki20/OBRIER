@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>オブリエ | カードデザイン検証（シンプル × リッチインタラクション）</title>
+<style>
+  :root {
+    /* オブリエ基調（v4準拠） */
+    --paper: #fffdf7; --ink: #3d3229; --ink-soft: #6f6355;
+    --accent: #c98a3d; --accent-deep: #8a5a1c; --accent-soft: #f3e3cb; --line: #e3d8c3;
+
+    /* 場面タグ＝カード色（参考イメージ準拠の7色）。
+       各色に「その面の上で使うインク色」を対で定義する。
+       黄・ピンクは濃色インク、それ以外は白インクを基本にする */
+    --c-speed: #F08A24; --i-speed: #ffffff;   /* orange     … スピード対応 */
+    --c-doc:   #3D85C8; --i-doc:   #ffffff;   /* blue       … 資料品質 */
+    --c-coord: #55B7BF; --i-coord: #ffffff;   /* teal       … 調整力 */
+    --c-care:  #F2A0BC; --i-care:  #7c2b45;   /* pink       … 気配り（濃色インク） */
+    --c-jr:    #33915F; --i-jr:    #ffffff;   /* green      … 後輩サポート */
+    --c-idea:  #F5C63C; --i-idea:  #6b4a05;   /* yellow     … アイデア（濃色インク） */
+    --c-share: #E8502F; --i-share: #ffffff;   /* vermilion  … 情報共有 */
+
+    /* アバターは全員この1色（白抜きイニシャル＋白リング）。
+       拡大詳細の文字色もこの濃紺に揃える */
+    --ava: #3A4A66;
+    --navy: #3A4A66; --navy-soft: #6d7a94; --navy-line: #dfe4ed; --navy-bg: #f2f4f8;
+
+    /* かすれたインク用のマスク。ノイズの明るいところだけインクが乗る */
+    --ink-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='44'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' seed='11'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 1.9 0 0 0 -0.28'/%3E%3C/filter%3E%3Crect width='150' height='44' filter='url(%23s)'/%3E%3C/svg%3E");
+
+    /* 背景テーマ（切替）：デフォルトは白地×薄い青の方眼 */
+    --bg: #ffffff;
+    --grid-line: rgba(90,143,216,.13);
+    --stage-ink: #2c3345;
+    --stage-ink-soft: rgba(44,51,69,.62);
+    --grain: 0;
+  }
+  /* 背景：オブリエクリームの紙テーマ */
+  body.theme-paper {
+    --bg: #f0e8d6;
+    --grid-line: transparent;
+    --stage-ink: #3d3229;
+    --stage-ink-soft: #6f6355;
+    --grain: .5;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    background-color: var(--bg);
+    /* 白地×薄い青の方眼（グラフ用紙）。紙テーマでは --grid-line が透明になり消える */
+    background-image:
+      repeating-linear-gradient(0deg,  var(--grid-line) 0, var(--grid-line) 1px, transparent 1px, transparent 24px),
+      repeating-linear-gradient(90deg, var(--grid-line) 0, var(--grid-line) 1px, transparent 1px, transparent 24px);
+    color: var(--stage-ink);
+    font-family: "Hiragino Maru Gothic ProN", "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
+    min-height: 100vh;
+    transition: background-color .5s ease, color .5s ease;
+    overflow-x: hidden;
+  }
+  /* 紙テーマのときだけグレインを出す（オブリエらしさの最小単位） */
+  body::before {
+    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    opacity: var(--grain); transition: opacity .5s ease;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.24 0 0 0 0 0.2 0 0 0 0 0.16 0 0 0 0.045 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  header, main { position: relative; z-index: 1; }
+
+  /* ---------------- コントロールバー ---------------- */
+  header {
+    position: sticky; top: 0; z-index: 30;
+    backdrop-filter: blur(10px);
+    background: color-mix(in srgb, var(--bg) 78%, transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--stage-ink) 14%, transparent);
+  }
+  .bar { max-width: 1080px; margin: 0 auto; padding: 12px 20px; display: flex; align-items: center; gap: 14px 18px; flex-wrap: wrap; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; letter-spacing: .12em; font-size: 15px; }
+  .brand-mark { width: 28px; height: 28px; border-radius: 9px; background: linear-gradient(145deg, #d89a48, #b9752c); display: grid; place-items: center; color: #fff; font-size: 14px; font-weight: 800; }
+  .brand small { display: block; font-size: 9px; letter-spacing: .2em; opacity: .6; font-weight: 600; }
+  .ctrl { display: flex; align-items: center; gap: 8px; font-size: 11.5px; }
+  .ctrl > span { opacity: .62; letter-spacing: .08em; white-space: nowrap; }
+  .seg { display: flex; border: 1px solid color-mix(in srgb, var(--stage-ink) 26%, transparent); border-radius: 999px; overflow: hidden; }
+  .seg button {
+    font-family: inherit; font-size: 11.5px; padding: 6px 12px; border: none; cursor: pointer;
+    background: transparent; color: var(--stage-ink); opacity: .68; white-space: nowrap; transition: background .2s, opacity .2s;
+  }
+  .seg button:hover { opacity: 1; background: color-mix(in srgb, var(--stage-ink) 10%, transparent); }
+  .seg button[aria-pressed="true"] { background: var(--stage-ink); color: var(--bg); opacity: 1; font-weight: 700; }
+  .toggle { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; opacity: .78; }
+  .toggle input { accent-color: var(--accent); }
+  /* デザインsegが4ボタンになるため、モバイルでは詰める（390pxで実測オーバーフローした） */
+  @media (max-width: 480px) {
+    .bar { padding: 10px 12px; gap: 8px 12px; }
+    .ctrl { flex-wrap: wrap; }
+    .seg button { padding: 5px 8px; font-size: 10.5px; }
+  }
+
+  /* ---------------- ステージ ---------------- */
+  main { max-width: 1080px; margin: 0 auto; padding: 0 20px 90px; }
+  .lead { padding: 46px 0 10px; max-width: 620px; }
+  .lead h1 { font-size: clamp(20px, 3.6vw, 27px); line-height: 1.6; letter-spacing: .06em; font-weight: 800; }
+  .lead p { margin-top: 12px; font-size: 13px; line-height: 2; color: var(--stage-ink-soft); }
+  .sec-label { display: flex; align-items: center; gap: 12px; font-size: 11px; letter-spacing: .22em; opacity: .55; margin: 64px 0 18px; }
+  .sec-label::after { content: ""; flex: 1; height: 1px; background: currentColor; opacity: .3; }
+
+  /* ---------------- カード共通（3D） ---------------- */
+  .card {
+    position: relative; perspective: 1000px; -webkit-tap-highlight-color: transparent;
+    cursor: pointer; border: none; padding: 0; background: none; font-family: inherit;
+    text-align: left; display: block; width: 100%;
+  }
+  .card:focus { outline: none; }
+  .card:focus-visible .card3d { box-shadow: 0 0 0 3px var(--accent), 0 18px 34px rgba(0,0,0,.24) !important; }
+  .card3d {
+    position: relative; transform-style: preserve-3d; will-change: transform;
+    transition: box-shadow .25s ease;
+    /* 動的影は .card3d に載るため、face と同じ角丸を持たせて四隅を丸く保つ */
+    border-radius: 18px;
+  }
+  .pat-b .card3d { border-radius: 12px; }
+  .pat-d .card3d { border-radius: 10px; }
+  .pat-c .card3d { border-radius: 6px; }
+  /* overflow は指定しない（overflow:hidden は transform-style を flat に落とし、
+     子要素の translateZ による奥行きパララックスが効かなくなるため） */
+  .face {
+    border-radius: 18px;
+    transform-style: preserve-3d;
+  }
+  .glare {
+    position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 3;
+    background: radial-gradient(330px circle at var(--gx, 50%) var(--gy, 50%), rgba(255,255,255,.75), rgba(255,255,255,0) 62%);
+    opacity: var(--glare, 0);
+  }
+
+  /* ---------------- パターンA：ベタ塗り（参考画像準拠） ---------------- */
+  .front {
+    background: var(--cc);
+    color: var(--ci);
+    padding: 30px 26px 26px;
+    display: flex; flex-direction: column; align-items: center; gap: 18px;
+    min-height: 236px;
+  }
+  .ava {
+    width: 56px; height: 56px; border-radius: 50%; flex: none;
+    background: var(--ava);   /* アバターは全員1色に統一 */
+    display: grid; place-items: center; color: #fff; font-size: 20px; font-weight: 800;
+    box-shadow: 0 0 0 5px rgba(255,255,255,.9), 0 6px 14px rgba(0,0,0,.14);
+    /* 奥行きを持たせるのはアイコンだけ。他の要素はカードと同じ高さに置く */
+    transform: translateZ(20px);
+  }
+  .say {
+    font-size: 15px; line-height: 2.05; letter-spacing: .1em; text-align: center; font-weight: 700;
+  }
+  .who-line {
+    margin-top: auto; font-size: 11px; letter-spacing: .12em; opacity: .72; font-weight: 700;
+  }
+  .corner-new {
+    position: absolute; top: 14px; left: 14px; z-index: 4;
+    font-size: 9.5px; font-weight: 800; letter-spacing: .14em;
+    background: rgba(255,255,255,.92); border-radius: 999px; padding: 4px 10px;
+    /* 白地ピルの文字はカード色を深くしたインクで（白インクの色でも読めるように） */
+    color: color-mix(in srgb, var(--cc) 62%, #1d2430);
+  }
+  .memo-dot {
+    position: absolute; bottom: 14px; right: 16px; z-index: 4;
+    width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.9);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ci) 22%, transparent);
+  }
+
+  /* ---------------- パターンB：白紙＋タグ色アクセント（折衷案） ---------------- */
+  .pat-b .front {
+    background: var(--paper); color: var(--ink);
+    border-top: 7px solid var(--cc);
+    padding: 26px 24px 22px;
+  }
+  .pat-b .ava { box-shadow: 0 0 0 5px var(--paper), 0 5px 12px rgba(80,62,40,.18); width: 48px; height: 48px; font-size: 17px; }
+  .pat-b .say {
+    font-weight: 600; letter-spacing: .06em; line-height: 2.05; font-size: 14.5px;
+  }
+  .pat-b .who-line { color: var(--ink-soft); opacity: 1; }
+  .pat-b .corner-new { background: var(--accent); color: #fff; }
+  .pat-b .memo-dot { background: #f0dc63; box-shadow: 0 0 0 3px rgba(240,220,99,.3); }
+  .pat-b .face { border-radius: 12px; }
+  .pat-b .wl-tag { display: none; }        /* タグはピルで出すので名前だけにする */
+
+  /* 新パレットは彩度が高いため、タグピルは淡色地＋濃色文字で可読性を保つ（B/D/C共通）。
+     文字はカード面用インク（--ci、5色は白）ではなく、タグ色を深くした派生色を使う */
+  .tagpill {
+    font-size: 10.5px; font-weight: 700; letter-spacing: .08em;
+    background: color-mix(in srgb, var(--cc) 18%, #fff);
+    color: color-mix(in srgb, var(--cc) 52%, #1d2430);
+    border: 1px solid color-mix(in srgb, var(--cc) 55%, transparent);
+    border-radius: 999px; padding: 3px 11px;
+  }
+
+  /* ---------------- パターンC：現行v4（比較用の簡易再現） ---------------- */
+  .pat-c .front {
+    background: var(--paper); color: var(--ink);
+    border: 1px solid var(--line); border-radius: 6px;
+    padding: 26px 18px 16px; align-items: stretch; text-align: left; gap: 12px;
+    min-height: 200px;
+  }
+  .pat-c .face { border-radius: 6px; }
+  .pat-c .front::before { /* マスキングテープ */
+    content: ""; position: absolute; top: -9px; left: 50%; width: 86px; height: 20px;
+    background: color-mix(in srgb, var(--cc) 88%, #8a7a52);
+    transform: translate(-50%, 0) rotate(-2deg); border-radius: 2px; z-index: 4;
+    box-shadow: 0 1px 2px rgba(0,0,0,.08);
+  }
+  .pat-c .ava { width: 30px; height: 30px; font-size: 12px; box-shadow: none; transform: none; }
+  .pat-c .c-head { display: flex; align-items: center; gap: 10px; width: 100%; }
+  .pat-c .c-head b { font-size: 13px; }
+  .pat-c .c-head small { display: block; font-size: 11px; color: var(--ink-soft); font-weight: 400; }
+  .pat-c .say {
+    font-family: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
+    text-align: left; font-weight: 400; font-size: 15px; line-height: 1.85; letter-spacing: .02em;
+    transform: none;
+  }
+  .pat-c .who-line { display: none; }
+
+  /* ---------------- パターンD：紙＋マステ（Bの整い × Cの手触り） ---------------- */
+  .pat-d .face { border-radius: 10px; }
+  .pat-d .front {
+    background: #fffdfa; color: var(--ink);
+    border: 1px solid rgba(61,50,41,.09);
+    padding: 32px 24px 18px;
+    min-height: 236px;
+  }
+  /* マスキングテープ：タグ色・半透明・縞の質感・カードごとに角度と位置がゆらぐ */
+  .pat-d .front::before {
+    content: ""; position: absolute; top: -11px; left: 50%;
+    width: 92px; height: 24px; z-index: 4; pointer-events: none;
+    transform: translateX(calc(-50% + var(--tape-shift, 0px))) rotate(var(--tape-rot, -3deg));
+    background:
+      repeating-linear-gradient(90deg, rgba(255,255,255,.25) 0 2px, rgba(255,255,255,0) 2px 7px),
+      linear-gradient(rgba(255,255,255,.18), rgba(0,0,0,.03)),
+      color-mix(in srgb, var(--cc) 72%, transparent);
+    clip-path: polygon(2% 0, 98% 3%, 100% 28%, 97% 52%, 100% 76%, 97% 100%, 3% 97%, 0 74%, 2.5% 48%, 0 22%);
+    box-shadow: 0 1px 2px rgba(60,48,30,.10);
+  }
+  /* カード自体のわずかな紙質（グレイン） */
+  .pat-d .front::after {
+    content: ""; position: absolute; inset: 0; border-radius: inherit;
+    pointer-events: none; z-index: 1; opacity: .55;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.24 0 0 0 0 0.2 0 0 0 0 0.16 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .pat-d .ava {
+    width: 44px; height: 44px; font-size: 16px; transform: none;
+    box-shadow: 0 0 0 4px #fffdfa, 0 4px 10px rgba(58,74,102,.25);
+  }
+  .pat-d .say {
+    /* 本文はゴシック（既定のフォントスタック）。手ざわりはマステと紙質で出す */
+    font-weight: 600; letter-spacing: .06em; line-height: 2.05; font-size: 14.5px;
+    transform: none;
+  }
+  .pat-d .who-line { color: var(--ink-soft); opacity: 1; transform: none; }
+  .pat-d .wl-tag { display: none; }               /* タグはピルで出すので名前だけにする */
+  .pat-d .corner-new {
+    background: color-mix(in srgb, var(--cc) 62%, #1d2430); color: #fff;
+    transform: rotate(-2deg); top: 16px; left: 14px;
+  }
+  .pat-d .memo-dot { background: #f0dc63; box-shadow: 0 0 0 3px rgba(240,220,99,.35); transform: none; }
+  .pat-d .glare { display: none; }                /* Dに光沢は不要（紙なので） */
+
+  /* ---- 中身の量による出し分け ----
+     感謝は一言のこともあれば長文のこともあり、絵文字のリアクションだけのこともある。
+     どれもカードとして成立するよう、書体の大きさ・行数・カードの丈を変える */
+
+  /* 短い一言：大きく見せて、余白で受ける */
+  .kind-short .say { font-size: 17px; line-height: 1.95; letter-spacing: .08em; }
+
+  /* 長文：左寄せにして行数で止める。切れたことは line-clamp の「…」が示す */
+  .kind-long .front { padding-top: 30px; }
+  .kind-long .say {
+    text-align: left; font-size: 13px; line-height: 1.9; letter-spacing: .01em; font-weight: 500;
+    display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden;
+  }
+
+  /* リアクションだけの「小さなありがとう」：丈を詰めて控えめに置く */
+  .kind-stamp .front { min-height: 172px; gap: 12px; padding: 30px 22px 16px; }
+  .kind-stamp .ava { width: 36px; height: 36px; font-size: 13px; box-shadow: 0 0 0 3px #fffdfa, 0 3px 8px rgba(58,74,102,.22); }
+  .stamp-face { display: none; }
+  .kind-stamp .stamp-face {
+    display: block; font-size: 40px; line-height: 1;
+    filter: saturate(.9); transform: rotate(-4deg);
+  }
+  .kind-stamp .say { display: none; }
+  .kind-stamp .who-line { font-size: 10.5px; }
+  .stamp-note { display: none; }
+  .kind-stamp .stamp-note {
+    display: block; font-size: 10px; letter-spacing: .06em; color: var(--ink-soft);
+  }
+  /* 日付＝かすれたゴム印。ノイズをマスクに使い、インクの乗りをまだらにする。
+     枠線にもマスクがかかるので、押しムラのある判子に見える */
+  .pat-d .c-time {
+    font-size: 10px; letter-spacing: .05em; padding: 2px 8px; border-radius: 2px;
+    border: 1.5px solid color-mix(in srgb, var(--cc) 52%, #1d2430);
+    color: color-mix(in srgb, var(--cc) 52%, #1d2430);
+    transform: rotate(var(--stamp-rot, -2deg));
+    -webkit-mask-image: var(--ink-mask); mask-image: var(--ink-mask);
+    -webkit-mask-size: 150px 44px; mask-size: 150px 44px;
+    -webkit-mask-position: var(--stamp-shift, 0) 0; mask-position: var(--stamp-shift, 0) 0;
+    opacity: .82;
+  }
+
+  /* --- パターンごとの要素の出し分け --- */
+  .c-head { display: none; }                       /* 左寄せの送り主行：Cのみ */
+  .pat-c .c-head { display: flex; }
+  .c-foot { display: none; }                       /* タグピル＋日時の行：全案で出す */
+  .pat-a .c-foot, .pat-b .c-foot, .pat-d .c-foot, .pat-c .c-foot {
+    display: flex; align-items: center; gap: 8px; width: 100%; margin-top: auto; padding-top: 4px;
+  }
+  .pat-a .wl-tag { display: none; }                /* タグはピルで出すので名前だけにする */
+  /* ベタ塗りの面に乗るので、タグピルは白抜きの枠だけにして色を足さない */
+  .pat-a .tagpill {
+    background: rgba(255,255,255,.22); color: var(--ci);
+    border-color: color-mix(in srgb, var(--ci) 42%, transparent);
+  }
+  /* 日付＝かすれたゴム印。インクはカード面の文字色に合わせる */
+  .pat-a .c-time {
+    font-size: 10px; letter-spacing: .05em; padding: 2px 8px; border-radius: 2px;
+    border: 1.5px solid var(--ci); color: var(--ci);
+    transform: rotate(var(--stamp-rot, -2deg));
+    -webkit-mask-image: var(--ink-mask); mask-image: var(--ink-mask);
+    -webkit-mask-size: 150px 44px; mask-size: 150px 44px;
+    -webkit-mask-position: var(--stamp-shift, 0) 0; mask-position: var(--stamp-shift, 0) 0;
+    opacity: .78;
+  }
+  .c-time { margin-left: auto; font-size: 10.5px; color: var(--ink-soft); font-family: "Courier New", monospace; }
+  .pat-c .c-time { transform: rotate(-1deg); }
+
+  /* ---------------- 小ボタン（拡大詳細で使用） ---------------- */
+  .mini-btn {
+    font-family: inherit; font-size: 11px; font-weight: 700; cursor: pointer;
+    border: 1px solid var(--line); background: #fff; color: var(--accent-deep);
+    border-radius: 999px; padding: 6px 14px;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .ext-icon { width: 12px; height: 12px; flex: none; opacity: .8; }
+  .mini-btn:hover { border-color: var(--accent); background: var(--accent-soft); }
+
+  .hint {
+    font-size: 11.5px; letter-spacing: .1em; color: var(--stage-ink-soft);
+    margin-bottom: 14px; display: flex; gap: 18px; flex-wrap: wrap;
+  }
+  .hint kbd {
+    font-family: inherit; border: 1px solid color-mix(in srgb, var(--stage-ink) 30%, transparent);
+    border-radius: 6px; padding: 2px 8px; margin-right: 6px; font-size: 10.5px;
+  }
+
+  /* ---------------- アルバムグリッド ---------------- */
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px 20px; align-items: start; }
+  @media (max-width: 880px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
+  .month {
+    grid-column: 1 / -1; display: flex; align-items: center; gap: 12px;
+    font-size: 12.5px; letter-spacing: .18em; font-weight: 700; color: var(--stage-ink-soft);
+    margin: 16px 0 2px;
+  }
+  .month::after { content: ""; flex: 1; height: 1px; background: currentColor; opacity: .3; }
+
+  /* ---------------- 検討メモ ---------------- */
+  .memo-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  @media (max-width: 880px) { .memo-cards { grid-template-columns: 1fr; } }
+  .memo-card {
+    border: 1px solid color-mix(in srgb, var(--stage-ink) 20%, transparent);
+    border-radius: 14px; padding: 18px 20px; font-size: 12.5px; line-height: 2;
+    color: var(--stage-ink-soft);
+    background: color-mix(in srgb, var(--stage-ink) 5%, transparent);
+  }
+  .memo-card h3 { font-size: 12.5px; letter-spacing: .1em; color: var(--stage-ink); margin-bottom: 8px; }
+  .memo-card ul { padding-left: 1.1em; }
+  .memo-card li { margin-bottom: 4px; }
+
+  /* ---------------- モーダル（拡大詳細）：文字はアイコンと同じ濃紺で揃える ---------------- */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(20,26,40,.52); display: grid; place-items: center;
+    z-index: 60; padding: 20px;
+    perspective: 1600px;          /* カード→詳細のめくり用 */
+  }
+  .sheet {
+    background: #fff; color: var(--navy); border-radius: 22px; width: min(560px, 100%);
+    max-height: calc(100vh - 60px); overflow-y: auto; box-shadow: 0 30px 70px rgba(20,26,40,.38);
+    will-change: transform, opacity; backface-visibility: hidden;
+  }
+  /* 中央へ飛んでいくカードの複製。オーバーレイの外（body直下）に置くので、
+     オーバーレイのフェードに影響されず、押した瞬間に消えない */
+  .fly-card {
+    position: fixed; margin: 0; z-index: 70; pointer-events: none;
+    opacity: 1 !important; will-change: transform;
+  }
+  .sheet-head { display: flex; align-items: center; gap: 10px; padding: 20px 22px 12px; }
+  .sheet-head b { font-size: 13.5px; }
+  .sheet-head small { display: block; font-size: 11px; color: var(--navy-soft); font-weight: 400; }
+  .sheet-close { margin-left: auto; border: none; background: var(--navy-bg); width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 13px; color: var(--navy-soft); }
+  .sheet-close:hover { background: var(--navy-line); }
+  .sheet-body { padding: 4px 22px 24px; }
+  .bub-row { display: flex; gap: 10px; margin-bottom: 12px; }
+  .bub-row .ava { width: 30px; height: 30px; font-size: 12px; box-shadow: none; transform: none; }
+  .bub { flex: 1; }
+  .bub-name { font-size: 11.5px; font-weight: 700; }
+  .bub-name span { font-weight: 400; font-size: 10px; color: var(--navy-soft); margin-left: 6px; }
+  .bub-text { margin-top: 4px; font-size: 13px; line-height: 1.8; background: var(--navy-bg); border-radius: 4px 14px 14px 14px; padding: 10px 14px; }
+  .mine .bub-text { background: #eaeef6; }
+  .is-thanks .bub-text { background: var(--cc); color: var(--ci); font-weight: 700; }
+  .thanks-flag { font-size: 10px; font-weight: 800; color: var(--navy-soft); margin-top: 6px; letter-spacing: .06em; }
+  .thanks-flag::before { content: "✦ "; }
+
+  /* 拡大詳細のパーツ */
+  .sheet-time { margin-left: auto; font-size: 10.5px; color: var(--navy-soft); font-family: "Courier New", monospace; white-space: nowrap; }
+  .sheet-head .sheet-close { margin-left: 10px; flex: none; }
+  .sheet-sec {
+    font-size: 9.5px; letter-spacing: .2em; color: var(--navy); opacity: .75; font-weight: 800;
+    margin: 18px 0 8px;
+  }
+  .sheet-sec:first-child { margin-top: 6px; }
+  .sheet-summary { font-size: 12.5px; line-height: 1.9; color: var(--navy-soft); }
+  .sheet-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+  .sheet .mini-btn { border-color: var(--navy-line); color: var(--navy); }
+  .sheet .mini-btn:hover { border-color: var(--navy-soft); background: var(--navy-bg); }
+  .fav-btn[aria-pressed="true"] { border-color: #e0a62f; background: #fdf4dc; color: #8a6410; }
+  .memo-ta {
+    width: 100%; min-height: 72px; resize: vertical; font-family: inherit; font-size: 12.5px; line-height: 1.8;
+    background: var(--navy-bg); border: 1px solid var(--navy-line); border-radius: 3px 12px 12px 12px; padding: 10px 12px;
+    color: var(--navy); outline: none;
+  }
+  .memo-ta::placeholder { color: var(--navy-soft); opacity: .75; }
+  .memo-ta:focus { border-color: var(--navy-soft); }
+  .memo-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+  .memo-row small { font-size: 10.5px; color: var(--navy-soft); }
+  .memo-row .mini-btn { margin-left: auto; }
+  .sheet-danger { margin-top: 22px; padding-top: 14px; border-top: 1px dashed var(--navy-line); display: flex; }
+  .danger-btn {
+    font-family: inherit; font-size: 11px; font-weight: 700; cursor: pointer;
+    border: 1px solid #e3b9b3; background: #fff; color: #b0432f;
+    border-radius: 999px; padding: 6px 14px;
+  }
+  .danger-btn:hover { background: #fbeeec; border-color: #cf7f72; }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%);
+    background: var(--navy); color: #fff; border-radius: 999px; padding: 10px 22px;
+    font-size: 12.5px; z-index: 80; box-shadow: 0 10px 24px rgba(0,0,0,.3); pointer-events: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .card3d { transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="bar">
+    <div class="brand"><div class="brand-mark">O</div><div>オブリエ<small>CARD DESIGN STUDY</small></div></div>
+    <div class="ctrl">
+      <span>デザイン</span>
+      <div class="seg" id="segPattern">
+        <button data-pat="pat-a" aria-pressed="false">A ベタ塗り</button>
+        <button data-pat="pat-b" aria-pressed="true">B 紙＋タグ色（正）</button>
+        <button data-pat="pat-d" aria-pressed="false">D 紙＋マステ</button>
+        <button data-pat="pat-c" aria-pressed="false">C 現行v4</button>
+      </div>
+    </div>
+    <div class="ctrl">
+      <span>背景</span>
+      <div class="seg" id="segTheme">
+        <button data-theme="theme-grid" aria-pressed="true">方眼</button>
+        <button data-theme="theme-paper" aria-pressed="false">紙</button>
+      </div>
+    </div>
+    <div class="ctrl">
+      <label class="toggle"><input type="checkbox" id="optTilt" checked> 立体チルト</label>
+      <label class="toggle"><input type="checkbox" id="optGlare" checked> 光沢</label>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="lead">
+    <h1>カードは削る。<br>動きで、深さを出す。</h1>
+    <p>
+      カードに残したのは「言葉・送り主・場面の色」の3つだけです。出典やチャネル、日時、メモといった脇の情報は、
+      カードをクリックすると開く拡大詳細に逃がしました。カードはめくれながら中央へ飛び、そのまま詳細に育ちます。
+      上のスイッチで、ベタ塗り（A）／紙＋タグ色（B）／紙＋マステ（D）／現行v4（C）を切り替えて見比べられます。
+    </p>
+  </section>
+
+  <div class="sec-label">01　アルバム</div>
+  <div class="hint">
+    <span><kbd>hover</kbd>カードが反応する</span>
+    <span><kbd>click</kbd>めくれながら中央へ、拡大して詳細に</span>
+  </div>
+  <div class="grid" id="grid"></div>
+
+  <div class="sec-label">02　検討メモ</div>
+  <div class="memo-cards">
+    <div class="memo-card">
+      <h3>削って得られるもの</h3>
+      <ul>
+        <li>「誰の、どんな言葉か」が一瞬で立ち上がる</li>
+        <li>場面タグが色そのものになり、一覧で偏りが見える</li>
+        <li>スマホで強い。1カラムでも密度が破綻しない</li>
+        <li>描画が軽く、モーションに予算を回せる</li>
+      </ul>
+    </div>
+    <div class="memo-card">
+      <h3>削ると失うもの</h3>
+      <ul>
+        <li>紙・マステ・明朝という「アルバムの世界観」（設計原則1）が薄まり、SaaSのカードUIに寄る</li>
+        <li>出典・チャネル・日時が表から消えるため、クリックで開く拡大詳細に必ず逃がす設計が要る</li>
+        <li>色の意味を覚えるまでは、タグ名の併記が必要</li>
+      </ul>
+    </div>
+    <div class="memo-card">
+      <h3>採用：B（紙＋タグ色）</h3>
+      <ul>
+        <li>白い紙のカードの上端に、場面タグの色を帯で置く</li>
+        <li>本文はゴシック。方眼の台紙にカードを並べた見え方になる</li>
+        <li>カードの高さは全枚そろえ、中身の量は行数で受け止める（長文は…で止めて全文は詳細で）</li>
+        <li>浮かせるのはアイコンだけ。詳細は濃紺で、アイコンの色に揃える</li>
+        <li>クリックで、1枚のカードがそのまま裏返って詳細になる</li>
+        <li>A・D・Cは比較用に残してある</li>
+      </ul>
+    </div>
+  </div>
+</main>
+
+<script>
+/* =========================================================================
+   データ（v4 の DATA からカード表示に必要な分を抜粋）
+   ========================================================================= */
+const TAGS = {
+  "スピード対応": ["--c-speed", "--i-speed"],
+  "資料品質":     ["--c-doc",   "--i-doc"],
+  "調整力":       ["--c-coord", "--i-coord"],
+  "気配り":       ["--c-care",  "--i-care"],
+  "後輩サポート": ["--c-jr",    "--i-jr"],
+  "アイデア":     ["--c-idea",  "--i-idea"],
+  "情報共有":     ["--c-share", "--i-share"],
+};
+
+const DATA = [
+  { isNew: true, who: "上司さん", av: "av-boss", ini: "上", ch: "#資料作成", src: "Slack", month: "2026年 7月",
+    msg: "ありがとうございます。<br>素早い対応、助かります。", tag: "スピード対応", time: "たった今 15:58",
+    summary: "資料作成の依頼に約1分で完成版を共有。対応の速さに感謝が届きました。今月の「スピード対応」はこれで8回目です。",
+    story: [
+      { who: "上司さん", av: "av-boss", ini: "上", time: "15:57", text: "@YUKIYAMA おつかれ、いい感じの資料つくっておいて" },
+      { who: "YUKIYAMA", av: "av-me", ini: "Y", time: "15:58", mine: true, text: "おつかれさまです。ご確認をお願いします。" },
+      { who: "上司さん", av: "av-boss", ini: "上", time: "15:58", thanks: true, text: "ありがとうございます。素早い対応助かります。確認しますね。" },
+    ]},
+  { who: "佐藤さん", av: "av-a", ini: "佐", ch: "#企画チーム", src: "Slack", month: "2026年 7月",
+    msg: "すごい、いいね。<br>この切り口なかったわ。", tag: "アイデア", time: "6/30 11:04",
+    summary: "行き詰まっていた若年層向け企画に、逆転の発想と参考事例を提案。着眼点に感謝が届きました。",
+    story: [
+      { who: "佐藤さん", av: "av-a", ini: "佐", time: "10:31", text: "若年層向けの訴求、正直ネタ切れ気味…なんかいい案ないかな" },
+      { who: "YUKIYAMA", av: "av-me", ini: "Y", time: "10:55", mine: true, text: "逆に「親世代から子どもへ贈る」導線はどうでしょう？" },
+      { who: "佐藤さん", av: "av-a", ini: "佐", time: "11:04", thanks: true, text: "すごい、いいね。この切り口なかったわ。" },
+    ]},
+  // リアクションだけの「小さなありがとう」（F04）
+  { who: "中村さん", av: "av-h", ini: "中", ch: "#プロジェクトA", src: "Slack", month: "2026年 6月",
+    reaction: "🙏", tag: "スピード対応", time: "6/29 18:40",
+    summary: "共有した障害対応の手順に、その場で拝む絵文字が返ってきました。言葉になる前の感謝として、控えめに数えています。",
+    story: [
+      { who: "YUKIYAMA", av: "av-me", ini: "Y", time: "18:36", mine: true, text: "暫定対応の手順をまとめました。まずはこれで止血できます。" },
+      { who: "中村さん", av: "av-h", ini: "中", time: "18:40", thanks: true, text: "🙏（リアクション）" },
+    ]},
+  // 長文の感謝
+  { who: "岡田さん", av: "av-c", ini: "岡", ch: "#カスタマーサクセス", src: "Teams", month: "2026年 6月",
+    msg: "先日は本当にありがとうございました。急なお願いだったにもかかわらず、こちらの状況を丁寧に聞き取ってくださって、そのうえで実現できる案と難しい案をはっきり分けて示していただけたので、社内の合意もすぐに取れました。お客様にも自信を持って説明でき、無事に今週の納品まで進められています。次の案件でもぜひご一緒させてください。",
+    tag: "調整力", time: "6/26 20:12",
+    summary: "急な依頼に対し、実現できる案と難しい案を切り分けて提示。社内合意と納品まで一気に進み、長文の感謝が届きました。",
+    story: [
+      { who: "岡田さん", av: "av-c", ini: "岡", time: "6/24 09:12", text: "急ぎで相談です。来週の納品、仕様を一部変えられませんか…？" },
+      { who: "YUKIYAMA", av: "av-me", ini: "Y", time: "6/24 11:40", mine: true, text: "できる案が2つ、難しい案が1つあります。影響範囲を添えて整理しました。" },
+      { who: "岡田さん", av: "av-c", ini: "岡", time: "6/26 20:12", thanks: true, text: "先日は本当にありがとうございました。急なお願いだったにもかかわらず、こちらの状況を丁寧に聞き取ってくださって…（略）" },
+    ]},
+  { who: "田中さん", av: "av-b", ini: "田", ch: "#プロジェクトA", src: "Slack", month: "2026年 6月",
+    msg: "さすがしごでき。<br>今回もお願いしていい？", tag: "資料品質", time: "6/28 09:41",
+    summary: "前回の報告書がクライアントから「わかりやすい」と好評で、次回も指名で依頼されました。",
+    story: [
+      { who: "田中さん", av: "av-b", ini: "田", time: "09:38", text: "先週の報告書、クライアントから「今までで一番わかりやすい」って言われたよ" },
+      { who: "田中さん", av: "av-b", ini: "田", time: "09:41", thanks: true, text: "さすがしごでき。今回もお願いしていい？" },
+    ]},
+  { who: "鈴木さん", av: "av-c", ini: "鈴", ch: "新人サポート", src: "Teams", month: "2026年 6月",
+    msg: "教えていただいたおかげで<br>無事解決できました！", tag: "後輩サポート", time: "6/27 16:20",
+    summary: "経費精算に迷っていた鈴木さんに、手順メモと10分の画面共有でフォロー。寄り添う対応に感謝が届きました。",
+    story: [
+      { who: "鈴木さん", av: "av-c", ini: "鈴", time: "14:02", text: "すみません、経費精算のやり方がどうしてもわからなくて…" },
+      { who: "YUKIYAMA", av: "av-me", ini: "Y", time: "14:10", mine: true, text: "手順メモを送ります。15時から10分だけ画面共有でやりましょうか。" },
+      { who: "鈴木さん", av: "av-c", ini: "鈴", time: "16:20", thanks: true, text: "教えていただいたおかげで無事解決できました！本当にありがとうございます。" },
+    ]},
+  { who: "高橋さん", av: "av-d", ini: "高", ch: "#営業連携", src: "Slack", month: "2026年 6月",
+    msg: "まとめ方きれいで<br>助かる〜", tag: "資料品質", time: "6/25 13:55",
+    summary: "散らばっていた商談メモを論点別に再構成して共有。整理のわかりやすさに感謝が届きました。",
+    story: [
+      { who: "高橋さん", av: "av-d", ini: "高", time: "13:30", text: "先週の商談メモってどこかにまとまってる？" },
+      { who: "YUKIYAMA", av: "av-me", ini: "Y", time: "13:48", mine: true, text: "決定事項・保留・宿題の3分類でまとめ直したものがあります。" },
+      { who: "高橋さん", av: "av-d", ini: "高", time: "13:55", thanks: true, text: "ありがとうございます。まとめ方きれいで助かる〜" },
+    ]},
+  { fav: true, who: "伊藤さん", av: "av-e", ini: "伊", ch: "#プロジェクトA", src: "Slack", month: "2026年 6月",
+    msg: "調整ありがとう！<br>全員参加できることになったよ", tag: "調整力", time: "6/24 10:15",
+    summary: "8人の関係者で決まらなかったレビュー会の日程を、候補3枠の調整表で1日で確定。段取り力に感謝が届きました。",
+    story: [
+      { who: "伊藤さん", av: "av-e", ini: "伊", time: "6/23 15:02", text: "来週のレビュー会、関係者多すぎて日程が全然決まらない…" },
+      { who: "YUKIYAMA", av: "av-me", ini: "Y", time: "6/24 09:58", mine: true, text: "木曜14時で全員◯になりました。招集かけますね。" },
+      { who: "伊藤さん", av: "av-e", ini: "伊", time: "10:15", thanks: true, text: "調整ありがとう！全員参加できることになったよ" },
+    ]},
+  { who: "渡辺さん", av: "av-f", ini: "渡", ch: "問い合わせ対応", src: "Teams", month: "2026年 6月",
+    msg: "レス早くて助かります！", tag: "スピード対応", time: "6/20 11:33",
+    summary: "他部署からの仕様に関する問い合わせに5分で回答。制約条件まで添えた即レスに感謝が届きました。",
+    story: [
+      { who: "渡辺さん", av: "av-f", ini: "渡", time: "11:28", text: "この仕様って今からでも変更可能でしたっけ？" },
+      { who: "YUKIYAMA", av: "av-me", ini: "Y", time: "11:33", mine: true, text: "可能です。ただし制約が2点あります。" },
+      { who: "渡辺さん", av: "av-f", ini: "渡", time: "11:33", thanks: true, text: "レス早くて助かります！" },
+    ]},
+  { who: "山本さん", av: "av-g", ini: "山", ch: "#企画チーム", src: "Slack", month: "2026年 6月",
+    msg: "例のテンプレ、<br>チームみんな使ってるよ。", tag: "情報共有", time: "6/18 09:20",
+    summary: "自作した議事録テンプレートがチーム標準として定着。仕組みで貢献する働きに感謝が届きました。",
+    story: [
+      { who: "YUKIYAMA", av: "av-me", ini: "Y", time: "6/10 17:15", mine: true, text: "議事録のテンプレ作ってみました。よければどうぞ。" },
+      { who: "山本さん", av: "av-g", ini: "山", time: "6/18 09:20", thanks: true, text: "例のテンプレ、チームみんな使ってるよ。ありがとう" },
+    ]},
+  { myMemo: "役員まで届いたのは素直にうれしい。図解パターンをテンプレ化しておく。",
+    who: "小林さん", av: "av-i", ini: "小", ch: "プロジェクトA", src: "Teams", month: "2026年 6月",
+    msg: "資料の図解、そのまま<br>役員説明に使わせてもらった。", tag: "資料品質", time: "6/13 15:40",
+    summary: "複雑な構成案を1枚の図解に変換。役員説明にそのまま使われるクオリティに感謝が届きました。",
+    story: [
+      { who: "小林さん", av: "av-i", ini: "小", time: "6/12 13:05", text: "この構成、文章だと伝わらなくて…図にできたりする？" },
+      { who: "YUKIYAMA", av: "av-me", ini: "Y", time: "6/12 16:30", mine: true, text: "図解版を作りました。3層構造にしています。" },
+      { who: "小林さん", av: "av-i", ini: "小", time: "6/13 15:40", thanks: true, text: "そのまま役員説明に使わせてもらった。ありがとう！" },
+    ]},
+];
+DATA.forEach((d, i) => { d.id = i; d.fav = !!d.fav; });
+
+/* =========================================================================
+   スプリング（Motion の useSpring 相当を最小実装。CDN 依存なしで動かすため）
+   ========================================================================= */
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+class Spring {
+  constructor(value, { stiffness = 260, damping = 26, mass = 1 } = {}) {
+    this.v = value; this.target = value; this.vel = 0;
+    this.k = stiffness; this.c = damping; this.m = mass;
+  }
+  set(target) { this.target = target; if (REDUCED) { this.v = target; this.vel = 0; } }
+  jump(value) { this.v = this.target = value; this.vel = 0; }
+  /** @returns {boolean} まだ動いているか */
+  step(dt) {
+    if (this.v === this.target && this.vel === 0) return false;
+    // 60fps 相当に刻んで安定させる
+    const steps = Math.min(4, Math.max(1, Math.ceil(dt / (1 / 90))));
+    const h = dt / steps;
+    for (let i = 0; i < steps; i++) {
+      const force = -this.k * (this.v - this.target) - this.c * this.vel;
+      this.vel += (force / this.m) * h;
+      this.v += this.vel * h;
+    }
+    if (Math.abs(this.vel) < 0.02 && Math.abs(this.v - this.target) < 0.02) {
+      this.v = this.target; this.vel = 0; return false;
+    }
+    return true;
+  }
+}
+
+/* 1本の rAF ループで全カードを回す */
+const engine = { items: new Set(), running: false, last: 0 };
+function kick() {
+  if (engine.running) return;
+  engine.running = true; engine.last = performance.now();
+  requestAnimationFrame(tick);
+}
+function tick(now) {
+  const dt = Math.min(0.05, (now - engine.last) / 1000) || 0.016;
+  engine.last = now;
+  let alive = false;
+  engine.items.forEach(it => { if (it.update(dt)) alive = true; });
+  if (alive) requestAnimationFrame(tick); else engine.running = false;
+}
+
+/* =========================================================================
+   カードコントローラ（チルト・浮き・光沢・登場）
+   ========================================================================= */
+const OPT = { tilt: true, glare: true };
+
+/* パターンごとのホバー挙動：
+   A/B = カード的な3Dチルト（最大6.5°）＋光沢
+   D/C = 紙として自然な動きのみ。3Dチルトなし・光沢なし。
+         静的な傾きがまっすぐに直る＋数pxのリフト＋影が少し伸びる */
+const PAT_CONF = {
+  "pat-a": { tilt: 6.5, glare: .28, liftZ: 17, liftY: 0,  straighten: false, shadY: 14, shadBlur: 22, shadA: .16 },
+  "pat-b": { tilt: 6.5, glare: .28, liftZ: 17, liftY: 0,  straighten: false, shadY: 14, shadBlur: 22, shadA: .16 },
+  "pat-d": { tilt: 0,   glare: 0,   liftZ: 0,  liftY: -3, straighten: true,  shadY: 6,  shadBlur: 14, shadA: .10 },
+  "pat-c": { tilt: 0,   glare: 0,   liftZ: 0,  liftY: -3, straighten: true,  shadY: 6,  shadBlur: 14, shadA: .10 },
+};
+let CUR_PAT = "pat-b";
+
+/* D/C：カードごとのわずかな静的傾き（deg）。Dは±1°未満に抑える */
+const BASE_ROT = {
+  "pat-c": [-0.7, 0.5, -0.3, 0.8],
+  "pat-d": [-0.8, 0.55, -0.35, 0.9, -0.5, 0.3, 0.7, -0.6],
+};
+
+/* D案：マスキングテープの角度・位置ゆらぎ（カードIDで決まる静的な値） */
+const TAPE_ROT   = [-3.6, 2.4, -1.8, 3.2, -2.6, 1.6, -4.2, 2.8];
+const TAPE_SHIFT = [-14, 10, -6, 16, 4, -18, 8, -10];
+/* 日付スタンプの傾き。手で押したように少しずつ違える */
+const STAMP_ROT  = [-2.4, -1.2, -3.1, -0.8, -2.8, -1.7, -3.4, -1.1];
+
+class CardMotion {
+  constructor(root) {
+    this.root = root;
+    this.el = root.querySelector(".card3d");
+    this.rx = new Spring(0, { stiffness: 220, damping: 22 });
+    this.ry = new Spring(0, { stiffness: 220, damping: 22 });
+    this.z  = new Spring(0, { stiffness: 260, damping: 26 });
+    this.s  = new Spring(1, { stiffness: 420, damping: 28 });
+    this.op = new Spring(0, { stiffness: 150, damping: 22 });
+    this.ty = new Spring(28, { stiffness: 150, damping: 22 });
+    this.gx = 50; this.gy = 50;
+    this.glare = new Spring(0, { stiffness: 200, damping: 26 });
+    this.lift = new Spring(0, { stiffness: 260, damping: 24 });  // D/C：紙のリフト（px, 負が上）
+    this.rz   = new Spring(0, { stiffness: 170, damping: 19 });  // 静的な傾き（ホバーでまっすぐに直る）
+    this.baseRot = 0;
+    engine.items.add(this);
+    this.bind();
+  }
+
+  bind() {
+    const r = this.root;
+    r.addEventListener("pointermove", e => {
+      const conf = PAT_CONF[CUR_PAT];
+      if (!OPT.tilt || !conf.tilt || e.pointerType === "touch") return;
+      const b = r.getBoundingClientRect();
+      const px = (e.clientX - b.left) / b.width;
+      const py = (e.clientY - b.top) / b.height;
+      this.ry.set((px - .5) * 2 * conf.tilt);
+      this.rx.set(-(py - .5) * 2 * conf.tilt);
+      this.gx = px * 100; this.gy = py * 100;
+      kick();
+    });
+    r.addEventListener("pointerenter", () => {
+      const conf = PAT_CONF[CUR_PAT];
+      this.z.set(conf.liftZ);
+      this.lift.set(conf.liftY);
+      if (conf.straighten) this.rz.set(0);            // 紙：傾きがまっすぐに直る
+      if (OPT.glare && conf.glare) this.glare.set(conf.glare);
+      kick();
+    });
+    r.addEventListener("pointerleave", () => {
+      this.rx.set(0); this.ry.set(0); this.z.set(0); this.lift.set(0);
+      this.glare.set(0); this.s.set(1);
+      this.rz.set(this.baseRot);                      // 静的な傾きに戻る
+      kick();
+    });
+    r.addEventListener("pointerdown", () => { this.s.set(.97); kick(); });
+    ["pointerup", "pointercancel"].forEach(t =>
+      r.addEventListener(t, () => { this.s.set(1); kick(); }));
+  }
+
+  enter(delay = 0) {
+    setTimeout(() => { this.op.set(1); this.ty.set(0); kick(); }, delay);
+  }
+
+  update(dt) {
+    let a = false;
+    [this.rx, this.ry, this.z, this.s, this.op, this.ty, this.glare, this.lift, this.rz]
+      .forEach(sp => { if (sp.step(dt)) a = true; });
+
+    this.el.style.transform =
+      `translate3d(0, ${(this.ty.v + this.lift.v).toFixed(2)}px, 0) ` +
+      `rotateX(${this.rx.v.toFixed(2)}deg) rotateY(${this.ry.v.toFixed(2)}deg) ` +
+      `rotateZ(${this.rz.v.toFixed(2)}deg) ` +
+      `translateZ(${this.z.v.toFixed(2)}px) scale(${this.s.v.toFixed(3)})`;
+    this.root.style.opacity = this.op.v.toFixed(3);
+
+    // 影は傾きに合わせて反対側へ流し、リフト（負のY）で少し伸ばす
+    const conf = PAT_CONF[CUR_PAT];
+    const tref = conf.tilt || 6.5;
+    const sx = (-this.ry.v / tref) * 8;
+    const sy = conf.shadY + (this.rx.v / tref) * 8 + this.z.v * .35 - this.lift.v * 1.4;
+    const blur = conf.shadBlur + this.z.v * .8 - this.lift.v * 2.4;
+    this.el.style.boxShadow = `${sx.toFixed(1)}px ${sy.toFixed(1)}px ${blur.toFixed(1)}px rgba(0,0,0,${(conf.shadA + this.z.v * .002 - this.lift.v * .008).toFixed(3)})`;
+
+    this.root.style.setProperty("--gx", this.gx + "%");
+    this.root.style.setProperty("--gy", this.gy + "%");
+    this.root.style.setProperty("--glare", this.glare.v.toFixed(3));
+    return a;
+  }
+}
+
+/* =========================================================================
+   カード生成
+   ========================================================================= */
+function cardHTML(d) {
+  return `
+  <div class="card3d">
+    <div class="face front">
+      <div class="glare"></div>
+      ${d.isNew ? '<div class="corner-new">NEW</div>' : ""}
+      <div class="c-head">
+        <div class="ava">${d.ini}</div>
+        <div><b>${d.who}</b><small>${d.ch}</small></div>
+      </div>
+      <div class="ava" data-center-ava>${d.ini}</div>
+      <div class="stamp-face">${d.reaction || ""}</div>
+      <div class="stamp-note">リアクションの、小さなありがとう</div>
+      <div class="say">${d.msg || ""}</div>
+      <div class="who-line">${d.who}<span class="wl-tag">　/　${d.tag}</span></div>
+      <div class="c-foot"><span class="tagpill">${d.tag}</span><span class="c-time">${d.time}</span></div>
+      ${d.myMemo ? '<div class="memo-dot" title="じぶんのメモあり"></div>' : ""}
+    </div>
+  </div>`;
+}
+
+/** 中身の量からカードの見せ方を決める */
+function cardKind(d) {
+  if (d.reaction) return "kind-stamp";
+  const len = String(d.msg || "").replace(/<br>/g, "").length;
+  if (len <= 14) return "kind-short";
+  if (len >= 54) return "kind-long";
+  return "kind-mid";
+}
+
+function buildCard(d) {
+  const [cc, ci] = TAGS[d.tag] || ["--c-speed", "--i-speed"];
+  const root = document.createElement("div");
+  root.className = "card " + cardKind(d);
+  root.tabIndex = 0;
+  root.setAttribute("role", "button");
+  root.setAttribute("aria-label", d.reaction
+    ? `${d.who}からのリアクション ${d.reaction} の詳細を開く`
+    : `${d.who}からの「${String(d.msg).replace(/<br>/g, "")}」の詳細を開く`);
+  root.style.setProperty("--cc", `var(${cc})`);
+  root.style.setProperty("--ci", `var(${ci})`);
+  root.style.setProperty("--tape-rot", TAPE_ROT[d.id % TAPE_ROT.length] + "deg");
+  root.style.setProperty("--tape-shift", TAPE_SHIFT[d.id % TAPE_SHIFT.length] + "px");
+  // 日付スタンプの傾きと、かすれ具合（マスクのずらし）をカードごとに散らす
+  root.style.setProperty("--stamp-rot", STAMP_ROT[d.id % STAMP_ROT.length] + "deg");
+  root.style.setProperty("--stamp-shift", (d.id * 37 % 120) + "px");
+  root.style.opacity = "0";          // 登場アニメの初期値（1フレーム目のちらつき防止）
+  root.innerHTML = cardHTML(d);
+  root.dataset.id = d.id;
+
+  const m = new CardMotion(root);
+  root._m = m;
+  root._d = d;
+
+  root.addEventListener("click", () => openThread(d, root));
+  root.addEventListener("keydown", e => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); root.click(); }
+  });
+  return root;
+}
+
+/* =========================================================================
+   アルバムグリッド
+   ========================================================================= */
+function buildGrid() {
+  const grid = document.getElementById("grid");
+  grid.querySelectorAll(".card").forEach(el => engine.items.delete(el._m));
+  grid.innerHTML = "";
+  let last = null, n = 0;
+  DATA.forEach(d => {
+    if (d.month !== last) {
+      const h = document.createElement("div");
+      h.className = "month"; h.textContent = d.month;
+      grid.appendChild(h); last = d.month;
+    }
+    const el = buildCard(d);
+    grid.appendChild(el);
+    el._m.enter(140 + (n++) * 55);
+  });
+}
+
+/** 削除後などにグリッドを作り直す（現在のパターン設定を維持） */
+function rebuildAll() {
+  buildGrid();
+  setPattern(CUR_PAT);
+}
+
+/* =========================================================================
+   拡大詳細モーダル（カードから立ち上がるように出す。チルト・光沢は適用しない）
+   ========================================================================= */
+const escHTML = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+
+/* 外部（Slack / Teams）へ出ることを示すアイコン */
+const EXT_ICON = `<svg class="ext-icon" viewBox="0 0 16 16" aria-hidden="true">
+  <path d="M6.5 3H3.8C3.3 3 3 3.3 3 3.8v8.4c0 .5.3.8.8.8h8.4c.5 0 .8-.3.8-.8V9.5"
+        fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M9.5 2.8H13v3.5M12.8 3 7.6 8.2"
+        fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`;
+
+function openThread(d, fromCard) {
+  const [cc, ci] = TAGS[d.tag] || ["--c-speed", "--i-speed"];
+  const ov = document.createElement("div");
+  ov.className = "overlay";
+  ov.style.setProperty("--cc", `var(${cc})`);
+  ov.style.setProperty("--ci", `var(${ci})`);
+  ov.innerHTML = `
+    <div class="sheet" role="dialog" aria-modal="true" aria-label="${d.who}からの「ありがとう」の詳細">
+      <div class="sheet-head">
+        <div class="ava" style="width:34px;height:34px;font-size:13px;box-shadow:none;transform:none;">${d.ini}</div>
+        <div><b>${d.who}</b><small>${d.ch}</small></div>
+        <span class="sheet-time">${d.time}</span>
+        <button class="sheet-close" aria-label="閉じる">✕</button>
+      </div>
+      <div class="sheet-body">
+        <div class="sheet-sec">オブリエのメモ</div>
+        <p class="sheet-summary">${d.summary}</p>
+        <div class="sheet-sec">やり取りの流れ</div>
+        ${d.story.map(s => `
+          <div class="bub-row ${s.mine ? "mine" : ""} ${s.thanks ? "is-thanks" : ""}">
+            <div class="ava" style="box-shadow:none;transform:none;">${s.ini}</div>
+            <div class="bub">
+              <div class="bub-name">${s.who}<span>${s.time}</span></div>
+              <div class="bub-text">${s.text}</div>
+              ${s.thanks ? '<div class="thanks-flag">この言葉を保存しました</div>' : ""}
+            </div>
+          </div>`).join("")}
+        <div class="sheet-actions">
+          <button class="mini-btn" data-open-src>${d.src}で開く${EXT_ICON}</button>
+          <button class="mini-btn fav-btn" data-mfav aria-pressed="${d.fav}">★ お気に入り</button>
+        </div>
+        <div class="sheet-sec">じぶんのメモ</div>
+        <textarea class="memo-ta" data-memo placeholder="気づいたことを、じぶんのために残しておけます">${escHTML(d.myMemo || "")}</textarea>
+        <div class="memo-row">
+          <small>このメモはあなただけに表示されます</small>
+          <button class="mini-btn" data-save-memo>保存</button>
+        </div>
+        <div class="sheet-danger">
+          <button class="danger-btn" data-del>このカードを削除する</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+
+  // 詳細内の操作
+  ov.querySelector("[data-open-src]").addEventListener("click", () =>
+    toast("元のメッセージを開きます（モック）"));
+
+  const favBtn = ov.querySelector("[data-mfav]");
+  favBtn.addEventListener("click", () => {
+    d.fav = !d.fav;
+    favBtn.setAttribute("aria-pressed", String(d.fav));
+    toast(d.fav ? "お気に入りに登録しました" : "お気に入りを外しました");
+  });
+
+  ov.querySelector("[data-save-memo]").addEventListener("click", () => {
+    d.myMemo = ov.querySelector("[data-memo]").value.trim();
+    // カード表面のメモドットへ反映（束・グリッドの両方）
+    document.querySelectorAll(`.card[data-id="${d.id}"]`).forEach(card => {
+      let dot = card.querySelector(".memo-dot");
+      if (d.myMemo && !dot) {
+        dot = document.createElement("div");
+        dot.className = "memo-dot"; dot.title = "じぶんのメモあり";
+        card.querySelector(".front").appendChild(dot);
+      }
+      if (!d.myMemo && dot) dot.remove();
+    });
+    toast("じぶんのメモを保存しました");
+  });
+
+  ov.querySelector("[data-del]").addEventListener("click", () => {
+    if (!confirm("削除すると、あとから元に戻すことはできません。このカードを削除しますか？")) return;
+    const i = DATA.indexOf(d);
+    if (i >= 0) DATA.splice(i, 1);
+    close();
+    rebuildAll();
+    toast("カードを削除しました");
+  });
+
+  // カードがめくれながら中央へ飛び、拡大して詳細になる
+  const flight = openFlight(ov, fromCard);
+  const onEsc = e => { if (e.key === "Escape") close(); };
+  const close = () => { document.removeEventListener("keydown", onEsc); flight.close(); };
+  ov.addEventListener("click", e => { if (e.target === ov || e.target.closest(".sheet-close")) close(); });
+  document.addEventListener("keydown", onEsc);
+}
+
+/* =========================================================================
+   カード → 詳細のフライトアニメーション
+
+   前半：カードの複製が、その場から中央へ飛びながら rotateY 0→90° まで回る
+   後半：90°で面が入れ替わり、詳細シートが -90°→0° に開きながら
+         カードの大きさから本来の大きさへ拡大する
+   閉じるときは、この逆をたどる
+   ========================================================================= */
+const FLY_OUT = 170;   // 前半：カードが中間地点まで飛び、真横を向くまで
+const FLY_IN  = 180;   // 後半：詳細が残り半分を進みながら開き切るまで
+const PERSP   = "perspective(1600px)";
+const HANDOFF = 24;    // 表と裏の入れ替わりを重ねる時間
+/* 前半は等速（直線的に移動しながら回る）。後半は同じ速さで受けて最後だけ減速する。
+   後半の始まりの傾きを1にしてあるので、前後半のつなぎ目で速度が飛ばない */
+const EASE_1  = "linear";
+const EASE_2  = "cubic-bezier(.33,.33,.5,1)";
+
+function openFlight(ov, card) {
+  const sheet = ov.querySelector(".sheet");
+
+  if (REDUCED) {   // モーション無効時は素直に出す
+    return { close: () => ov.remove() };
+  }
+
+  // カードの複製を作って飛ばす。オーバーレイの外（body直下）に置くことで、
+  // オーバーレイのフェードインに巻き込まれて一瞬消えるのを防ぐ
+  const clone = card.cloneNode(true);
+  const c3 = clone.querySelector(".card3d");
+  clone.classList.add("fly-card");
+  document.body.appendChild(clone);
+  card.style.visibility = "hidden";
+
+  // 複製はホバー中の傾き・浮きをそのまま引き継いでから、水平に戻す
+  // （いきなり無変形にすると押した瞬間にカードが跳ねて見える）
+  c3.animate([{ transform: c3.style.transform || "none" }, { transform: "none" }],
+    { duration: FLY_OUT, easing: "ease-out", fill: "forwards" });
+  c3.style.boxShadow = "0 18px 40px rgba(20,26,40,.28)";
+  clone.style.setProperty("--glare", "0");
+
+  const place = () => {
+    const r = card.getBoundingClientRect();
+    Object.assign(clone.style, {
+      left: r.left + "px", top: r.top + "px",
+      width: r.width + "px", height: r.height + "px",
+    });
+    return r;
+  };
+
+  /** カード中心 → シート中心の道のりを測る。半分ずつ前半・後半で進む */
+  const measure = () => {
+    const r = place();
+    const s = sheet.getBoundingClientRect();
+    const dx = (s.left + s.width / 2) - (r.left + r.width / 2);
+    const dy = (s.top + s.height / 2) - (r.top + r.height / 2);
+    return {
+      halfX: dx / 2, halfY: dy / 2,
+      grow: Math.min(1.3, (s.width / r.width) * .55),   // 前半で少しだけ大きくなる
+      shrink: r.width / s.width,                        // 後半の開始サイズ＝カード幅
+    };
+  };
+
+  const m = measure();
+  // 前半：中間地点まで進みながら 0°→90°
+  const cardOut = [
+    { transform: `${PERSP} translate(0, 0) rotateY(0deg) scale(1)` },
+    { transform: `${PERSP} translate(${m.halfX}px, ${m.halfY}px) rotateY(90deg) scale(${m.grow})` },
+  ];
+  // 後半：中間地点から残り半分を進みながら -90°→0°、カード幅から本来の幅へ
+  const sheetIn = [
+    { transform: `translate(${-m.halfX}px, ${-m.halfY}px) rotateY(-90deg) scale(${m.shrink})`, opacity: 1 },
+    { transform: "none", opacity: 1 },
+  ];
+
+  ov.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 180, easing: "ease-out" });
+  const a1 = clone.animate(cardOut, { duration: FLY_OUT, easing: EASE_1, fill: "forwards" });
+  a1.onfinish = () => { clone.style.visibility = "hidden"; };
+  // 入れ替わりを少しだけ重ねる。ちょうど90°では厚みが消えて何も映らない一瞬ができるため
+  sheet.animate(sheetIn, { duration: FLY_IN, delay: FLY_OUT - HANDOFF, easing: EASE_2, fill: "backwards" });
+
+  let closing = false;
+  const close = () => {
+    if (closing) return;
+    closing = true;
+    const m2 = measure();   // スクロールしている場合があるので測り直す
+    // 畳み終わった詳細は消す。真横向きでも薄い板として残り、
+    // 戻ってくるカードと二枚に見えてしまうため
+    sheet.animate([
+      { transform: "none", opacity: 1 },
+      { transform: `translate(${-m2.halfX}px, ${-m2.halfY}px) rotateY(-90deg) scale(${m2.shrink})`, opacity: 1 },
+    ], { duration: FLY_IN, easing: EASE_1, fill: "forwards" })
+      .onfinish = () => { sheet.style.visibility = "hidden"; };
+
+    // 複製は、詳細が畳み終わる直前まで隠しておく。
+    // 先に出すと、畳まれていく詳細と真横向きの複製が同時に見えて二枚に見える
+    setTimeout(() => { clone.style.visibility = ""; }, Math.max(0, FLY_IN - HANDOFF));
+    clone.animate([
+      { transform: `${PERSP} translate(${m2.halfX}px, ${m2.halfY}px) rotateY(90deg) scale(${m2.grow})` },
+      { transform: `${PERSP} translate(0, 0) rotateY(0deg) scale(1)` },
+    ], { duration: FLY_OUT, delay: FLY_IN, easing: EASE_2, fill: "both" })
+      // カードを戻すのと複製を消すのを同じ瞬間にやり、入れ替わりのちらつきを防ぐ
+      .onfinish = () => { card.style.visibility = ""; clone.remove(); ov.remove(); };
+
+    ov.animate([{ opacity: 1 }, { opacity: 0 }], {
+      duration: FLY_IN + FLY_OUT, easing: "ease-in", fill: "forwards",
+    });
+  };
+  return { close };
+}
+
+/* =========================================================================
+   トースト
+   ========================================================================= */
+let toastTimer = null;
+function toast(msg) {
+  document.querySelectorAll(".toast").forEach(t => t.remove());
+  const t = document.createElement("div");
+  t.className = "toast"; t.textContent = msg;
+  document.body.appendChild(t);
+  if (!REDUCED) t.animate([{ opacity: 0, transform: "translate(-50%, 10px)" }, { opacity: 1, transform: "translate(-50%, 0)" }], { duration: 240, easing: "ease-out" });
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    if (REDUCED) return t.remove();
+    t.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200 }).onfinish = () => t.remove();
+  }, 1800);
+}
+
+/* =========================================================================
+   コントロール
+   ========================================================================= */
+/** モーションを持つ実カードだけを返す（飛行中の複製 .fly-card は含めない） */
+const cards = () => [...document.querySelectorAll(".card")].filter(el => el._m);
+
+function setPattern(pat) {
+  CUR_PAT = pat;
+  document.body.classList.remove("pat-a", "pat-b", "pat-c", "pat-d");
+  document.body.classList.add(pat);
+  const conf = PAT_CONF[pat];
+  // D・C（紙）はカードを少しずつ傾けて紙束らしく見せる
+  // （.fly-card は cloneNode で作った複製でモーションを持たないため除く）
+  cards().forEach((el, i) => {
+    const rots = BASE_ROT[pat];
+    el._m.baseRot = rots ? rots[i % rots.length] : 0;
+    el._m.rz.set(el._m.baseRot);
+    if (!conf.tilt) { el._m.rx.set(0); el._m.ry.set(0); }   // D/C：3Dチルト無効
+    if (!conf.glare) el._m.glare.set(0);                    // D/C：光沢なし
+  });
+  // 中央の大きいアバターは A・B・D（C は左寄せの送り主行を使う）
+  document.querySelectorAll("[data-center-ava]").forEach(a => {
+    a.style.display = pat === "pat-c" ? "none" : "";
+  });
+  kick();
+}
+function setTheme(theme) {
+  document.body.classList.toggle("theme-paper", theme === "theme-paper");
+}
+function wireSeg(id, fn, attr) {
+  const seg = document.getElementById(id);
+  seg.addEventListener("click", e => {
+    const btn = e.target.closest("button"); if (!btn) return;
+    seg.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(b === btn)));
+    fn(btn.dataset[attr]);
+  });
+}
+
+/* =========================================================================
+   起動
+   ========================================================================= */
+buildGrid();
+setPattern("pat-b");
+wireSeg("segPattern", setPattern, "pat");
+wireSeg("segTheme", setTheme, "theme");
+document.getElementById("optTilt").addEventListener("change", e => {
+  OPT.tilt = e.target.checked;
+  if (!OPT.tilt) cards().forEach(el => { el._m.rx.set(0); el._m.ry.set(0); });
+  kick();
+});
+document.getElementById("optGlare").addEventListener("change", e => {
+  OPT.glare = e.target.checked;
+  if (!OPT.glare) cards().forEach(el => el._m.glare.set(0));
+  kick();
+});
+</script>
+</body>
+</html>

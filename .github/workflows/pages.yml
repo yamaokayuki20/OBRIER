@@ -1,0 +1,52 @@
+# プロトタイプを GitHub Pages へ公開する
+#
+# 出すのは prototype/dist/ の4枚（入口・本人・上司・管理者）だけ。
+# dist/ は生成物なのでリポジトリには入れていない（.gitignore）。ここで作る。
+#
+# 動かす前に、リポジトリの Settings → Pages で
+# 「Source: GitHub Actions」を選んでおくこと。それまでは deploy が失敗する。
+name: Deploy prototype to Pages
+
+on:
+  push:
+    branches: [main]
+    # プロトタイプと生成の道具が変わったときだけ
+    paths:
+      - 'prototype/obrier-prototype-v5.html'
+      - 'tools/build-roles.mjs'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 走っている途中に次が来たら、古いほうは止める
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: 3つの役割ぶんと入口を書き出す
+        run: node tools/build-roles.mjs
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: prototype/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

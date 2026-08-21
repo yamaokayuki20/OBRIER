@@ -8,3 +8,9 @@
 # エディタ
 .vscode/
 .idea/
+
+# Claude Code session worktrees
+.claude/worktrees/
+
+# 役割ごとの書き出し（tools/build-roles.mjs の生成物。正は v5）
+prototype/dist/
