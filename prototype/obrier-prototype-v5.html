@@ -33,6 +33,10 @@
     --b-jr: #E3F1E9; --b-idea: #FBF3DC; --b-share: #FCE8E3;
     --t-speed: #A8500A; --t-doc: #1B5893; --t-coord: #12707A; --t-care: #A83A61;
     --t-jr: #1D6B43; --t-idea: #7A5A05; --t-share: #A6351A;
+    /* カードの本文はタグの濃い色ではなく、色を持たないゴシックの黒で置く
+       （2026-08-21 の作り替え。D-146）。白地で 13.6:1、いちばん濃い地
+       （--b-speed #FDEEE0）でも 12.0:1 */
+    --card-ink: #2B2B2B;
 
     /* アバター＝全員この1色。拡大詳細の文字色もこの濃紺に揃える */
     --ava: #3A4A66;
@@ -46,8 +50,10 @@
     --navy: #3A4A66; --navy-soft: #5c6884; --navy-line: #dfe4ed; --navy-bg: #f2f4f8;
 
 
-    /* ステージ（白地×薄い青の方眼） */
-    --bg: #ffffff;
+    /* ステージ（うすいグレーの地×薄い青の方眼）。
+       白だとカードの上半分（白）と地の境目が消えるので、地を一段落とす
+       （2026-08-21 ユーザー指示 #F6F6F6。D-146） */
+    --bg: #F6F6F6;
     --grid-line: rgba(90,143,216,.13);
     --stage-ink: #2c3345;
     /* 以前は rgba(44,51,69,.62) で薄めていたが、背景が白・薄青方眼・パネル面と
@@ -156,9 +162,13 @@
   .tab.active { background: var(--stage-ink); color: #fff; font-weight: 700; }
   .spacer { flex: 1; }
   .seg { display: flex; border: 1px solid color-mix(in srgb, var(--stage-ink) 24%, transparent); border-radius: 999px; overflow: hidden; flex: none; }
-  .seg button { font-family: inherit; font-size: var(--fs-cap); padding: 6px 12px; border: none; cursor: pointer; background: transparent; color: var(--stage-ink); opacity: .68; white-space: nowrap; }
-  .seg button:hover { background: color-mix(in srgb, var(--stage-ink) 9%, transparent); opacity: 1; }
-  .seg button[aria-pressed="true"] { background: var(--stage-ink); color: #fff; opacity: 1; font-weight: 700; }
+  /* 選んでいないほうは、透過（opacity）ではなく色そのもので薄くする。
+     透過だと乗る場所によって比が変わり、地を #ffffff から #F6F6F6 へ落としたとき
+     4.60:1 → 4.49:1 と基準を割った（D-148）。--stage-ink-soft は
+     どの地でも 4.5:1 を上回るよう決めてある色（#F6F6F6 で 5.46:1） */
+  .seg button { font-family: inherit; font-size: var(--fs-cap); padding: 6px 12px; border: none; cursor: pointer; background: transparent; color: var(--stage-ink-soft); white-space: nowrap; }
+  .seg button:hover { background: color-mix(in srgb, var(--stage-ink) 9%, transparent); color: var(--stage-ink); }
+  .seg button[aria-pressed="true"] { background: var(--stage-ink); color: #fff; font-weight: 700; }
   .me { display: flex; align-items: center; gap: 8px; font-size: var(--fs-ui); color: var(--stage-ink-soft); flex: none; }
   /* 自己診断の結果パネル */
   .diag { position: fixed; right: 16px; bottom: 16px; z-index: 90; width: min(360px, calc(100vw - 32px));
@@ -276,8 +286,8 @@
      静止中のカードは平面として置く。アバターの浮き（translateZ）が効くのは
      傾いている間だけなので、静止中の見た目は変わらない
      （画素で比較して差はにじみ止めの効き方のみ。層でなくなるぶん文字はむしろ鮮明） */
-  .card3d { position: relative; transform-style: flat; transition: box-shadow .25s ease; border-radius: 12px; }
-  .face { border-radius: 12px; transform-style: flat; }
+  .card3d { position: relative; transform-style: flat; transition: box-shadow .25s ease; border-radius: 16px; }
+  .face { border-radius: 16px; transform-style: flat; }
   .card3d.live, .card3d.live .face { transform-style: preserve-3d; }
   .card3d.live { will-change: transform; }
   /* カードの高さは全枚そろえる。中身の量で丈がばらつかないようにする */
@@ -286,9 +296,18 @@
        これが無いと波紋の基準がひとつ外側の .card3d になり、
        .front の overflow では切り取られずカードの外まではみ出す */
     position: relative;
-    /* 地は場面タグの淡い同系色。上端の帯はやめた——面ぜんたいが色を持つので、
-       帯があると同じことを二度言うことになる */
-    background: var(--cb); color: var(--ct); border-radius: 12px;
+    /* 地は「上は白、下だけ場面タグの淡い同系色」。参考にしたデザインのとおり、
+       本文は白のところに置き、足もと（名前・タグ・日付）だけが色を持つ。
+       境目は作らず、面の半ばから下へ向かってゆっくり色が差す（D-146）。
+       色は --cb（場面タグの淡い同系色）のまま。文字色 --ct は
+       足もとのタグと日付が使う——本文は色を持たない黒（--card-ink） */
+    /* 地の色（background-color）は白を必ず置いておくこと。
+       グラデーションだけで塗ると background-color は transparent のままになり、
+       「この紙は何色の上にあるか」を辿る側（判定器・支援技術・複製）が
+       紙を素通りして後ろの幕まで行ってしまう（新着の束で実際にそうなった。D-148） */
+    background-color: #fff;
+    background-image: linear-gradient(180deg, #fff 0%, #fff 52%, var(--cb) 82%, var(--cb) 100%);
+    color: var(--ct); border-radius: 16px;
     /* 丈は名刺（91×55mm）と同じ縦横比で決める。高さを固定しないので
        幅なりに伸び縮みするが、同じ行に並ぶ札はどれも同じ幅＝同じ丈になり、
        「全枚そろえる」（設計原則5）はそのまま保たれる */
@@ -348,21 +367,29 @@
   /* 奥行きを持たせるのはアバターだけ。地が紙ではなく淡い色になったので、
      まわりの白リングも地の色に合わせる */
   .ava {
-    width: 38px; height: 38px; border-radius: 50%; flex: none; background: var(--ava);
+    width: 34px; height: 34px; border-radius: 50%; flex: none; background: var(--ava);
     display: grid; place-items: center; color: #fff; font-size: var(--fs-cap); font-weight: 800;
     box-shadow: 0 0 0 3px var(--cb), 0 3px 8px rgba(58,74,102,.20);
     transform: translateZ(20px); position: relative; z-index: 2;
   }
-  /* 本文は明朝（セリフ）。参考にしたデザインの、いちばん効いている部分 */
+  /* 本文はゴシック（画面ぜんたいと同じ書体）の黒。色は場面タグから外した——
+       色を持つのは足もと（タグのピルと日付）だけで、言葉そのものは黒で読む（D-146） */
   .say {
-    font-family: var(--serif);
+    font-family: inherit; color: var(--card-ink);
     font-weight: 500; letter-spacing: .015em; line-height: 1.6; font-size: 17px;
     text-align: left; position: relative; z-index: 2;
     display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden;
   }
-  /* お気に入りの★は右上に出る。左寄せの本文が★の下へ潜らないよう、
-     ★があるカードだけ本文の右をあけておく */
-  .front:has(.fav-seal) .say { padding-right: 20px; }
+  /* 印（NEW・お気に入りの★・メモ）は右上に一列で並べる。
+     足もとの右は日付が使うので、以前のように下へは置けない（D-146）。
+     左寄せの本文が印の下へ潜らないよう、出ている印のぶんだけ右をあける */
+  .c-marks {
+    position: absolute; top: 11px; right: 13px; z-index: 5;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .front:has(.fav-seal) .say { padding-right: 22px; }
+  .front:has(.corner-new) .say { padding-right: 58px; }
+  .front:has(.corner-new):has(.fav-seal) .say { padding-right: 80px; }
 
   /* ---- 中身の量でカードの見せ方を変える ----
      丈は変えず、行数で受け止める。長文は…で止めて、全文は拡大詳細で読む。
@@ -373,35 +400,40 @@
      12.5px は付随情報の下限（12px）の内側 */
   .kind-xlong .say { font-size: 12.5px; line-height: 1.6; -webkit-line-clamp: 6; }
   /* 足もとは左寄せ。左に顔写真、右に名前、名前の下に場面タグ。
-     日付は出さない——いつ届いたかは拡大詳細に出る */
+     いちばん右に日付（D-146。2026-08-21 の作り替えで戻した） */
   .c-foot {
     display: flex; align-items: center; gap: 10px;
     margin-top: auto; padding-top: 12px; position: relative; z-index: 2;
   }
-  .c-who { line-height: 1.3; min-width: 0; }
-  .c-who b { display: block; font-size: var(--fs-cap); font-weight: 700; color: var(--ink);
+  .c-who { line-height: 1.35; min-width: 0; }
+  .c-who b { display: block; font-size: var(--fs-cap); font-weight: 700; color: var(--card-ink);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  /* 場面タグはタグらしく。地は白を強めに敷いて、文字はカードと同じ濃い同系色。
-     淡いカード地の上でも、白地に対する比（5.5〜8:1）がそのまま効く */
+  /* 場面タグはタグらしく。地は白いピルで、文字はカードと同じ濃い同系色。
+     白地に対する比（5.5〜8:1）がそのまま効く */
   .c-tag {
-    display: inline-block; margin-top: 3px;
+    display: inline-block; margin-top: 4px;
     font-size: var(--fs-note); font-weight: 600; letter-spacing: .02em;
-    color: var(--ct); background: rgba(255,255,255,.82);
-    border: 1px solid color-mix(in srgb, var(--ct) 22%, transparent);
-    border-radius: 999px; padding: 2px 9px;
+    color: var(--ct); background: #fff;
+    border-radius: 999px; padding: 3px 10px;
   }
+  /* 日付は足もとのいちばん右。地（--cb）の上のタグ色（--ct）で 4.84:1 以上 */
+  .c-date {
+    margin-left: auto; flex: none; align-self: flex-end;
+    font-size: var(--fs-note); font-weight: 600; letter-spacing: .04em;
+    color: var(--ct); font-variant-numeric: tabular-nums;
+  }
+  /* NEW は白い面の上に出るので、地を白から場面タグの淡い色に変える
+     （白地に白では印にならない）。文字は同じ濃い同系色で 4.84:1 以上 */
   .corner-new {
-    position: absolute; bottom: 20px; right: 22px; z-index: 5;
-    font-size: var(--fs-note); font-weight: 800; letter-spacing: .14em; border-radius: 999px; padding: 4px 10px;
-    background: rgba(255,255,255,.86); color: var(--ct);
+    flex: none;
+    font-size: var(--fs-note); font-weight: 800; letter-spacing: .14em; border-radius: 999px; padding: 3px 9px;
+    background: var(--cb); color: var(--ct);
   }
   /* お気に入り済みの目印は装飾ではなく情報なので、淡い金 #ffd66b（白地で1.37:1）
      ではなく、拡大詳細のお気に入りの印（.fav-mark）と同じ濃い琥珀色に揃えた */
-  .fav-seal { position: absolute; top: 12px; right: 14px; z-index: 5; font-size: var(--fs-body); color: #8a6410; transform: rotate(9deg); }
-  .memo-dot { position: absolute; bottom: 27px; right: 22px; z-index: 5; width: 8px; height: 8px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 3px color-mix(in srgb, var(--ct) 30%, transparent); }
-  /* NEW と一緒に出る札では、印どうしが重ならないよう上へ逃がす
-     （NEW はカードのHTMLに、メモの印はそのあとに足されるので、この順で当たる） */
-  .corner-new ~ .memo-dot { bottom: 56px; }
+  .fav-seal { flex: none; font-size: var(--fs-body); line-height: 1; color: #8a6410; transform: rotate(9deg); }
+  /* メモの印。白い面の上に出るので、白い玉ではなく濃い同系色の玉にする */
+  .memo-dot { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--ct); }
 
 
   /* ========================================================================
@@ -2887,7 +2919,7 @@ async function diagOnce(waitMs) {
      ・自己診断     … Alt + Shift + D（状態デモの Alt+Shift+S と同じ流儀）
    自己診断は押しボタンの文字を進み具合の表示に使うので、
    ボタンが無いときは同じ形をした仮の入れ物を渡す */
-const REV = "rev.35 公開の入口と ?role=";
+const REV = "rev.37 カードを参考デザインに作り替え";
 window.__rev = REV;
 document.addEventListener("keydown", e => {
   if (e.altKey && e.shiftKey && (e.key === "D" || e.key === "d")) {
@@ -4080,19 +4112,37 @@ document.addEventListener("error", e => {
   if (el instanceof HTMLImageElement && el.classList.contains("ava-photo")) el.remove();
 }, true);
 
+/** カードの足もとに出す日付。
+    データが持っているのは表示用の文字列（`6/30 11:04` `たった今 15:58`）だけで、
+    正確な日付は持っていない。M/D が読めるものは月（`2026年 7月`）から年を取って
+    `2026.06.30` に組み、読めないもの（たった今・昨日）はその言葉のまま出す。
+    無い日付を作らないこと——時刻はカードには出さない（詳細に出る） */
+function cardWhen(d) {
+  const md = String(d.time || "").match(/^(\d{1,2})\/(\d{1,2})/);
+  if (md) {
+    const y = (String(d.month || "").match(/(\d{4})/) || [])[1];
+    const mm = String(md[1]).padStart(2, "0"), dd = String(md[2]).padStart(2, "0");
+    return y ? `${y}.${mm}.${dd}` : `${mm}.${dd}`;
+  }
+  return String(d.time || "").replace(/\s*\d{1,2}:\d{2}\s*$/, "");
+}
+
 function cardHTML(d, opts) {
   return `
   <div class="card3d">
     <div class="face front">
       <div class="glare"></div>
-      ${d.isNew ? '<div class="corner-new">NEW</div>' : ""}
-      ${(opts.fav && d.fav) ? '<div class="fav-seal" title="お気に入り">★</div>' : ""}
+      <div class="c-marks">
+        ${d.isNew ? '<span class="corner-new">NEW</span>' : ""}
+        ${(opts.fav && d.fav) ? '<span class="fav-seal" title="お気に入り">★</span>' : ""}
+        ${(opts.memo && d.myMemo) ? '<span class="memo-dot" title="じぶんのメモあり"></span>' : ""}
+      </div>
       <div class="say">${d.msg || ""}</div>
       <div class="c-foot">
         <div class="ava">${avaFace(d.who, d.ini)}</div>
         <div class="c-who"><b>${d.who}</b><span class="c-tag">${d.tag}</span></div>
+        <span class="c-date">${cardWhen(d)}</span>
       </div>
-      ${(opts.memo && d.myMemo) ? '<div class="memo-dot" title="じぶんのメモあり"></div>' : ""}
     </div>
   </div>`;
 }
@@ -4102,15 +4152,16 @@ function cardHTML(d, opts) {
     レイアウトを動かさないので、裏返りの着地位置にも影響しない */
 function syncFavSeal(cardEl, d) {
   if (!cardEl) return;
-  const face = cardEl.querySelector(".front");
-  if (!face) return;
-  const cur = face.querySelector(".fav-seal");
+  /* 印は右上の一列（.c-marks）の中。NEW のあと・メモの印の前に挿す */
+  const marks = cardEl.querySelector(".c-marks");
+  if (!marks) return;
+  const cur = marks.querySelector(".fav-seal");
   if (d.fav && !cur) {
-    const s = document.createElement("div");
+    const s = document.createElement("span");
     s.className = "fav-seal";
     s.title = "お気に入り";
     s.textContent = "★";
-    face.appendChild(s);
+    marks.insertBefore(s, marks.querySelector(".memo-dot"));
   } else if (!d.fav && cur) {
     cur.remove();
   }
