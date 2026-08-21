@@ -58,8 +58,8 @@ const INDEX = (logo) => `<!doctype html>
   a.card:hover { border-color: #b9c4d8; box-shadow: 0 10px 26px rgba(20,26,40,.10); transform: translateY(-2px); }
   a.card:focus-visible { outline: 2px solid var(--navy); outline-offset: 3px; }
   .ico { width: 44px; height: 44px; border-radius: 12px; background: #f2f5fa; display: grid; place-items: center; flex: none; }
-  .t { font-size: 19px; font-weight: 700; }
-  .d { font-size: 14px; color: var(--soft); line-height: 1.7; margin-top: 3px; }
+  .t { display: block; font-size: 19px; font-weight: 700; }
+  .d { display: block; font-size: 14px; color: var(--soft); line-height: 1.7; margin-top: 3px; }
   .arw { margin-left: auto; color: var(--soft); }
   footer { margin-top: 40px; font-size: 13px; line-height: 1.9; color: var(--soft); }
 </style>
